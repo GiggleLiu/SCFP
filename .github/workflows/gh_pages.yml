@@ -45,7 +45,8 @@ jobs:
         uses: Swatinem/rust-cache@v2
       - name: Build Book
         run: |
-          cargo run --release --bin shiroa -- build --font-path assets/fonts --path-to-root /SCFP/ -w . book
+          cargo install --git https://github.com/Myriad-Dreamin/shiroa --locked shiroa
+          shiroa -- build --font-path assets/fonts --path-to-root /SCFP/ -w . book
       - name: Setup Pages
         uses: actions/configure-pages@v3
       - name: Upload artifact
