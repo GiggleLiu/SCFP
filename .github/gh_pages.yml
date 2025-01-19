@@ -1,10 +1,14 @@
-name: SCFP::gh_pages
+name: typst_ts::release::gh_pages
+
 on:
+  # Runs on pushes targeting the default branch
   push:
-    branches:
-      - master
+    branches: ['master']
+
+  # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
-    
+
+# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
 permissions:
   pages: write
   id-token: write
@@ -25,18 +29,24 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
-      - run: git submodule update --init --recursive
+        with:
+          submodules: recursive
       - name: Download font assets
-        # use fonts in stable releases
         run: |
-          mkdir -p assets/fonts/
-          curl -L https://github.com/Myriad-Dreamin/shiroa/releases/download/v0.1.2/font-assets.tar.gz | tar -xvz -C assets/fonts
-      - name: Download & install shiroa
-        run: |
-          curl --proto '=https' --tlsv1.2 -LsSf https://github.com/Myriad-Dreamin/shiroa/releases/download/v0.2.0/shiroa-installer.sh | sh
+          mkdir -p assets/fonts
+          curl -L https://github.com/Myriad-Dreamin/shiroa/releases/download/v0.1.0/charter-font-assets.tar.gz | tar -xvz -C assets/fonts
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+      - name: Set Node.js 18.x
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18.x
+      - name: Install Artifact Cache
+        uses: Swatinem/rust-cache@v2
       - name: Build Book
         run: |
-          shiroa build --font-path ./assets/typst-fonts/ --font-path ./assets/fonts/ --path-to-root /SCFP/ -w . book
+          cargo install --git https://github.com/Myriad-Dreamin/shiroa --locked shiroa
+          shiroa -- build --font-path assets/fonts --path-to-root /SCFP/ -w . book
       - name: Setup Pages
         uses: actions/configure-pages@v3
       - name: Upload artifact
