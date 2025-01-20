@@ -11,17 +11,18 @@
   summary: [
     #prefix-chapter("home.typ")[Home]
     = Julia programming language
-    #chapter("chap1/terminal.typ")[Get a terminal]
-    #chapter("chap1/git.typ")[Version control]
-    #chapter("chap1/julia-setup.typ")[Setup Julia]
-    #chapter("chap1/julia-why.typ")[Why Julia]
-    #chapter("chap1/julia-release.typ")[Release a package]
+    #chapter("chap1-julia/terminal.typ")[Get a terminal]
+    #chapter("chap1-julia/git.typ")[Version control]
+    #chapter("chap1-julia/julia-setup.typ")[Setup Julia]
+    #chapter("chap1-julia/julia-why.typ")[Why Julia]
+    #chapter("chap1-julia/julia-release.typ")[Release a package]
     = Matrices and tensors
-    #chapter("chap2/array.typ")[Arrays]
+    #chapter("chap2-linalg/array.typ")[Arrays]
     = Mathematical optimization
-    = Tensor networks
+    #chapter("chap3-optimization/linearprog.typ")[Linear programming]
     = Automatic differentiation
     = Quantum systems
+    #chapter("chap6-quantum/quantum-simulation.typ")[Quantum circuit]
   ]
 )
 

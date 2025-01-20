@@ -121,10 +121,10 @@
   show math.equation: set text(weight: 400)
 
   // code block setting
-  show raw: it => {
+  show raw.where(lang: "julia"): it => {
     set text(font: code-font)
     if "block" in it.fields() and it.block {
-      rect(
+      box(
         width: 100%,
         inset: (x: 4pt, y: 5pt),
         radius: 4pt,
@@ -140,6 +140,27 @@
       it
     }
   }
+
+  show raw.where(lang: "output"): it => {
+    set text(font: code-font)
+    if "block" in it.fields() and it.block {
+      rect(
+        width: 100%,
+        inset: (x: 4pt, y: 5pt),
+        radius: 4pt,
+        fill: code-extra-colors.bg.lighten(50%),
+        [
+          #set text(fill: code-extra-colors.fg) if code-extra-colors.fg != none
+          #set par(justify: false)
+          // #place(right, text(luma(110), it.lang))
+          #it
+        ],
+      )
+    } else {
+      it
+    }
+  }
+
 
   // Main body.
   set par(justify: true)
