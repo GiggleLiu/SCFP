@@ -78,9 +78,11 @@ typeof(h5_sparse), nnz(h5_sparse)/length(h5_sparse)
 
 The Krylov space method is widely used in quantum simulation. In the following we introduce the package `KrylovKit.jl` to find the eigenstates and time evolution of a quantum system.
 
+== Symmetries
+
+Quantum many-body scar.
+
 = Tensor network based simulation
 A quantum circuit is a sequence of quantum gates that act on the quantum state.
 
 To store a quantum state in a $n$ qubit system, we need a complex vector of length $2^n$.
-
-== Tensor network based simulation
