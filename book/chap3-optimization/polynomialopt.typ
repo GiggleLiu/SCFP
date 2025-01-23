@@ -16,12 +16,13 @@ For convex optimization problems, both the feasible region and the objective fun
 == Example 1: Branching and cut for solving integer programming
 Let us consider the following integer programming problem (source: #link("https://youtu.be/upcsrgqdeNQ?si=B5uilXqSrI5Jg976", "Youtube")):
 $
-  z = 5x_1 + 6x_2\
-  x_1 + x_2 <= 5\
-  4x_1 + 7x_2 <= 28\
-  x_1, x_2 >= 0\
+  z = 5x_1 + 6x_2,\
+  x_1 + x_2 <= 5,\
+  4x_1 + 7x_2 <= 28,\
+  x_1, x_2 >= 0,\
   #box(stroke: black, inset: 5pt, [$x_1, x_2 in bb(Z)$])
 $
+where the last line is the integer constraint.
 
 #figure(canvas(length:0.9cm, {
   import plot
@@ -96,7 +97,7 @@ $
 caption: [Integer programming problem. The fesible region of linear programming problem is the green area, while the feasible region of integer programming problem are the discrete points marked by small circles.],
 ) <fig:integer-programming>
 
-We first solve the linear programming problem by relaxing the integer constraint, i.e. removing $x_1, x_2 in bb(Z)$ constraint. The feasible region is the green polygon in @fig:integer-programming, and the optimal solution is the point $p_1$ at the line crossing.
+By relaxing the integer constraint, it becomes a linear programming problem that is easy to solve. The feasible region is the green polygon in @fig:integer-programming, and the optimal solution is the point $p_1$ at the line crossing.
 
 $p_1$ is not feasible for the integer programming problem due to $x_2$ being non-integer. To force the variables to be integer, we add some inequalities constraints to the linear programming problem as shown in @fig:branching-and-cutting. Since $x_2$ is non-integer, we create two sub-problems (or branches) by adding two inequalities constraints $x_2 <= 2$ and $x_2 >= 3$ to the linear programming problem.
 It turns out the sub-problem 2 with $x_2 <= 2$ accepts integer solution $p_2$ as the optimal solution. So we stop this branch and continue to solve the sub-problem 3 with $x_2 >= 3$.
@@ -196,7 +197,7 @@ You can see the result of the linear programming problem.
 ```output
 (2.3333333333333335, 2.6666666666666665, 27.666666666666668)
 ```
-By commenting the lines in the sub-problem, we can solve different sub-problems.
+By uncommenting the lines in the sub-problem, we can solve different sub-problems.
 In practice, you do not need to write the branch and cut by yourself.
 The solvers in `JuMP` package will do it for you.
 
@@ -231,7 +232,23 @@ where $sigma_i = plus.minus 1$ is the spin of the $i$-th particle, $J_(i j)$ is 
 
 Finding a spin configuration with the minimum energy is a famous NP-complete problem.
 At a first look, it is not an integer programming problem because there is a quadratic term in the energy function.
-However, it turns out that the problem can be reduced to an integer programming problem by introducing a auxiliary variable $d_(i j) = sigma_i sigma_j$.
+However, it turns out that the problem can be reduced to an integer programming problem by introducing a auxiliary variables.
+Let us first introduce some boolean variables $s_i = (1 - sigma_i) \/ 2$.
+Then we introduce auxiliary variables $d_(i j) = s_i plus.circle s_j$, which can be achieved by adding the following four linear constraints:
+$
+d_(i j) &<= s_i + s_j,\
+d_(i j) &<= 2 - s_i - s_j,\
+d_(i j) &>= s_i - s_j,\
+d_(i j) &>= s_j - s_i.
+$
+
+Finally, we have the new representation of the energy function
+$
+E = sum_(i < j) J_(i j) (1 - 2 d_(i j)) + sum_i h_i (1 - 2 s_i),
+$
+which is linear in the variables $s_i$ and $d_(i j)$.
+
+The Julia implementation is as follows:
 
 ```julia
 using JuMP, HiGHS, LinearAlgebra
@@ -293,17 +310,14 @@ $
 
 However, the inverse problem turns out to be NP-complete.
 
-#definition([_(Boolean tropical matrix factorization problem)_ Given an $m times n$ tropical matrix $C_(m times n)$ and an integer $k$, are there two Boolean matrices $A_(m times k)$ and $B_(k times n)$ such that $C = A times.circle B$.])
+#definition([_(Tropical matrix factorization problem)_ Given an $m times n$ tropical matrix $C_(m times n)$ and an integer $k$, are there two tropical matrices $A_(m times k)$ and $B_(k times n)$ such that $C = A times.circle B$.])
 
-This problem is NP-complete for $k >= 7$@Shitov2014. Even in the special case that all variables are either $-infinity$ or $0$, the problem is not easy. By mapping $-infinity$ to `false` and $0$ to `true`, we have
+This problem is NP-complete for $k >= 7$@Shitov2014. Even in the special case that all variables are either $-infinity$ or $0$, the problem is not easy. By mapping $-infinity$ to `false` and $0$ to `true`, we have the following boolean constraints:
 $
-C_(i j) = or.big_(l=1)^k A_(i l) and B_(l j)\
-c_(i) = or.big_(l=1)^k A_(i l) and b_(l)
+C_(i j) = or.big_(l=1)^k A_(i l) and B_(l j).\
 $
-if $c_i = 0$, then there exists some $l$ such that $A_(i l) = 0$ and $b_l = 0$.
-if $c_i = -infinity$, then there is no such $l$ that $A_(i l) = 0$ and $b_l = 0$.
 
-In practise, we can solve the problem by reducing it to an integer programming problem.
+It can be solved by reducing to an integer programming problem.
 To facilitate the reduction, we introduce a auxiliary tensor $D_(i l j) = A_(i l) and B_(l j)$. The resulting integer programming problem is as follows:
 
 $
