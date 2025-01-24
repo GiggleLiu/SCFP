@@ -24,28 +24,28 @@ $ <eq:linear-programming>
 
 Note here, the positivity constraint $x >= 0$ is not absolutely necessary. Adding this extra constraint does not sacrifice the generality of linear programming, because any linear program can be written into a canonical form.
 
-Its _dual problem_ is
-$
-  min_(y) &w = b^T y,\
-  "s.t." &A^T y >= c,\
-  &y >= 0\
-  &y in bb(R)^m
-$
-and the original problem is the _primal problem_. The dual of the dual is the primal.
+// Its _dual problem_ is
+// $
+//   min_(y) &w = b^T y,\
+//   "s.t." &A^T y >= c,\
+//   &y >= 0\
+//   &y in bb(R)^m
+// $
+// and the original problem is the _primal problem_. The dual of the dual is the primal.
 
-#box(stroke: black, inset: 10pt, width: 100%, [(Weak duality) If $x^*$ is optimal for the primal and $y^*$ is optimal for the dual, then $z^* <= w^*$.])
+// #box(stroke: black, inset: 10pt, width: 100%, [(Weak duality) If $x^*$ is optimal for the primal and $y^*$ is optimal for the dual, then $z^* <= w^*$.])
 
-#proof([Let $x^*$ be feasible for the primal and $y^*$ be feasible for the dual. Then we have
-$
-  z^* = c^T x^* <= y^(* T)A x^* <= y^(* T)b = w^* arrow.double.r z^* <= w^*
-$])
+// #proof([Let $x^*$ be feasible for the primal and $y^*$ be feasible for the dual. Then we have
+// $
+//   z^* = c^T x^* <= y^(* T)A x^* <= y^(* T)b = w^* arrow.double.r z^* <= w^*
+// $])
 
-What is more surprising is the fact that this inequality is in most cases an equality
+// What is more surprising is the fact that this inequality is in most cases an equality
 
-#align(center, box(stroke: 1pt, inset: 10pt, width: 100%, [(Strong duality) If $z^*$ is finite then so is $w^*$ and $z^* = w^*$.])
-)
+// #align(center, box(stroke: 1pt, inset: 10pt, width: 100%, [(Strong duality) If $z^*$ is finite then so is $w^*$ and $z^* = w^*$.])
+// )
 
-#proof([])
+// #proof([])
 
 == Integer Programming
 _Integer Programming_ is similar, but deals with *integer* variables, i.e. replacing the real variables in @eq:linear-programming with integer variables:
