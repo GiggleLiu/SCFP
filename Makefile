@@ -8,4 +8,10 @@ init:
 watch:
 	$(JL) -e 'import TypstJlyfish; TypstJlyfish.watch("book/chap6-quantum/quantum-simulation.typ"; typst_args = "--root .")'
 
-.PHONY: init watch
+build:
+	shiroa build
+
+serve:
+	shiroa serve
+
+.PHONY: init watch build serve

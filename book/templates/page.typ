@@ -55,7 +55,6 @@
   // set web/pdf page properties
   set page(
     numbering: none,
-    number-align: center,
     width: page-width,
   )
 

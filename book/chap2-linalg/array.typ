@@ -1,41 +1,37 @@
 #import "../book.typ": book-page
 
-#show: book-page.with(title: "Array")
+#show: book-page.with(title: "Manipulating array")
 
-= Arrays and Broadcasting
+= Manipulating arrays
 
-== Array Initialization and Indexing
+== Array initialization
 
 Arrays in Julia can be initialized in several ways:
 
 ```julia
-// Basic array creation
-A = [1, 2, 3]                         // vector
-B = [1 2 3; 4 5 6; 7 8 9]            // matrix
-zero_vector = zeros(3)                // zero vector
-rand_vector = randn(Float32, 3, 3)    // random normal distribution
-step_vector = collect(1:3)            // collect from range
-uninitialized_vector = Vector{Int}(undef, 3)  // uninitialized vector
+# Basic array creation
+A = [1, 2, 3]                         # vector
+B = [1 2 3; 4 5 6; 7 8 9]             # matrix
+zero_vector = zeros(3)                # zero vector
+rand_vector = randn(Float32, 3, 3)    # random normal distribution
+step_vector = collect(1:3)            # collect from range
+uninitialized_vector = Vector{Int}(undef, 3)  # uninitialized vector
 ```
 
-#box(stroke: 1pt, inset: 10pt)[
-  Unlike C, Python, and R, Julia array indexing starts from 1. This design choice aligns with mathematical notation and many scientific computing conventions.
-]
-
-Array indexing examples:
+Unlike C, Python, and R, Julia array indexing starts from 1. This design choice aligns with mathematical notation and many scientific computing conventions.
 ```julia
 A = [1, 2, 3]
-A[1]      // first element
-A[end]    // last element
-A[1:2]    // first two elements
-A[2:-1:1] // first two elements in reverse order
+A[1]      # first element
+A[end]    # last element
+A[1:2]    # first two elements
+A[2:-1:1] # first two elements in reverse order
 
 B = [1 2 3; 4 5 6; 7 8 9]
-B[1:2]        // first two elements (column-major)
-B[1:2, 1:2]   // 2×2 submatrix
+B[1:2]        # first two elements (column-major)
+B[1:2, 1:2]   # 2×2 submatrix
 ```
 
-== Broadcasting Operations
+== Map, reduction, broadcasting, filtering and searching
 
 Broadcasting in Julia provides a powerful way to apply functions element-wise across arrays. The dot syntax (`.`) indicates broadcasting:
 
@@ -53,10 +49,12 @@ y = sin.(x) .+ cos.(3 .* x)
 Use `Ref` to prevent broadcasting over an entire object:
 
 ```julia
-Ref([3,2,1,0]) .* (1:3)  // Vector treated as single value
+Ref([3,2,1,0]) .* (1:3)  # Vector treated as single value
 ```
 
-== Column-Major Array Storage
+== High dimensional array indexing and strides
+
+Column-Major Array Storage
 
 Julia stores arrays in column-major order, which can significantly impact performance.
 
@@ -68,7 +66,7 @@ Julia stores arrays in column-major order, which can significantly impact perfor
 Consider two implementations of the Frobenius norm:
 
 ```julia
-// Row-major traversal (slower)
+# Row-major traversal (slower)
 function frobenius_norm(A::AbstractMatrix)
     s = zero(eltype(A))
     @inbounds for i in 1:size(A, 1)
@@ -79,7 +77,7 @@ function frobenius_norm(A::AbstractMatrix)
     return sqrt(s)
 end
 
-// Column-major traversal (faster)
+# Column-major traversal (faster)
 function frobenius_norm_colmajor(A::AbstractMatrix)
     s = zero(eltype(A))
     @inbounds for j in 1:size(A, 2)
@@ -104,10 +102,10 @@ b1 = [1, 0]
 b2 = [0.5, sqrt(3)/2]
 n = 5
 
-// List comprehension approach
+# List comprehension approach
 mesh1 = [i * b1 + j * b2 for i in 1:n, j in 1:n]
 
-// Broadcasting approach
+# Broadcasting approach
 mesh2 = (1:n) .* Ref(b1) .+ (1:n)' .* Ref(b2)
 ```
 
@@ -116,7 +114,7 @@ mesh2 = (1:n) .* Ref(b1) .+ (1:n)' .* Ref(b2)
 //   caption: [Triangular lattice visualization]
 // )
 
-== Matrix Multiplication Performance
+== Storage and performance
 
 Matrix multiplication is fundamental in scientific computing. Julia's built-in `*` operator leverages optimized BLAS libraries:
 
@@ -124,7 +122,7 @@ Matrix multiplication is fundamental in scientific computing. Julia's built-in `
 A = randn(1000, 1000)
 B = similar(A)
 
-// Benchmark results show ~165 GFLOPS on typical hardware
+# Benchmark results show ~165 GFLOPS on typical hardware
 @benchmark $A * $B
 ```
 

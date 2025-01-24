@@ -2,27 +2,75 @@
 #import "@preview/cetz:0.2.2": canvas, draw, tree, vector, plot, decorations
 #import "@preview/ctheorems:1.1.3": *
 
-#show: book-page.with(title: "Polynomial optimization")
+#show: book-page.with(title: "Linear/Integer programming")
+#set math.equation(numbering: "(1)")
 
 #let definition = thmbox("definition", "Definition", inset: (x: 1.2em, top: 1em), base: none)
+#let proposition = thmbox("proposition", "Proposition", inset: (x: 1.2em, top: 1em), base: none)
+#let proof = thmproof("proof", "Proof")
+#let nonum(eq) = math.equation(block: true, numbering: none, eq)
 
-= Integer programming
+#align(center, [= Linear/Integer programming\
+_Jin-Guo Liu_])
 
-_Linear Programming_ deals with the problem of optimizing a *linear objective function* subject to *linear equality and inequality constraints* on *real* variables. It is a convex optimization problem, hence it is easy to solve.
+== Linear Programming
+_Linear Programming_ deals with the problem of optimizing a *linear objective function* subject to *linear equality and inequality constraints* on *real* variables. It is a convex optimization problem, hence it is easy to solve. A linear programming problem of $n$ variables is formulated as the following _canonical form_:
+$
+  max_(x) &z = c^T x,\
+  "s.t." &A x <= b,\
+  &x >= 0\
+  &#box(stroke: black, inset: 5pt, [$x in bb(R)^n$])
+$ <eq:linear-programming>
 
-_Integer Programming_ is similar, but deals with *integer* variables. It is a non-convex optimization problem, and belongs to the complexity class of NP-complete.
-For convex optimization problems, both the feasible region and the objective function are convex. However, for integer programming problems, the feasible region $bb(Z)$ is not convex.
+Note here, the positivity constraint $x >= 0$ is not absolutely necessary. Adding this extra constraint does not sacrifice the generality of linear programming, because any linear program can be written into a canonical form.
+
+Its _dual problem_ is
+$
+  min_(y) &w = b^T y,\
+  "s.t." &A^T y >= c,\
+  &y >= 0\
+  &y in bb(R)^m
+$
+and the original problem is the _primal problem_. The dual of the dual is the primal.
+
+#box(stroke: black, inset: 10pt, width: 100%, [(Weak duality) If $x^*$ is optimal for the primal and $y^*$ is optimal for the dual, then $z^* <= w^*$.])
+
+#proof([Let $x^*$ be feasible for the primal and $y^*$ be feasible for the dual. Then we have
+$
+  z^* = c^T x^* <= y^(* T)A x^* <= y^(* T)b = w^* arrow.double.r z^* <= w^*
+$])
+
+What is more surprising is the fact that this inequality is in most cases an equality
+
+#align(center, box(stroke: 1pt, inset: 10pt, width: 100%, [(Strong duality) If $z^*$ is finite then so is $w^*$ and $z^* = w^*$.])
+)
+
+#proof([])
+
+== Integer Programming
+_Integer Programming_ is similar, but deals with *integer* variables, i.e. replacing the real variables in @eq:linear-programming with integer variables:
+#nonum($
+#box(stroke: black, inset: 5pt, [$x in bb(R)^n$], baseline: 5pt) quad arrow.r quad #box(stroke: black, inset: 5pt, [$x in bb(Z)^n$], baseline: 5pt)
+$)
+It is a non-convex optimization problem, and belongs to the complexity class of NP-complete.
+For convex optimization problems, both the feasible region and the objective function are convex. However, for integer programming problems, the feasible region $bb(Z)^n$ is not convex.
 
 == Example 1: Branching and cut for solving integer programming
 Let us consider the following integer programming problem (source: #link("https://youtu.be/upcsrgqdeNQ?si=B5uilXqSrI5Jg976", "Youtube")):
 $
-  z = 5x_1 + 6x_2,\
-  x_1 + x_2 <= 5,\
-  4x_1 + 7x_2 <= 28,\
-  x_1, x_2 >= 0,\
-  #box(stroke: black, inset: 5pt, [$x_1, x_2 in bb(Z)$])
+  max_(x_1, x_2) &z = 5x_1 + 6x_2,\
+  "s.t." &x_1 + x_2 <= 5,\
+  &4x_1 + 7x_2 <= 28,\
+  &x_1, x_2 >= 0,\
+  &#box(stroke: black, inset: 5pt, [$x_1, x_2 in bb(Z)$])
 $
 where the last line is the integer constraint.
+Or equivalently, in matrix form, we have
+$
+  c = vec(5, 6), quad
+  A = mat(1, 1; 4, 7), quad
+  b = vec(5, 28)
+$
 
 #figure(canvas(length:0.9cm, {
   import plot
@@ -375,5 +423,118 @@ C = A * B
 A2, B2 = tropical_factorization(C, 5)
 A2 * B2 == C
 ```
+
+In this example, there are $m times k times n$ variables.
+For such a large number of variables, the integer programming solver can handle a problem of size $50 times 6 times 50$ in a few seconds.
+
+== Exercises
+
+=== (Linear programming) The Diet Problem
+In the diet model, a list of available foods is given together with the nutrient content and the cost per unit weight of each food. A certain amount of each nutrient is required per day. For example, here is the data corresponding to two types of food (fish and rice) and three types of nutrients (starch, proteins, vitamins):
+#align(center, table(
+  columns: (auto, auto, auto, auto, auto),
+  table.header([], [Starch], [Proteins], [Vitamins], [Cost (RMB/kg)]),
+  [fish], [0], [4], [2], [6],
+  [rice], [7], [2], [1], [3.5],
+))
+
+Nutrient content and cost per kg of food. The requirement per day of starch, proteins and vitamins is 8, 15 and 3 respectively. The problem is to find how much of each food to consume per day so as to get the required amount per day of each nutrient at minimal cost.
+
+_Solution_:
+In the diet problem, a very natural choice of decision variables is:
+- $x_1$: number of units of fish to be consumed per day,
+- $x_2$: number of units of rice to be consumed per day.
+
+The objective function is the function to be minimized. In this case, the objective is to minimize the total cost per day which is given by $z = 6x_1 + 3.5x_2$. Finally, we need to describe the different constraints that need to be satisfied by $x_1$ and $x_2$.
+This diet problem can therefore be formulated by the following linear program:
+$
+min_(x_1, x_2) & z = 6x_1 + 3.5x_2\
+"s.t." & 0x_1 + 7x_2 ≥ 8\
+& 4x_1 + 2x_2 ≥ 15\
+& 2x_1 + x_2 ≥ 3\
+& x_1 ≥ 0, x_2 ≥ 0.
+$
+
+The Julia code is as follows:
+
+```julia
+using JuMP, HiGHS
+
+model = Model(HiGHS.Optimizer)
+
+@variable(model, x1 >= 0)
+@variable(model, x2 >= 0)
+
+@constraint(model, 0x1 + 7x2 >= 8)
+@constraint(model, 4x1 + 2x2 >= 15)
+@constraint(model, 2x1 + x2 >= 3)
+
+@objective(model, Min, 6x1 + 3.5x2)
+
+optimize!(model)
+
+value(x1), value(x2), objective_value(model)
+```
+
+The result is
+```output
+(3.25, 1.0, 23.0)
+```
+The minimum cost is 23 RMB per day.
+
+=== (Integer programming) The minimum set cover problem
+#definition([_(Minimum set cover problem)_ Given a set of elements $cal(S) = {1, 2, ..., n}$ and a collection of subsets $S_1, S_2, ..., S_m$ of $cal(S)$, the minimum set cover problem is to find the smallest collection of subsets that covers all elements in $cal(S)$.])
+
+Consider the following example:
+$
+  cal(S) &= {1, 2, 3, 4, 5, 6, 7, 8, 9, 10},\
+  S_1 &= {1, 2, 3, 4},\
+  S_2 &= {2, 3, 4, 5},\
+  S_3 &= {3, 4, 5, 6},\
+  S_4 &= {1, 7, 8, 9},\
+  S_5 &= {1, 4, 7, 10},\
+  S_6 &= {2, 4, 6, 8, 10},\
+  S_7 &= {1, 3, 5, 7, 9}
+$
+Use the integer programming to solve this problem.
+
+_Solution_:
+The minimum set cover problem can be formulated as an integer programming problem. The variables are $x = {x_1, x_2, ..., x_m}$, which are binary variables indicating whether the corresponding subset is included in the cover.
+$
+min_(x) & sum_(i=1)^m x_i\
+"s.t." & (sum_(i : j in S_i) x_i) >= 1, forall j = 1, 2, ..., n\
+& x_i in bb(Z)_2, forall i = 1, 2, ..., m
+$
+
+The Julia code is as follows:
+
+```julia
+using JuMP, HiGHS
+
+function minimum_set_cover(n::Int, S::Vector{Vector{Int}})
+    m = length(S)
+    model = Model(HiGHS.Optimizer)
+    @variable(model, x[1:m], Bin)
+
+    for j in 1:n
+        @constraint(model, sum(x[i] for i=1:m if j in S[i]) >= 1)
+    end
+
+    @objective(model, Min, sum(x))
+
+    optimize!(model)
+    return findall(value.(x) .> 0.5)
+end
+
+minimum_set_cover(10, [[1, 2, 3, 4], [2, 3, 4, 5], [3, 4, 5, 6], [1, 7, 8, 9], [1, 4, 7, 10], [2, 4, 6, 8, 10], [1, 3, 5, 7, 9]])
+```
+
+The result is
+```output
+2-element Vector{Int64}:
+ 6
+ 7
+```
+which means the minimum set cover is $S_6$ and $S_7$.
 
 #bibliography("refs.bib")

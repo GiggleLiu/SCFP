@@ -1,4 +1,3 @@
-
 #import "@preview/shiroa:0.1.2": *
 
 #show: book
@@ -19,7 +18,7 @@
     = Matrices and tensors
     #chapter("chap2-linalg/array.typ")[Arrays]
     = Mathematical optimization
-    #chapter("chap3-optimization/linearprog.typ")[Linear programming]
+    #chapter("chap3-optimization/linear_integer.typ")[Linear/Integer programming]
     = Automatic differentiation
     = Quantum systems
     #chapter("chap6-quantum/quantum-simulation.typ")[Quantum circuit]
