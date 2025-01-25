@@ -2,7 +2,7 @@
 #import "@preview/cetz:0.2.2": canvas, draw, tree, vector, plot, decorations
 #import "@preview/ctheorems:1.1.3": *
 
-#show: book-page.with(title: "Linear/Integer programming")
+#show: book-page.with(title: "Mathematical Optimization")
 #show: thmrules
 #set math.equation(numbering: "(1)")
 
@@ -13,7 +13,7 @@
 #let nonum(eq) = math.equation(block: true, numbering: none, eq)
 #let jinguo(c) = text(red)[[JG: #c]]
 
-#align(center, [= Linear/Integer programming\
+#align(center, [= Mathematical Optimization\
 _Jin-Guo Liu_])
 
 = Linear Programming (LP)
@@ -24,8 +24,8 @@ $
   &x >= 0\
   &#box(stroke: black, inset: 5pt, [$x in bb(R)^n$])
 $ <eq:linear-programming>
-
-Note here, the positivity constraint $x >= 0$ is not absolutely necessary. Adding this extra constraint does not sacrifice the generality of linear programming, because any linear program can be written into a canonical form.
+where $c in bb(R)^n$ is the objective function coefficient vector, $A in bb(R)^(m times n)$ is the constraint matrix, and $b in bb(R)^m$ is the constraint vector.
+Note here, the positivity constraint $x >= 0$ is not absolutely necessary. Adding this extra constraint does not sacrifice the generality of linear programming, because any linear program can be written into a canonical form by shifting the variables.
 
 // Its _dual problem_ is
 // $
@@ -145,7 +145,7 @@ $
   circle("plot.p7", radius: 0.1, fill: red)
   content((rel: (0, 0.4), to: "plot.p7"), [$p_7$])
 }),
-caption: [Integer programming problem. The fesible region of linear programming problem is the green area, while the feasible region of integer programming problem are the discrete points marked by small circles.],
+caption: [Solving an integer programming problem. The fesible region of linear programming problem is the green area, while the feasible region of integer programming problem are the discrete points marked by small circles.],
 ) <fig:integer-programming>
 
 By relaxing the integer constraint, it becomes a linear programming problem that is easy to solve. The feasible region is the green polygon in @fig:integer-programming, and the optimal solution is the point $p_1$ at the line crossing.
@@ -435,7 +435,7 @@ _Semidefinite programming_ is a generalization of linear programming. It is also
 
 Recall that a symmetric matrix $A in bb(R)^(n times n)$ is positive semidefinite (PSD) if $x^T A x >= 0$ for all $x in bb(R)^n$. This property is equivalent to:
 1. $A$ has all non-negative eigenvalues.
-2. $A$ can be written as $A = U^T U$ for some $U in bb(R)^(n times n)$, i.e., $A_(i j) = u_i^T u_j$ where $u_i$ is the $i$-th column of $U$.
+2. $A$ can be written as $A = U^T U$ (Cholesky decomposition) for some $U in bb(R)^(n times n)$, i.e., $A_(i j) = u_i^T u_j$ where $u_i$ is the $i$-th column of $U$.
 
 The goal of semidefinite programming is to solve optimization problems where the input is a matrix that is constrained to be PSD. I.e. we optimize over $X in bb(R)^(n times n)$ where $X in K$ and: $K = {M | M succ.eq 0}$.
 
@@ -447,14 +447,14 @@ min quad &f(X)\
 "s.t." quad &X succ.eq 0,\
 &tr(A_i X) >= b_i, quad i = 1,...,k
 $
-Here $A_1,...,A_k$ and $b_1,...,b_k$ are input constraints. It is very common to have: $f(X) = tr(C X)$ for some $C$. I.e. to have our objective be a linear function in $X$. Let us vectorize $X$ as $x in bb(R)^(n^2)$ and compare the above problem with the LP in @eq:linear-programming, the only difference is that $X$ is constrained to be PSD instead of requiring every element of $X$ to be non-negative. The feasible region is larger in semidefinite programming.
-A linear programming problem can be viewed as a special case of semidefinite programming problem where $X$ is a diagonal matrix, hence SDP is more general than LP.
+Here $A_1,...,A_k$ and $b_1,...,b_k$ are input constraints. It is very common to have: $f(X) = tr(C X)$ for some $C$. I.e. to have our objective be a linear function in $X$. Let us vectorize $X$ as $x in bb(R)^(n^2)$ and compare the above problem with the LP in @eq:linear-programming, the only difference is that $X$ is constrained to be PSD instead of requiring every element of $X$ to be non-negative.
+SDP is more general than LP because a linear programming problem can be viewed as a special case of semidefinite programming problem where $X$ is a diagonal matrix.
 
 == Example 4: Spin-glass ground state problem
-Let us consider obtaining an approximate solution of the spin-glass ground state problem using semidefinite programming.
-This algorithm is proposed by Goemans and Williamson in 1995@Goemans1995, which gives the tightest known approximation ratio for the maximum cut problem (a special case of the spin-glass ground state problem): 0.878.
-Recall that the original problem is a quadratic integer programming problem:
-
+Let us consider obtaining an approximate solution to the spin-glass ground state problem.
+The tightest known approximation ratio for the maximum cut problem (a special case of the spin-glass ground state problem) is 0.878,
+which is achieved by using semidefinite programming @Goemans1995.
+Recall that the spin-glass ground state problem is a quadratic integer programming problem that is difficult to solve exactly:
 $
 min quad &sum_(i j) J_(i j) sigma_i sigma_j\
 "s.t." quad &sigma_i in {-1, 1}, forall i = 1, ..., n
@@ -469,16 +469,16 @@ It immediately follows that $X$ is a PSD matrix with the following constraints:
 - The rank of $X$ is 1.
 - $X$ is binary.
 - The diagonal elements of $X$ are 1.
-Let us only respect the last constraint and relax the first two constraints. We have the following semidefinite programming problem:
+By relaxing the first two constraints, we have the SDP:
 $
 min quad & tr(J X)\
 "s.t." quad &X succ.eq 0,\
 &X_(i i) = 1, forall i = 1, ..., n
 $ <eq:spin-glass-sdp>
-This effectively generalize the $sigma_i in {-1, 1}$ to a $n$-dimensional embedding on the unit sphere $x_i in bb(S)^n$ (@fig:spin-glass-sdp).
-The spin correlation function $sigma_i sigma_j in {-1, 1}$ is mapped to the inner product of the embedding vectors $1 <= x_i^dagger x_j <= 1$.
-Hence the new problem is more general and is relaxed compared to the original problem.
-Given the optimal solution $X$, we can obtain a $n$-dimensional embedding of $sigma$ through (1) perform cholesky decomposition: $X = U^dagger U$; (2) obtain the embedding of $sigma_i$ in $bb(S)^n$ by treating the $i$-column of $U$ as a unit vector. It is easy to see that the columns of $U$ are normalized. To obtain a binary solution, we can project the embedding onto the binary space by introducing a *random* hyper-plane $H$ through the origin (the blue plane in @fig:spin-glass-sdp). If the $i$-th component of $u_1$ is "above" the hyper-plane, we set $sigma_i = 1$; otherwise, we set $sigma_i = -1$.
+This relaxation effectively generalizes the $sigma_i in {-1, 1}$ to a $n$-dimensional embedding on the unit sphere $x_i in bb(S)^n$ (@fig:spin-glass-sdp).
+The spin correlation function $sigma_i sigma_j in {-1, 1}$ is mapped to the inner product of the embedding vectors $1 <= x_i^dagger x_j <= 1$, and $X_(i j) = x_i^dagger x_j.$
+Given the optimal solution to $X$, we can recover $(x_1, ..., x_n)$ through the cholesky decomposition: $X = U^dagger U$ and set $x_i$ to be the $i$-th column of $U$ (blue arrow in @fig:spin-glass-sdp).
+To obtain a binary solution $(sigma_1, ..., sigma_n)$, we map $(x_1, ..., x_n)$ to the binary values by introducing a *random* hyper-plane $H$ through the origin (the blue plane in @fig:spin-glass-sdp). If the $i$-th component of $u_1$ is "above" the hyper-plane, we set $sigma_i = 1$; otherwise, we set $sigma_i = -1$.
 
 #figure(canvas({
   import draw: circle, line, rotate, content
@@ -543,7 +543,7 @@ A typical result is
 ```output
 130
 ```
-It is very suppising that even the hyper-plane is randomly generated, the result is very close to the optimal solution: $135$, i.e. $alpha approx 0.963$ is achieved.
+It is very suppising that even the hyper-plane is randomly generated, the result is very close to the optimal solution: $135$, i.e. here $alpha approx 0.963$ is achieved.
 
 _Analysis_. We are interested to know how good this approximate solution is in theory.
 For simplicity, we consider the case that $J$ being an adjacency matrix of some graph $G = (V, E)$. Then finding the ground state energy is equivalent to finding the maximum cut of $G$.
