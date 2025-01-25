@@ -475,8 +475,10 @@ min quad & tr(J X)\
 "s.t." quad &X succ.eq 0,\
 &X_(i i) = 1, forall i = 1, ..., n
 $ <eq:spin-glass-sdp>
-This problem becomes standard SDP and can be solved in polynomial time.
-Given the optimal solution $X$, we can obtain a $n$-dimensional embedding of $sigma$ through (1) perform cholesky decomposition: $X = U^dagger U$; (2) obtain the embedding of $sigma_i$ in $bb(S)^n$ as the $i$-column of $U$. It is easy to see that the columns of $U$ are normalized. To obtain a binary solution, we can project the embedding onto the binary space by introducing a *random* hyper-plane $H$ through the origin as shown in @fig:spin-glass-sdp. If the $i$-th component of $u_1$ is "above" the hyper-plane, we set $sigma_i = 1$; otherwise, we set $sigma_i = -1$.
+This effectively generalize the $sigma_i in {-1, 1}$ to a $n$-dimensional embedding on the unit sphere $x_i in bb(S)^n$ (@fig:spin-glass-sdp).
+The spin correlation function $sigma_i sigma_j in {-1, 1}$ is mapped to the inner product of the embedding vectors $1 <= x_i^dagger x_j <= 1$.
+Hence the new problem is more general and is relaxed compared to the original problem.
+Given the optimal solution $X$, we can obtain a $n$-dimensional embedding of $sigma$ through (1) perform cholesky decomposition: $X = U^dagger U$; (2) obtain the embedding of $sigma_i$ in $bb(S)^n$ by treating the $i$-column of $U$ as a unit vector. It is easy to see that the columns of $U$ are normalized. To obtain a binary solution, we can project the embedding onto the binary space by introducing a *random* hyper-plane $H$ through the origin (the blue plane in @fig:spin-glass-sdp). If the $i$-th component of $u_1$ is "above" the hyper-plane, we set $sigma_i = 1$; otherwise, we set $sigma_i = -1$.
 
 #figure(canvas({
   import draw: circle, line, rotate, content
@@ -599,9 +601,9 @@ import plot
 })
 ) <fig:maxcut-sdp>
 
-== Exercises
+= Exercises
 
-=== (Linear programming) The Diet Problem
+== (Linear programming) The Diet Problem
 In the diet model, a list of available foods is given together with the nutrient content and the cost per unit weight of each food. A certain amount of each nutrient is required per day. For example, here is the data corresponding to two types of food (fish and rice) and three types of nutrients (starch, proteins, vitamins):
 #align(center, table(
   columns: (auto, auto, auto, auto, auto),
@@ -654,7 +656,7 @@ The result is
 ```
 The minimum cost is 23 RMB per day.
 
-=== (Integer programming) The minimum set cover problem
+== (Integer programming) The minimum set cover problem
 #definition([_(Minimum set cover problem)_ Given a set of elements $cal(S) = {1, 2, ..., n}$ and a collection of subsets $S_1, S_2, ..., S_m$ of $cal(S)$, the minimum set cover problem is to find the smallest collection of subsets that covers all elements in $cal(S)$.])
 
 Consider the following example:
