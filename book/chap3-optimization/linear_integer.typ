@@ -474,9 +474,9 @@ $
 min quad & tr(J X)\
 "s.t." quad &X succ.eq 0,\
 &X_(i i) = 1, forall i = 1, ..., n
-$
+$ <eq:spin-glass-sdp>
 This problem becomes standard SDP and can be solved in polynomial time.
-Given the optimal solution $X$, we can obtain a $n$-dimensional embedding of $sigma$ through (1) perform eigen decomposition: $X = U bb(1) U^dagger$, where $U in bb(R)^(n times n)$ is an orthogonal matrix; (2) obtain the embedding of $sigma_i$ as the $i$-column of $U$. To obtain a binary solution, we can project the embedding onto the binary space by introducing a hyper-plane $H$ through the origin as shown in @fig:spin-glass-sdp. If the $i$-th component of $u_1$ is "above" the hyper-plane, we set $sigma_i = 1$; otherwise, we set $sigma_i = -1$.
+Given the optimal solution $X$, we can obtain a $n$-dimensional embedding of $sigma$ through (1) perform cholesky decomposition: $X = U^dagger U$; (2) obtain the embedding of $sigma_i$ in $bb(S)^n$ as the $i$-column of $U$. It is easy to see that the columns of $U$ are normalized. To obtain a binary solution, we can project the embedding onto the binary space by introducing a *random* hyper-plane $H$ through the origin as shown in @fig:spin-glass-sdp. If the $i$-th component of $u_1$ is "above" the hyper-plane, we set $sigma_i = 1$; otherwise, we set $sigma_i = -1$.
 
 #figure(canvas({
   import draw: circle, line, rotate, content
@@ -502,24 +502,102 @@ Given the optimal solution $X$, we can obtain a $n$-dimensional embedding of $si
   rotate(40deg)
   circle((0, 0), radius: (0.2, 2.0), fill: aqua.transparentize(50%), stroke: (dash: "dashed"), name: "0")
 }),
-caption: [The hyper-plane $H$ (in blue) deciding the cut of graph $G = ({1, 2, 3, 4}, {(1, 2), (1, 3), (1, 4), (2, 3), (3, 4)})$]
+caption: [The hyper-plane $H$ (in blue) deciding the cut of graph $G = ({1, 2, 3, 4}, {(1, 2), (1, 3), (1, 4), (2, 3), (3, 4)}).$ The edges are in red, the embedding of $sigma$ is in a hyper-sphere is denoted as blue vectors of unit length.]
 ) <fig:spin-glass-sdp>
 
-_Analysis_. We are interested to know how good this approximate solution is. For simplicity, we consider the case that $J$ being an adjacency matrix of some graph $G = (V, E)$. Then finding the ground state energy is equivalent to finding the maximum cut of $G$.
+The Julia code is as follows:
+```julia
+using JuMP, COSMO, Graphs, LinearAlgebra
+
+function maxcut_sdp(G::SimpleGraph)
+    n = nv(G)
+    model = Model(COSMO.Optimizer)
+    @variable(model, X[1:n, 1:n], PSD)
+    for i in 1:n
+        @constraint(model, X[i, i] == 1)
+    end
+    @objective(model, Min, sum(X[e.src, e.dst] for e in edges(G)))
+    optimize!(model)
+    return project_hyperplane(value(X), randn(n))
+end
+
+# `X` is the optimal solution of the SDP
+# `H` is a vector orthogonal to the hyperplane
+function project_hyperplane(X::AbstractMatrix{Float64}, H::Vector{Float64})
+    n = length(H)
+    @assert size(X, 1) == size(X, 2) == n
+    # solve the Cholesky decomposition through eigen decomposition (stabler)
+    res = eigen(X)
+    U = Diagonal(sqrt.(max.(res.values, 0))) * res.vectors'
+    return [dot(U[:, i], H) > 0 ? 1 : -1 for i in 1:n]
+end
+
+G = random_regular_graph(100, 3)
+approx_maxcut = maxcut_sdp(G)
+
+cut_size = sum(approx_maxcut[e.src] != approx_maxcut[e.dst] for e in edges(G))
+```
+A typical result is
+```output
+130
+```
+It is very suppising that even the hyper-plane is randomly generated, the result is very close to the optimal solution: $135$, i.e. $alpha approx 0.963$ is achieved.
+
+_Analysis_. We are interested to know how good this approximate solution is in theory.
+For simplicity, we consider the case that $J$ being an adjacency matrix of some graph $G = (V, E)$. Then finding the ground state energy is equivalent to finding the maximum cut of $G$.
 #definition([_(Maximum cut problem)_ Given a graph $G = (V, E)$, the maximum cut problem is to find the largest set of edges $E' subset E$ such that $V$ can be partitioned into two subsets $V_1$ and $V_2$ such that $E' = {(i, j) | i in V_1, j in V_2}$.])
 
-To connect the maximum cut problem with the anti-ferromagnetic spin-glass ground state problem, we use spin $sigma_i = +1$ and $-1$ to represent the $i$-th vertex being in $V_1$ and $V_2$ respectively. Each cut contributes $-2 J_(i j) sigma_i sigma_j$ to the energy function, where $sigma_i$ is the spin of the $i$-th vertex.
+To connect the maximum cut problem with the anti-ferromagnetic spin-glass ground state problem, we use spin $sigma_i = +1$ and $-1$ to represent the $i$-th vertex being in $V_1$ and $V_2$ respectively. Each cut contributes $-2 J_(i j) sigma_i sigma_j$ to the energy function, where $sigma_i$ is the spin of the $i$-th vertex. Maximizing the cut size is equivalent to minimizing the energy function.
 
-#theorem([There exists $alpha = 0.868$ with the following property. If $x_i in V$ is optimal for Maxcut, $H$ is a random hyperplane through the origin, and $"Cut"(H)$ is the size of the edge cut consisting of those edges $(i, j) in E$ for which $x_i$ and $x_j$ are separated by $H$, then
+#theorem([There exists $alpha = 0.879$ with the following property. If $(x_1, ..., x_n)$ is optimal for the SDP in @eq:spin-glass-sdp, with an objective value $-overline("Maxcut")(G)$, $H$ is a random hyperplane through the origin, and $"Cut"(H)$ is the size of the edge cut consisting of those edges $(i, j) in E$ for which $x_i$ and $x_j$ are separated by $H$, then
 $
-E["Cut"(H)] >= alpha times "Maxcut"(G).
-$])
+bb(E)["Cut"(H)] >= alpha times overline("Maxcut")(G).
+$
+where $bb(E)$ is the expectation operator. Since $overline("Maxcut")(G)$ upper bounds the maximum cut size, $alpha$ is also an approximation ratio for the maximum cut problem.
+])
 
 #proof([
-  $
-  E["Cut"(H)] = sum_(i,j in E) arccos(x_i x_j)/pi
-  $
+Let $theta_(i j) = arccos(x_i x_j), 0 <= theta_(i j) < pi$, #highlight([the probability that an edge is cut by $H$ is $theta_(i j)/pi$]). Then the expected cut size is
+$
+bb(E)["Cut"(H)] &= sum_(i,j in E) theta_(i j)/pi\
+&>= sum_(i,j in E) 1/(beta pi) (1 - x_i x_j)\
+&>= 2/(beta pi) times overline("Maxcut")(G) arrow.double.r alpha = 2/(beta pi)
+$
 ])
+From the first line to the second line, we have used an important observation that $1 - cos(theta)$ is upper bounded by $beta theta$ for some $beta > 0$ as shown in @fig:maxcut-sdp.
+By solving the equation, we obtain $beta = 0.879$.
+
+#figure(canvas({
+import plot
+  plot.plot(size: (8, 5),
+    x-tick-step: 1,
+    y-tick-step: 1,
+    x-label: [$theta$],
+    y-label: [],
+    y-max: 3,
+    y-min: 0,
+    x-max: 2 * calc.pi,
+    x-min: 0,
+    name: "plot",
+    {
+      let f1 = x => 1 - calc.cos(x)
+      let f2 = x => 0.733 * x
+      plot.add(
+        domain: (0, 2 * calc.pi),
+        f1,
+        label: [$1 - cos(x)$],
+        style: (stroke: blue)
+      )
+      plot.add(
+        domain: (0, 5),
+        f2,
+        label: [$ 0.7246 x$],
+        style: (stroke: red)
+      )
+    }
+  )
+})
+) <fig:maxcut-sdp>
 
 == Exercises
 

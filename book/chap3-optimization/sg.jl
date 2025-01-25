@@ -17,15 +17,14 @@ function project_hyperplane(X::AbstractMatrix{Float64}, H::Vector{Float64})
     @assert size(X, 1) == size(X, 2) == n
     #res = cholesky(X .+ Diagonal(1e-4 * ones(n)))
     res = eigen(X)
-    return [dot(res.values[:, i], H) > 0 ? 1 : -1 for i in 1:n]
+    U = Diagonal(sqrt.(max.(res.values, 0))) * res.vectors'
+    return [dot(U[:, i], H) > 0 ? 1 : -1 for i in 1:n]
 end
 
-G = random_regular_graph(100, 3)
+G = random_regular_graph(100, 3; seed=42)
 approx_maxcut = maxcut_sdp(G)
 
+cut_size = sum(approx_maxcut[e.src] != approx_maxcut[e.dst] for e in edges(G))
+
 using GenericTensorNetworks
-sg = SpinGlass(G, ones(Int, ne(G)), zeros(Int, nv(G)))
-solve(sg, SizeMin())[]
-energy(sg, approx_maxcut)
-
-
+solve(MaxCut(G), SizeMax())[]
