@@ -3,21 +3,24 @@
 #import "@preview/ctheorems:1.1.3": *
 
 #show: book-page.with(title: "Linear/Integer programming")
+#show: thmrules
 #set math.equation(numbering: "(1)")
 
 #let definition = thmbox("definition", "Definition", inset: (x: 1.2em, top: 1em), base: none)
 #let proposition = thmbox("proposition", "Proposition", inset: (x: 1.2em, top: 1em), base: none)
+#let theorem = thmbox("theorem", "Theorem", base: none)
 #let proof = thmproof("proof", "Proof")
 #let nonum(eq) = math.equation(block: true, numbering: none, eq)
+#let jinguo(c) = text(red)[[JG: #c]]
 
 #align(center, [= Linear/Integer programming\
 _Jin-Guo Liu_])
 
-== Linear Programming
+= Linear Programming (LP)
 _Linear Programming_ deals with the problem of optimizing a *linear objective function* subject to *linear equality and inequality constraints* on *real* variables. It is a convex optimization problem, hence it is easy to solve. A linear programming problem of $n$ variables is formulated as the following _canonical form_:
 $
-  max_(x) &z = c^T x,\
-  "s.t." &A x <= b,\
+  max_(x) quad &z = c^T x,\
+  "s.t." quad &A x <= b,\
   &x >= 0\
   &#box(stroke: black, inset: 5pt, [$x in bb(R)^n$])
 $ <eq:linear-programming>
@@ -47,7 +50,7 @@ Note here, the positivity constraint $x >= 0$ is not absolutely necessary. Addin
 
 // #proof([])
 
-== Integer Programming
+= Integer Programming (IP)
 _Integer Programming_ is similar, but deals with *integer* variables, i.e. replacing the real variables in @eq:linear-programming with integer variables:
 #nonum($
 #box(stroke: black, inset: 5pt, [$x in bb(R)^n$], baseline: 5pt) quad arrow.r quad #box(stroke: black, inset: 5pt, [$x in bb(Z)^n$], baseline: 5pt)
@@ -58,8 +61,8 @@ For convex optimization problems, both the feasible region and the objective fun
 == Example 1: Branching and cut for solving integer programming
 Let us consider the following integer programming problem (source: #link("https://youtu.be/upcsrgqdeNQ?si=B5uilXqSrI5Jg976", "Youtube")):
 $
-  max_(x_1, x_2) &z = 5x_1 + 6x_2,\
-  "s.t." &x_1 + x_2 <= 5,\
+  max_(x_1, x_2) quad &z = 5x_1 + 6x_2,\
+  "s.t." quad &x_1 + x_2 <= 5,\
   &4x_1 + 7x_2 <= 28,\
   &x_1, x_2 >= 0,\
   &#box(stroke: black, inset: 5pt, [$x_1, x_2 in bb(Z)$])
@@ -369,9 +372,9 @@ It can be solved by reducing to an integer programming problem.
 To facilitate the reduction, we introduce a auxiliary tensor $D_(i l j) = A_(i l) and B_(l j)$. The resulting integer programming problem is as follows:
 
 $
-&min 1\ 
-"s.t." &D_(i l j) <= A_(i l)\ 
-&D_(i l j) <= B_(l j) \ 
+min quad &1\
+"s.t." quad &D_(i l j) <= A_(i l)\
+&D_(i l j) <= B_(l j) \
 &D_(i l j) >= A_(i l) + B_(l j) - 1\
 &C_(i j) <= sum_(l=1)^k D_(i l j)\ 
 &D_(i l j) <= C_(i j)\ 
@@ -426,6 +429,97 @@ A2 * B2 == C
 
 In this example, there are $m times k times n$ variables.
 For such a large number of variables, the integer programming solver can handle a problem of size $50 times 6 times 50$ in a few seconds.
+
+= Semidefinite Programming (SDP)
+_Semidefinite programming_ is a generalization of linear programming. It is also a convex optimization problem, hence it is easy to solve.
+
+Recall that a symmetric matrix $A in bb(R)^(n times n)$ is positive semidefinite (PSD) if $x^T A x >= 0$ for all $x in bb(R)^n$. This property is equivalent to:
+1. $A$ has all non-negative eigenvalues.
+2. $A$ can be written as $A = U^T U$ for some $U in bb(R)^(n times n)$, i.e., $A_(i j) = u_i^T u_j$ where $u_i$ is the $i$-th column of $U$.
+
+The goal of semidefinite programming is to solve optimization problems where the input is a matrix that is constrained to be PSD. I.e. we optimize over $X in bb(R)^(n times n)$ where $X in K$ and: $K = {M | M succ.eq 0}$.
+
+#box(stroke: black, inset: 10pt, width: 100%, [Quiz: Show that $K$ is a convex set.])
+
+_Semidefinite program (SDP)_. Let $f$ be a convex function. We seek to find $X in bb(R)^(n times n)$ which solves:
+$
+min quad &f(X)\
+"s.t." quad &X succ.eq 0,\
+&tr(A_i X) >= b_i, quad i = 1,...,k
+$
+Here $A_1,...,A_k$ and $b_1,...,b_k$ are input constraints. It is very common to have: $f(X) = tr(C X)$ for some $C$. I.e. to have our objective be a linear function in $X$. Let us vectorize $X$ as $x in bb(R)^(n^2)$ and compare the above problem with the LP in @eq:linear-programming, the only difference is that $X$ is constrained to be PSD instead of requiring every element of $X$ to be non-negative. The feasible region is larger in semidefinite programming.
+A linear programming problem can be viewed as a special case of semidefinite programming problem where $X$ is a diagonal matrix, hence SDP is more general than LP.
+
+== Example 4: Spin-glass ground state problem
+Let us consider obtaining an approximate solution of the spin-glass ground state problem using semidefinite programming.
+This algorithm is proposed by Goemans and Williamson in 1995@Goemans1995, which gives the tightest known approximation ratio for the maximum cut problem (a special case of the spin-glass ground state problem): 0.878.
+Recall that the original problem is a quadratic integer programming problem:
+
+$
+min quad &sum_(i j) J_(i j) sigma_i sigma_j\
+"s.t." quad &sigma_i in {-1, 1}, forall i = 1, ..., n
+$
+where we do not consider the external magnetic field $h_i$ for simplicity.
+
+To find an approximate solution of this problem, we first arrange the spin-spin correlation function into a matrix $X$ as follows:
+$
+X_(i j) = mat(sigma_1^2, sigma_1 sigma_2, ..., sigma_1 sigma_n; sigma_1 sigma_2, sigma_2^2, ..., sigma_2 sigma_n; dots, dots, dots, dots; sigma_1 sigma_n, sigma_2 sigma_n, ..., sigma_n^2)
+$
+It immediately follows that $X$ is a PSD matrix with the following constraints:
+- The rank of $X$ is 1.
+- $X$ is binary.
+- The diagonal elements of $X$ are 1.
+Let us only respect the last constraint and relax the first two constraints. We have the following semidefinite programming problem:
+$
+min quad & tr(J X)\
+"s.t." quad &X succ.eq 0,\
+&X_(i i) = 1, forall i = 1, ..., n
+$
+This problem becomes standard SDP and can be solved in polynomial time.
+Given the optimal solution $X$, we can obtain a $n$-dimensional embedding of $sigma$ through (1) perform eigen decomposition: $X = U bb(1) U^dagger$, where $U in bb(R)^(n times n)$ is an orthogonal matrix; (2) obtain the embedding of $sigma_i$ as the $i$-column of $U$. To obtain a binary solution, we can project the embedding onto the binary space by introducing a hyper-plane $H$ through the origin as shown in @fig:spin-glass-sdp. If the $i$-th component of $u_1$ is "above" the hyper-plane, we set $sigma_i = 1$; otherwise, we set $sigma_i = -1$.
+
+#figure(canvas({
+  import draw: circle, line, rotate, content
+  circle((0, 0), radius: 2.0)
+  for (x, y, i) in ((-0.5, 1.2, 0), (1.2, 0.9, 1), (-1.2, -0.5, 2), (-0.5, -1.2, 3)){
+    circle((x, y), radius: 0.1, fill: black, name: str(i))
+  }
+  for i in (0, 1, 2){
+    content((rel: (0, 0.4), to: str(i)), [$sigma_#(i+1)$])
+  }
+  content((rel: (0.4, 0), to: "3"), [$sigma_4$])
+  circle((0, 0), radius: 0.1, fill: blue, name: "o", stroke: none)
+  line("0", "3", stroke: red)
+  line("1", "2", stroke: red)
+  line("1", "0", stroke: red)
+  line("2", "3", stroke: red)
+  line("2", "0", stroke: red)
+  for i in range(4){
+    line("o", str(i), mark: (end: "straight"), stroke: blue)
+  }
+  content((0.5, 1.5), "+1")
+  content((-1.0, -1.0), "-1")
+  rotate(40deg)
+  circle((0, 0), radius: (0.2, 2.0), fill: aqua.transparentize(50%), stroke: (dash: "dashed"), name: "0")
+}),
+caption: [The hyper-plane $H$ (in blue) deciding the cut of graph $G = ({1, 2, 3, 4}, {(1, 2), (1, 3), (1, 4), (2, 3), (3, 4)})$]
+) <fig:spin-glass-sdp>
+
+_Analysis_. We are interested to know how good this approximate solution is. For simplicity, we consider the case that $J$ being an adjacency matrix of some graph $G = (V, E)$. Then finding the ground state energy is equivalent to finding the maximum cut of $G$.
+#definition([_(Maximum cut problem)_ Given a graph $G = (V, E)$, the maximum cut problem is to find the largest set of edges $E' subset E$ such that $V$ can be partitioned into two subsets $V_1$ and $V_2$ such that $E' = {(i, j) | i in V_1, j in V_2}$.])
+
+To connect the maximum cut problem with the anti-ferromagnetic spin-glass ground state problem, we use spin $sigma_i = +1$ and $-1$ to represent the $i$-th vertex being in $V_1$ and $V_2$ respectively. Each cut contributes $-2 J_(i j) sigma_i sigma_j$ to the energy function, where $sigma_i$ is the spin of the $i$-th vertex.
+
+#theorem([There exists $alpha = 0.868$ with the following property. If $x_i in V$ is optimal for Maxcut, $H$ is a random hyperplane through the origin, and $"Cut"(H)$ is the size of the edge cut consisting of those edges $(i, j) in E$ for which $x_i$ and $x_j$ are separated by $H$, then
+$
+E["Cut"(H)] >= alpha times "Maxcut"(G).
+$])
+
+#proof([
+  $
+  E["Cut"(H)] = sum_(i,j in E) arccos(x_i x_j)/pi
+  $
+])
 
 == Exercises
 

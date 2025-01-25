@@ -1,4 +1,5 @@
 [deps]
+COSMO = "1e616198-aa4e-51ec-90a2-23f7fbd31d8d"
 CairoMakie = "13f3f980-e62b-5c42-98c6-ff1f3baf88f0"
 GenericTensorNetworks = "3521c873-ad32-4bb4-b63d-f4f178f42b49"
 HiGHS = "87dc4568-4c63-4d18-b0c0-bb2238e4078b"
