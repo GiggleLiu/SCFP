@@ -31,7 +31,7 @@ The Fourier transform finds applications across numerous fields:
 == Discrete Fourier Transformation (DFT)
 
 Let $x$ be a vector of length $n$, the DFT of $x$ is defined as
-$ y_i=sum_(n=0)^(n-1)x_j dot e^(-{i 2 pi}/n i j) $
+$ y_i=sum_(n=0)^(n-1)x_j dot e^(-(i 2 pi\/n) i j) $
 
 Since this transformation is linear, we can represent it as a matrix multiplication. Let $F_n$ be the matrix of size $n times n$ defined as
 
@@ -39,7 +39,7 @@ $ F_n = mat(
 1 , 1 , 1 , dots , 1;
 1 , omega , omega^2 , dots , omega^(n-1);
 1 , omega^2 , omega^4 , dots , omega^(2n-2);
-dots.v , dots.v , dots.v , dots , dots.v;
+dots.v , dots.v , dots.v , dots.down , dots.v;
 1 , omega^(n-1) , omega^(2n-2) , dots , omega^((n-1)^2)
 ) $
 
@@ -181,10 +181,10 @@ Fourier transformation enables computing this product in $O(n log n)$ time, sign
     1. Evaluate $p(x)$ and $q(x)$ at $2n$ points $omega^0, dots, omega^(2n-1)$ using DFT. Time: $O(n log n)$
 
     2. Compute pointwise multiplication:
-       $ (p circle q)(omega^j) = p(omega^j) q(omega^j) $ for $j = 0, dots, 2n-1$
+       $ (p compose q)(omega^j) = p(omega^j) q(omega^j) $ for $j = 0, dots, 2n-1$
        Time: $O(n)$
 
-    3. Interpolate $p circle q$ using inverse DFT to obtain coefficients $c_0, c_1, dots, c_(2n-2)$. Time: $O(n log n)$
+    3. Interpolate $p compose q$ using inverse DFT to obtain coefficients $c_0, c_1, dots, c_(2n-2)$. Time: $O(n log n)$
   ]
 )
 
