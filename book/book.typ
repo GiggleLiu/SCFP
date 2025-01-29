@@ -17,6 +17,8 @@
     #chapter("chap1-julia/julia-release.typ")[Release a package]
     = Matrices and tensors
     #chapter("chap2-linalg/array.typ")[Arrays]
+    #chapter("chap2-linalg/fft.typ")[Fast Fourier Transform]
+    #chapter("chap2-linalg/linalg.typ")[Linear Algebra]
     = Mathematical optimization
     #chapter("chap3-optimization/linear_integer.typ")[Linear/Integer programming]
     = Automatic differentiation
