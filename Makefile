@@ -9,9 +9,9 @@ watch:
 	$(JL) -e 'import TypstJlyfish; TypstJlyfish.watch("book/chap6-quantum/quantum-simulation.typ"; typst_args = "--root .")'
 
 build:
-	shiroa build
+	cd book && shiroa build
 
 serve:
-	shiroa serve
+	cd book && shiroa serve
 
 .PHONY: init watch build serve

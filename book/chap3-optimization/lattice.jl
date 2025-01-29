@@ -113,6 +113,7 @@ end
 end
 
 @testset "valid_combinations" begin
+    # SPACE group 23: http://kfes-16.karlov.mff.cuni.cz/~standa/grupy/g23.html
     num_sites = [8, 4, 4, 4, 4, 4, 4, 2, 2, 2, 2]
     # 100 means no restriction on multiplicity
     multiplicity = [100, 100, 100, 100, 100, 100, 100, 1, 1, 1, 1]
