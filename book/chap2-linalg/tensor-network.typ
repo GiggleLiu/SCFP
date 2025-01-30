@@ -1,9 +1,17 @@
 #import "@preview/cetz:0.2.2": canvas, draw, tree
+#import "@preview/ctheorems:1.1.3": *
 #import "../book.typ": book-page
 
+#set math.equation(numbering: "(1)")
+
 #show: book-page.with(title: "Tensor Networks")
+#show: thmrules
 
 #import "@preview/ouset:0.2.0": ouset
+
+#let definition = thmbox("definition", "Definition", inset: (x: 1.2em, top: 1em, bottom: 1em), base: none, stroke: black)
+#let theorem = thmbox("theorem", "Theorem", base: none, stroke: black)
+#let proof = thmproof("proof", "Proof")
 
 #let tensor(location, name, label) = {
   import draw: *
@@ -11,20 +19,10 @@
   content((), text(black, label))
 }
 
-#let deltatensor(location, name) = {
-  import draw: *
-  circle(location, radius: 3pt, name: name, fill:black)
-}
-
 #let labeledge(from, to, label) = {
   import draw: *
   line(from, to, name:"line")
   content("line.mid", label, align: center, fill:white, frame:"rect", padding:0.12, stroke: none)
-}
-
-#let labelnode(loc, label) = {
-  import draw: *
-  content(loc, [$#label$], align: center, fill:white, frame:"rect", padding:0.12, stroke: none, name: label)
 }
 
 #let infobox(title, body, stroke: blue) = {
@@ -39,40 +37,116 @@
   )
 }
 
-= Low-rank tensor decomposition
+= Tensor decomposition
 Let us define a complex matrix $A in CC^(m times n)$, and let its singular value decomposition be
 $
 A = U S V^dagger
 $
 where $U$ and $V$ are unitary matrices and $S$ is a diagonal matrix with non-negative real numbers on the diagonal.
 
-== Generalizing to higher dimensions
-
 == CP-decomposition
+One way to generalize 
 
 == Tucker decomposition
 
 == Tensor training decomposition
 
-== Example: 
+= Tensor networks
 
-A rank 3 tensor $A_(i j k)$ can be represented as
+Tensor network is a diagrammatic representation of tensor _contractions_. Tensor contraction is a generalization of the multiplication of matrices, which is defined as the summation of the product of the corresponding elements of the two tensors.
+In this representation, a tensor is represented as a node, and an index is represented as a hyperedge (a hyperedge connects a single variable to any number of nodes). For example, vectors, matrices and higher order tensors can be represented as
 
-#pad(canvas({
+#align(center, canvas({
   import draw: *
-  tensor((1, 1), "A", "A")
-  labeledge("A", (rel: (1.5, 0)), "k")
-  labeledge("A", (rel: (0, 1.5)), "j")
-  labeledge("A", (rel: (-1.5, 0)), "i")
-  set-origin((3.5, 0))
-  content((0, 1.5), $arrow$)
-  set-origin((1, 0))
-  content((0, 1.5), `ijk`)
-}), x:30pt)
+  tensor((-7, 1), "V", [$V$])
+  labeledge("V", (rel: (0, 1.5)), [$i$])
+  content((rel: (0, -1), to: "V"), [Vector $V_i$])
+  tensor((-3, 1), "M", [$M$])
+  labeledge("M", (rel: (-1.5, 0)), [$i$])
+  labeledge("M", (rel: (1.5, 0)), [$j$])
+  content((rel: (0, -1), to: "M"), [Matrix $M_(i j)$])
+  tensor((1, 1), "A", [$A$])
+  labeledge("A", (rel: (1.5, 0)), [$i$])
+  labeledge("A", (rel: (0, 1.5)), [$j$])
+  labeledge("A", (rel: (-1.5, 0)), [$k$])
+  content((rel: (0, -1), to: "A"), [Tensor $A_(i j k)$])
+}))
 
-The contraction of two tensors $A_(i j k)$ and $B_(k l)$, i.e. $sum_k A_(i j k) B_(k l)$, can be diagrammatically represented as
+In the same diagram, the tensors associated with the same variable are connected by the same hyperedge. If a variable appears in the output tensor, the hyperedge is left _open_. For example, the diagrammatic representation of the matrix multiplication is given as follows:
 
-#pad(canvas({
+#align(center, canvas({
+  import draw: *
+  tensor((-2, 1), "A", [$A$])
+  tensor((0, 1), "B", [$B$])
+  labeledge("A", (rel: (-1.5, 0)), [$i$])
+  labeledge("A", (rel: (1.5, 0)), [$j$])
+  labeledge("B", (rel: (1.5, 0)), [$k$])
+  content((-1, -0.5), [$ C_(i k) := sum_j A_(i j) B_(j k) $])
+}))
+
+#definition([_(Tensor Network)_ A tensor network@Liu2022@Roa2024 is a mathematical framework for defining multilinear maps, which can be represented by a triple $cal(N) = (Lambda, cal(T), V_0)$, where:
+- $Lambda$ is the set of variables present in the network $cal(N)$.
+- $cal(T) = { T_(V_k) }_(k=1)^K$ is the set of input tensors, where each tensor $T_(V_k)$ is associated with the labels $V_k$.
+- $V_0$ specifies the labels of the output tensor.
+])
+Specifically, each tensor $T_(V_k) in cal(T)$ is labeled by a set of variables $V_k subset.eq Lambda$, where the cardinality $|V_k|$ equals the rank of $T_(V_k)$. The multilinear map, or the *contraction*, applied to this triple is defined as
+$
+T_(V_0) = "contract"(Lambda, cal(T), V_0) ouset(=, "def") sum_(m in cal(D)_(Lambda without V_0)) product_(T_V in cal(T)) T_(V|M=m),
+$
+where $M = Lambda without V_0$. $T_(V|M=m)$ denotes a slicing of the tensor $T_V$ with the variables $M$ fixed to the values $m$. The summation runs over all possible configurations of the variables in $M$.
+
+For instance, matrix multiplication can be described as the contraction of a tensor network given by
+$
+(A B)_(i k) = "contract"({i,j,k}, {A_(i j), B_(j k)}, {i, k}),
+$
+where the input matrices $A$ and $B$ are indexed by the variable sets ${i, j}, {j, k}$, respectively, which are subsets of $Lambda = {i, j, k}$. As a remark of notation, when an set is used as subscripts, we omit the comma and the braces. The output tensor is indexed by variables ${i, k}$ and the summation runs over variables $Lambda without {i, k} = {j}$. The contraction corresponds to
+$
+(A B)_(i k) = sum_j A_(i j) B_(j k),
+$
+which is consistent with the matrix multiplication.
+
+== Tensor network differentiation
+The differentiation rules for tensor network contraction can be represented as the contraction of the tensor network:
+#theorem([_(Tensor network differentiation)_:
+    Let $(Lambda, cal(T), emptyset)$ be a tensor network with scalar output. The gradient of the tensor network contraction with respect to $T_V in cal(T)$ is
+    $
+      frac(partial "contract"(Lambda, cal(T), emptyset), partial T_V) =
+      "contract"(Lambda, cal(T) \\ {T_V}, V).
+    $
+    That is, the gradient corresponds to the contraction of the tensor network
+    with the tensor $T_V$ removed and the output label set to $V$.
+])
+
+#proof([
+Let $cal(L)$ be a loss function of interest, where its differential form is given by:
+$
+delta cal(L) = "contract"(V_a, {delta A_(V_a), overline(A)_(V_a)}, emptyset) + "contract"(V_b, {delta B_(V_b), overline(B)_(V_b)}, emptyset)
+$ <eq:diffeq>
+
+The goal is to find $overline(A)_(V_a)$ and $overline(B)_(V_b)$ given $overline(C)_(V_c)$.
+This can be achieved by using the differential form of tensor contraction, which states that
+$
+delta C = "contract"(Lambda, {delta A_(V_a), B_(V_b)}, V_c) + "contract"(Lambda, {A_(V_a), delta B_(V_b)}, V_c).
+$
+By inserting this result into @eq:diffeq, we obtain:
+$
+delta cal(L) = &"contract"(V_a, {delta A_(V_a), overline(A)_(V_a)}, emptyset) + "contract"(V_b, {delta B_(V_b), overline(B)_(V_b)}, emptyset)\
+= &"contract"(Lambda, {delta A_(V_a), B_(V_b), overline(C)_(V_c)}, emptyset) + "contract"(Lambda, {A_(V_a), delta B_(V_b), overline(C)_(V_c)}, emptyset).
+$
+Since $delta A_(V_a)$ and $delta B_(V_b)$ are arbitrary, the above equation immediately implies:
+
+$
+overline(A)_(V_a) = "contract"(Lambda, {overline(C)_(V_c), B_(V_b)}, V_a)\
+overline(B)_(V_b) = "contract"(Lambda, {A_(V_a), overline(C)_(V_c)}, V_b)
+$
+])
+
+
+== Example 1: Tensor Train
+
+For example, the contraction of two tensors $A_(i j k)$ and $B_(k l)$, i.e. $sum_k A_(i j k) B_(k l)$, can be diagrammatically represented as
+
+#align(center, canvas({
   import draw: *
   tensor((1, 1), "A", "A")
   tensor((3, 1), "B", "B")
@@ -80,11 +154,7 @@ The contraction of two tensors $A_(i j k)$ and $B_(k l)$, i.e. $sum_k A_(i j k) 
   labeledge("B", (rel: (1.5, 0)), "l")
   labeledge("A", (rel: (0, 1.5)), "j")
   labeledge("A", (rel: (-1.5, 0)), "i")
-  set-origin((5.5, 0))
-  content((0, 1.5), $arrow$)
-  set-origin((2, 0))
-  content((0, 1.5), `ijk,kl->ijl`)
-}), x:30pt)
+}))
 
 The kronecker product of two matrices $A_(i j)$ and $B_(k l)$, i.e. $A_(i j) times.circle B_(k l)$, can be diagrammatically represented as
 
@@ -120,36 +190,6 @@ The operation $tr(A B C)$ can be diagrammatically represented as
 }), x:25pt)
 
 From the diagram, we can see the trace permutation rule: $tr(A B C) = tr(C A B) = tr(B C A)$ directly.
-
-#infobox([Definition (Tensor Network)], [A tensor network@Liu2022@Roa2024 is a mathematical framework for defining multilinear maps, which can be represented by a triple $cal(N) = (Lambda, cal(T), V_0)$, where:
-- $Lambda$ is the set of variables present in the network $cal(N)$.
-- $cal(T) = { T_(V_k) }_(k=1)^K$ is the set of input tensors, where each tensor $T_(V_k)$ is associated with the labels $V_k$.
-- $V_0$ specifies the labels of the output tensor.
-])
-Specifically, each tensor $T_(V_k) in cal(T)$ is labeled by a set of variables $V_k subset.eq Lambda$, where the cardinality $|V_k|$ equals the rank of $T_(V_k)$. The multilinear map, or the *contraction*, applied to this triple is defined as
-$
-T_(V_0) = "contract"(Lambda, cal(T), V_0) ouset(=, "def") sum_(m in cal(D)_(Lambda without V_0)) product_(T_V in cal(T)) T_(V|M=m),
-$
-where $M = Lambda without V_0$. $T_(V|M=m)$ denotes a slicing of the tensor $T_V$ with the variables $M$ fixed to the values $m$. The summation runs over all possible configurations of the variables in $M$.
-
-For instance, matrix multiplication can be described as the contraction of a tensor network given by
-$
-(A B)_({i, k}) = "contract"({i,j,k}, {A_({i, j}), B_({j, k})}, {i, k}),
-$
-where matrices $A$ and $B$ are input tensors containing the variable sets ${i, j}, {j, k}$, respectively, which are subsets of $Lambda = {i, j, k}$. The output tensor is comprised of variables ${i, k}$ and the summation runs over variables $Lambda without {i, k} = {j}$. The contraction corresponds to
-$
-(A B)_({i, k}) = sum_j A_({i,j})B_({j, k}).
-$
-
-Diagrammatically, a tensor network can be represented as an *open hypergraph*, where each tensor is mapped to a vertex and each variable is mapped to a hyperedge. Two vertices are connected by the same hyperedge if and only if they share a common variable. The diagrammatic representation of the matrix multiplication is given as follows: 
-
-Here, we use different colors to denote different hyperedges. Hyperedges for $i$ and $k$ are left open to denote variables of the output tensor. A slightly more complex example of this is the star contraction:
-$
-"contract"({i,j,k,l}, {A_({i, l}), B_({j, l}), C_({k, l})}, {i,j,k}) \
-= sum_l A_({i,l}) B_({j,l}) C_({k,l}).
-$
-Note that the variable $l$ is shared by all three tensors, making regular edges, which by definition connect two nodes, insufficient for its representation. This motivates the need for hyperedges, which can connect a single variable to any number of nodes.
-
 
 = Quantum state
 
@@ -389,6 +429,38 @@ tensor((0, 0), "A", [$A$])
   line("B", (rel: (-1.3*calc.cos(calc.pi/6), -1.3*calc.sin(calc.pi/6))))
   line("C", (rel: (1.3*calc.cos(calc.pi/6), -1.3*calc.sin(calc.pi/6))))
   }), x:30pt)
+
+
+== Born machine
+
+The partition function $Z$ is defined as the following tensor network
+#align(center, canvas({
+  import draw: *
+  let n = 5
+  for i in range(n){
+    tensor((i*1.5, 0), "A'_" + str(i), [$A'_#i$])
+    tensor((i*1.5, -1.5), "A_" + str(i), [$A_#i$])
+  }
+  for i in range(n){
+    line("A'_" + str(i), "A_" + str(i), name: "line_" + str(i))
+    content((rel: (-0.3, 0), to: "line_" + str(i) + ".mid"), [$x_#(i+1)$], align: center, fill:white, frame:"rect", padding:0.1, stroke: none)
+  }
+  for i in range(n - 1){
+    line("A_" + str(i), "A_" + str(i+1))
+    line("A'_" + str(i), "A'_" + str(i+1))
+  }
+}))
+
+We use the log-likelihood as the loss function
+$
+cal(L)=-1/m sum_(bold(x) in "data") ln P(bold(x))
+$
+where $P(bold(x))$ is the probability of the data $bold(x)$ given the model. It is defined as $p(x)\/Z$, where $p(x) = psi^*(x) psi(x)$ is the unnormalized probability of the data $bold(x)$ and $Z$ is the partition function.
+
+The gradient of the loss function is
+$
+nabla cal(L)=-2/m sum_(bold(x) in "data") (nabla psi(bold(x)))/psi(bold(x)) + (nabla Z)/Z
+$
 
 #pagebreak()
 
