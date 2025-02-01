@@ -1,0 +1,113 @@
+@article{Griewank1992,
+  title = {Achieving Logarithmic Growth of Temporal and Spatial Complexity in Reverse Automatic Differentiation},
+  author = {Griewank, Andreas},
+  year = {1992},
+  journal = {Optimization Methods and Software},
+  volume = {1},
+  number = {1},
+  pages = {35--54},
+  issn = {10294937},
+  doi = {10.1080/10556789208805505},
+  abstract = {In its basic form the reverse mode of automatic differentiation yields gradient vectors at a small multiple of the computational work needed to evaluate the underlying scalar function. The practical applicability of this temporal complexity result, due originally to Linnainmaa, seemed to be severely limited by the fact that the memory requirement of the basic implementation is proportional to the run time, T, of the original evaluation program, It is shown here that, by a recursive scheme related to the multilevel differentiation approach of Volin and Ostrovskii, the growth in both temporal and spatial complexity can be limited to a fixed multiple of log(T). Other compromises between the run time and memory requirement are possible, so that the reverse mode becomes applicable to computational problems of virtually any size. {\copyright} 1992, Taylor \& Francis Group, LLC. All rights reserved.},
+  keywords = {Adjoint,Checkpointing,Complexity,Gradient,Recursion},
+  file = {/Users/liujinguo/Zotero/storage/9ALU8UD4/Griewank_1992_Achieving logarithmic growth of temporal and spatial complexity in reverse.pdf}
+}
+
+@book{Griewank2008,
+  title = {Evaluating {{Derivatives}}},
+  author = {Griewank, Andreas and Walther, Andrea},
+  year = {2008},
+  journal = {Evaluating Derivatives},
+  doi = {10.1137/1.9780898717761},
+  abstract = {Algorithmic, or automatic, differentiation (AD) is a growing area of theoretical research and software development concerned with the accurate and efficient evaluation of derivatives for function evaluations given as computer programs. The resulting derivative values are useful for all scientific computations that are based on linear, quadratic, or higher order approximations to nonlinear scalar or vector functions. AD has been applied in particular to optimization, parameter identification, nonlinear equation solving, the numerical integration of differential equations, and combinations of these. Apart from quantifying sensitivities numerically, AD also yields structural dependence information, such as the sparsity pattern and generic rank of Jacobian matrices. The field opens up an exciting opportunity to develop new algorithms that reflect the true cost of accurate derivatives and to use them for improvements in speed and reliability. This second edition has been updated and expanded to cover recent developments in applications and theory, including an elegant NP completeness argument by Uwe Naumann and a brief introduction to scarcity, a generalization of sparsity. There is also added material on checkpointing and iterative differentiation. To improve readability the more detailed analysis of memory and complexity bounds has been relegated to separate, optional chapters.The book consists of three parts: a stand-alone introduction to the fundamentals of AD and its software; a thorough treatment of methods for sparse problems; and final chapters on program-reversal schedules, higher derivatives, nonsmooth problems and iterative processes. Each of the 15 chapters concludes with examples and exercises. Audience: This volume will be valuable to designers of algorithms and software for nonlinear computational problems. Current numerical software users should gain the insight necessary to choose and deploy existing AD software tools to the best advantage.},
+  isbn = {978-0-89871-659-7},
+  file = {/Users/liujinguo/Zotero/storage/PF7YDDDC/Griewank_Walther_2008_Evaluating Derivatives.pdf}
+}
+
+@article{Giles2008,
+  title = {Collected Matrix Derivative Results for Forward and Reverse Mode {{AD}}},
+  author = {Giles, M B},
+  year = {2008},
+  journal = {Lecture Notes in Computational Science and Engineering},
+  volume = {64},
+  pages = {34--44},
+  abstract = {This paper collects together a number of matrix derivative results which are very useful in forward and reverse mode AD. It highlights in particular the re-markable contribution of a 1948 paper by Dwyer and Macphail which derives the linear and adjoint sensitivities of a matrix product, inverse and determinant, and a number of related results motivated by applications in multivariate analysis in statis-tics.},
+  keywords = {forward mode,numerical linear algebra,reverse mode},
+  file = {/Users/liujinguo/Zotero/storage/V7RA2N86/Giles_2008_Collected matrix derivative results for forward and reverse mode AD.pdf}
+}
+
+@article{Seeger2017,
+  title = {Auto-{{Differentiating Linear Algebra}}},
+  author = {Seeger, Matthias and Hetzel, Asmus and Dai, Zhenwen and Meissner, Eric and Lawrence, Neil D},
+  year = {2017},
+  eprint = {1710.08717},
+  abstract = {Development systems for deep learning (DL), such as Theano, Torch, TensorFlow, or MXNet, are easy-to-use tools for creating complex neural network models. Since gradient computations are automatically baked in, and execution is mapped to high performance hardware, these models can be trained end-to-end on large amounts of data. However, it is currently not easy to implement many basic machine learning primitives in these systems (such as Gaussian processes, least squares estimation, principal components analysis, Kalman smoothing), mainly because they lack efficient support of linear algebra primitives as differentiable operators. We detail how a number of matrix decompositions (Cholesky, LQ, symmetric eigen) can be implemented as differentiable operators. We have implemented these primitives in MXNet, running on CPU and GPU in single and double precision. We sketch use cases of these new operators, learning Gaussian process and Bayesian linear regression models, where we demonstrate very substantial reductions in implementation complexity and running time compared to previous codes. Our MXNet extension allows end-to-end learning of hybrid models, which combine deep neural networks (DNNs) with Bayesian concepts, with applications in advanced Gaussian process models, scalable Bayesian optimization, and Bayesian active learning.},
+  archiveprefix = {arXiv},
+  file = {/Users/liujinguo/Zotero/storage/67ACV2Q8/Seeger et al_2017_Auto-Differentiating Linear Algebra.pdf}
+}
+
+@misc{Francuz2023,
+  title = {Stable and Efficient Differentiation of Tensor Network Algorithms},
+  author = {Francuz, Anna and Schuch, Norbert and Vanhecke, Bram},
+  year = {2023},
+  month = nov,
+  number = {arXiv:2311.11894},
+  eprint = {2311.11894},
+  primaryclass = {cond-mat, physics:physics, physics:quant-ph},
+  doi = {10.48550/arXiv.2311.11894},
+  urldate = {2024-01-25},
+  abstract = {Gradient based optimization methods are the established state-of-the-art paradigm to study strongly entangled quantum systems in two dimensions with Projected Entangled Pair States. However, the key ingredient, the gradient itself, has proven challenging to calculate accurately and reliably in the case of a corner transfer matrix (CTM)-based approach. Automatic differentiation (AD), which is the best known tool for calculating the gradient, still suffers some crucial shortcomings. Some of these are known, like the problem of excessive memory usage and the divergences which may arise when differentiating a singular value decomposition (SVD). Importantly, we also find that there is a fundamental inaccuracy in the currently used backpropagation of SVD that had not been noted before. In this paper, we describe all these problems and provide them with compact and easy to implement solutions. We analyse the impact of these changes and find that the last problem -- the use of the correct gradient -- is by far the dominant one and thus should be considered a crucial patch to any AD application that makes use of an SVD for truncation.},
+  archiveprefix = {arXiv},
+  keywords = {Condensed Matter - Strongly Correlated Electrons,Physics - Computational Physics,Quantum Physics},
+  file = {/Users/liujinguo/Zotero/storage/KLS33LJU/Francuz et al. - 2023 - Stable and efficient differentiation of tensor network algorithms.pdf}
+}
+
+@misc{Wan2019,
+  title = {Automatic {{Differentiation}} for {{Complex Valued SVD}}},
+  author = {Wan, Zhou-Quan and Zhang, Shi-Xin},
+  year = {2019},
+  month = nov,
+  number = {arXiv:1909.02659},
+  eprint = {1909.02659},
+  primaryclass = {math},
+  publisher = {arXiv},
+  doi = {10.48550/arXiv.1909.02659},
+  urldate = {2025-02-01},
+  abstract = {In this note, we report the back propagation formula for complex valued singular value decompositions (SVD). This formula is an important ingredient for a complete automatic differentiation(AD) infrastructure in terms of complex numbers, and it is also the key to understand and utilize AD in tensor networks.},
+  archiveprefix = {arXiv},
+  keywords = {Computer Science - Machine Learning,Computer Science - Numerical Analysis,Condensed Matter - Statistical Mechanics,Condensed Matter - Strongly Correlated Electrons,Mathematics - Numerical Analysis,Quantum Physics,Statistics - Machine Learning},
+  file = {/Users/liujinguo/Zotero/storage/CWTNXGI5/Wan and Zhang - 2019 - Automatic Differentiation for Complex Valued SVD.pdf}
+}
+
+@article{Liao2019,
+  title = {Differentiable {{Programming Tensor Networks}}},
+  author = {Liao, Hai-jun and Liu, Jin-guo and Wang, Lei and Xiang, Tao},
+  year = {2019},
+  journal = {Physical Review X},
+  volume = {9},
+  number = {3},
+  pages = {31041},
+  publisher = {American Physical Society},
+  issn = {2160-3308},
+  doi = {10.1103/PhysRevX.9.031041},
+  keywords = {computational physics,condensed,doi:10.1103/PhysRevX.9.031041 url:https://doi.org/},
+  file = {/Users/liujinguo/Zotero/storage/UUB6BI64/Liao et al_2019_Differentiable Programming Tensor Networks.pdf}
+}
+
+@misc{Hubig2019,
+  title = {Use and Implementation of Autodifferentiation in Tensor Network Methods with Complex Scalars},
+  author = {Hubig, Claudius},
+  year = {2019},
+  month = sep,
+  number = {arXiv:1907.13422},
+  eprint = {1907.13422},
+  primaryclass = {cond-mat},
+  publisher = {arXiv},
+  doi = {10.48550/arXiv.1907.13422},
+  urldate = {2025-02-01},
+  abstract = {Following the recent preprints arXiv:1903.09650 and arXiv:1906.04654 we comment on the feasibility of implementation of autodifferentiation in standard tensor network toolkits by briefly walking through the steps to do so. The total implementation effort comes down to fewer than 1000 lines of additional code. We furthermore summarise the current status when the method is applied to cases where the underlying scalars are complex, not real and the final result is a real-valued scalar. It is straightforward to generalise most operations (addition, tensor products and also the QR decomposition) to this case and after the initial submission of these notes, also the adjoint of the complex SVD has been found.},
+  archiveprefix = {arXiv},
+  keywords = {Condensed Matter - Strongly Correlated Electrons},
+  file = {/Users/liujinguo/Zotero/storage/8WF6QFFD/Hubig - 2019 - Use and implementation of autodifferentiation in tensor network methods with complex scalars.pdf}
+}
+
