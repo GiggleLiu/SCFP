@@ -8,7 +8,7 @@
 A terminal provides direct access to your computer's operating system and is essential for efficient programming and system administration.
 In the following, we will introduce how to get a terminal, how to edit files with the terminal (Vim), and how to use the terminal to interact with remote machines (SSH).
 
-#align(center, canvas(length: 0.6cm, {
+#align(center, canvas(length: 0.8cm, {
   import draw: *
   content((0, 0), align(center, box(stroke: black, inset: 10pt, width: 300pt)[Terminal: The interface to control a Linux machine \ #box(stroke: black, inset: 10pt)[Vim: an editor in terminal environment]]), name: "terminal")
 
@@ -145,7 +145,7 @@ Try connecting to the remote machine again, and you will notice that entering th
 
 The SSH key pair consists of two asymmetric keys: a public key (or lock) and a private key. In the example above, the public key is uploaded to the remote machine, while the private key remains securely stored on your local machine. The public key can be shared freely, but the private key must remain confidential.
 
-#align(center, canvas(length: 0.6cm, {
+#align(center, canvas(length: 0.8cm, {
   import draw: *
   circle((0, 6), radius: (6.5, 1), name: "remote")
   circle((0, 0), radius: (6.5, 1), name: "local")
