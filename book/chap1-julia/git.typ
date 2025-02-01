@@ -16,7 +16,7 @@ The solution to these problems is *version control*. Among all version control s
 
 _Version control_ is a system that records changes to files over time, allowing you to track modifications, compare changes, and revert to previous versions if needed.
 
-#align(center, canvas(length: 0.8cm, {
+#figure(canvas(length: 0.8cm, {
     import draw: *
     line((-8, 0), (8, 0), stroke: 2pt, mark: (end: "straight"))
     content((8, 0.5), [Time])
@@ -32,14 +32,12 @@ _Version control_ is a system that records changes to files over time, allowing 
     content((rel: (2.5, -0.3), to: "update2-2.mid"), [Push (#highlight("danger!!!"))])
     content((8, 2), [- *Pull*: download the code
     - *Push*: upload the code])
-}))
+}), caption: [Without version control, #murphy(size: 30pt) may overwrite #christina(size: 30pt)'s work due to conflicts.])
 
-#align(center, box(stroke: none, inset: 5pt)[Without version control, #christina(size: 30pt) and #murphy(size: 30pt) had a good fight due to conflicts.])
-
-In the early days, _Centralized version control systems_ (e.g. SVN) is the main way to manage version control. All changes are made to a central repository. *Locking* the repository is a common practice to prevent conflicts.
-#align(center, canvas(length: 0.7cm, {
+In the early days, _Centralized version control systems_ (e.g. SVN) is the main way to manage version control. All changes are made to a central repository. *Locking* the repository is a common practice to prevent conflicts. Whenever someone wants to make changes to the repository, they need to lock some part of the repository, which blocks other developers from making changes to the same part of the repository. Just like the figure @fig:git-centralized shows, some long lasting work may harm the productivity of the whole team.
+#figure(canvas(length: 0.8cm, {
     import draw: *
-    line((-8, 0), (12, 0), stroke: 2pt, mark: (end: "straight"))
+    line((-6, 0), (12, 0), stroke: 2pt, mark: (end: "straight"))
     content((12, 0.5), [Time])
     content((8, 2), box(inset: 5pt)[#christina(size: 30pt) Alice], name: "update1")
     line("update1", (rel: (-2, -2)), stroke: 2pt, mark: (start: "straight"), name: "update1-1")
@@ -49,17 +47,15 @@ In the early days, _Centralized version control systems_ (e.g. SVN) is the main 
     line("update2", (rel: (5, 2)), stroke: 2pt, mark: (end: "straight"), name: "update2-2")
     content((0, 0.5), [Lock])
     content((4, 0.5), highlight[2 years later])
-}))
-
-#align(center, box(stroke: none, inset: 5pt)[With centralized version control, #christina(size: 30pt) hates #murphy(size: 30pt) due to too long waiting time.])
+}), caption: [With centralized version control, #christina(size: 30pt) has to wait #murphy(size: 30pt) to complete the work.]) <fig:git-centralized>
 
 
 Can we do version control without a lock? _Git_ is an open source distributed version control system that proposed to solve this issue.
 It was initially developed by Linus Torvalds (yes, the same guy who developed Linux) in 2005, and now it is the most popular version control system.
 
-#align(center, canvas(length: 0.7cm, {
+#figure(canvas(length: 0.8cm, {
     import draw: *
-    line((-8, 0), (12, 0), stroke: 2pt, mark: (end: "straight"))
+    line((-6, 0), (12, 0), stroke: 2pt, mark: (end: "straight"))
     content((12, 0.5), [Time])
     content((0, 2), box(inset: 5pt)[#christina(size: 30pt) Alice], name: "update1")
     line("update1", (rel: (-2, -2)), stroke: 2pt, mark: (start: "straight"), name: "update1-1")
@@ -75,9 +71,15 @@ It was initially developed by Linus Torvalds (yes, the same guy who developed Li
     content((rel: (1.5, 0.4), to: "pull.mid"), text(blue)[Pull again])
     line("merge", (rel: (5, 2)), stroke: (thickness: 2pt, paint: black), mark: (end: "straight"), name: "merge-1")
     content((rel: (1.5, -0.4), to: "merge-1.mid"), text(black)[Push again])
-}))
+}), caption: [With Git, #christina(size: 30pt) and #murphy(size: 30pt) live in peace.]) <fig:git-distributed>
 
-#align(center, box(stroke: none, inset: 5pt)[With Git, #christina(size: 30pt) and #murphy(size: 30pt) live in peace.])
+As shown in @fig:git-distributed. A project managed by Git, or a _repository_, may have multiple _branches_, each being a "copy" of the project. One branch is more important than the others, which is the _main_ branch that accessible to users. Developers can freely deriving one branch from another, and make changes to the their own branches without blocking others, however, updating the main branch needs to be done carefully, since it will affect all users and developers.
+Consider the scenario where both Alice and Bob want to make changes to the main branches. Each of them _checkout_ a new branch from the main branch, which effectively "copies" the main branch (not a hard copy).
+
+Alice and Bob do not know the existence of each other's branches, inevitably, they will make changes to the same file.
+When Bob tries to push his changes, he will be notified about a previous commit by Alice, and his version is out of date. To resolve the conflict, Bob pulls the latest changes from Alice, and resolve the conflict locally. After that, Bob can push his changes to the repository.
+
+You may wonder: Where do they store their code if they do not know each other? How can they verify the correctness of their code? e.g. what if Bob just delete all the changes made by Alice? These questions are related to the Git hosting services, _pull requests_, the automated _unit tests_, and _continuous integration_/_continuous deployment_ (CI/CD) that we will discuss later.
 
 == Git Hosting Services
 To collaborate effectively using Git, you need a server to store your Git repository, known as a *remote*. These remote repositories can be hosted on platforms like #link("https://github.com")[GitHub] and #link("https://gitlab.com")[GitLab]:
@@ -115,6 +117,15 @@ The Julia community has a tradition of hosting their packages on GitHub as well.
   )
  
 }))
+
+== Working with others - issues and pull requests
+
+When working with others, you may want to propose changes to a repository and discuss them with others. This is where *issues* and *pull requests* come in. Issues and pull requests are features of git hosting services like GitHub and GitLab.
+- *Issue* is relatively simple, it is a way to report a bug or request a feature.
+- *Pull request* (resource: #link("https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-a-pull-request")[how to create a pull request]) is a way to propose changes to a repository and discuss them with others. It is also a way to merge code from source branch to target branch. The source branch can be a branch in the same repository or a branch in a *forked repository* - a copy of the repository in your account. Forking a repository is needed when you want to propose changes to a repository that you do not have write access to.
+
+To update the main branch, one should use pull requests as much as possible, even if you have write access to the repository. It is a good practice to discuss the changes with others before merging them to the main branch. A pull request also makes the changes more traceable, which is useful when you want to revert the changes.
+
 
 
 == Install git
@@ -241,14 +252,6 @@ git checkout main
 git merge me/feature
 git push origin main
 ```
-
-== Working with others - issues and pull requests
-
-When working with others, you may want to propose changes to a repository and discuss them with others. This is where *issues* and *pull requests* come in. Issues and pull requests are features of git hosting services like GitHub and GitLab.
-- *Issue* is relatively simple, it is a way to report a bug or request a feature.
-- *Pull request* (resource: #link("https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-a-pull-request")[how to create a pull request]) is a way to propose changes to a repository and discuss them with others. It is also a way to merge code from source branch to target branch. The source branch can be a branch in the same repository or a branch in a *forked repository* - a copy of the repository in your account. Forking a repository is needed when you want to propose changes to a repository that you do not have write access to.
-
-To update the main branch, one should use pull requests as much as possible, even if you have write access to the repository. It is a good practice to discuss the changes with others before merging them to the main branch. A pull request also makes the changes more traceable, which is useful when you want to revert the changes.
 
 
 == Git cheat sheet
