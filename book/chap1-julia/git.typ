@@ -1,4 +1,6 @@
 #import "../book.typ": book-page, cross-link
+#import "@preview/cetz:0.2.2": *
+#import "../shared/characters.typ": ina, christina, murphy
 #show: book-page.with(title: "Version Control")
 
 = Version Control
@@ -9,6 +11,111 @@ Maintaining a software project is challenging, especially when multiple develope
 - New code breaking existing features, affecting downstream users.
 
 The solution to these problems is *version control*. Among all version control software, *git* is the most popular.
+
+== Git is a Version Control System
+
+_Version control_ is a system that records changes to files over time, allowing you to track modifications, compare changes, and revert to previous versions if needed.
+
+#align(center, canvas(length: 0.8cm, {
+    import draw: *
+    line((-8, 0), (8, 0), stroke: 2pt, mark: (end: "straight"))
+    content((8, 0.5), [Time])
+    content((0, 2), box(inset: 5pt)[#christina(size: 30pt) Alice], name: "update1")
+    line("update1", (rel: (-2, -2)), stroke: 2pt, mark: (start: "straight"), name: "update1-1")
+    line("update1", (rel: (2, -2)), stroke: 2pt, mark: (end: "straight"), name: "update1-2")
+    content((rel: (-1, 0.3), to: "update1-1.mid"), [Pull])
+    content((rel: (1, 0.3), to: "update1-2.mid"), [Push])
+    content((0, -2), box(inset: 5pt)[#murphy(size: 30pt) Bob], name: "update2")
+    line("update2", (rel: (-5, 2)), stroke: 2pt, mark: (start: "straight"), name: "update2-1")
+    line("update2", (rel: (5, 2)), stroke: 2pt, mark: (end: "straight"), name: "update2-2")
+    content((rel: (-1, -0.3), to: "update2-1.mid"), [Pull])
+    content((rel: (2.5, -0.3), to: "update2-2.mid"), [Push (#highlight("danger!!!"))])
+    content((8, 2), [- *Pull*: download the code
+    - *Push*: upload the code])
+}))
+
+#align(center, box(stroke: none, inset: 5pt)[Without version control, #christina(size: 30pt) and #murphy(size: 30pt) had a good fight due to conflicts.])
+
+In the early days, _Centralized version control systems_ (e.g. SVN) is the main way to manage version control. All changes are made to a central repository. *Locking* the repository is a common practice to prevent conflicts.
+#align(center, canvas(length: 0.7cm, {
+    import draw: *
+    line((-8, 0), (12, 0), stroke: 2pt, mark: (end: "straight"))
+    content((12, 0.5), [Time])
+    content((8, 2), box(inset: 5pt)[#christina(size: 30pt) Alice], name: "update1")
+    line("update1", (rel: (-2, -2)), stroke: 2pt, mark: (start: "straight"), name: "update1-1")
+    line("update1", (rel: (2, -2)), stroke: 2pt, mark: (end: "straight"), name: "update1-2")
+    content((0, -2), box(inset: 5pt)[#murphy(size: 30pt) Bob], name: "update2")
+    line("update2", (rel: (-5, 2)), stroke: 2pt, mark: (start: "straight"), name: "update2-1")
+    line("update2", (rel: (5, 2)), stroke: 2pt, mark: (end: "straight"), name: "update2-2")
+    content((0, 0.5), [Lock])
+    content((4, 0.5), highlight[2 years later])
+}))
+
+#align(center, box(stroke: none, inset: 5pt)[With centralized version control, #christina(size: 30pt) hates #murphy(size: 30pt) due to too long waiting time.])
+
+
+Can we do version control without a lock? _Git_ is an open source distributed version control system that proposed to solve this issue.
+It was initially developed by Linus Torvalds (yes, the same guy who developed Linux) in 2005, and now it is the most popular version control system.
+
+#align(center, canvas(length: 0.7cm, {
+    import draw: *
+    line((-8, 0), (12, 0), stroke: 2pt, mark: (end: "straight"))
+    content((12, 0.5), [Time])
+    content((0, 2), box(inset: 5pt)[#christina(size: 30pt) Alice], name: "update1")
+    line("update1", (rel: (-2, -2)), stroke: 2pt, mark: (start: "straight"), name: "update1-1")
+    line("update1", (rel: (2, -2)), stroke: 2pt, mark: (end: "straight"), name: "update1-2")
+    content((0, -2), box(inset: 5pt)[#murphy(size: 30pt) Bob], name: "update2")
+    line("update2", (rel: (-5, 2)), stroke: 2pt, mark: (start: "straight"), name: "update2-1")
+    line("update2", (rel: (5, 2)), stroke: (thickness: 2pt, dash: "dashed"), mark: (end: "straight"), name: "update2-2")
+    content("update2-2.mid", box(fill: white)[$crossmark$])
+
+    content((rel: (5, 0), to: "update2"), box(fill: aqua, inset: 5pt, radius: 4pt)[Resolve conflicts], name: "merge")
+    line("update2", "merge", stroke: (thickness: 2pt), mark: (end: "straight"), name: "update2-3")
+    line((rel: (0, 2)), "merge", stroke: (thickness: 2pt, paint: blue), mark: (end: "straight"), name: "pull")
+    content((rel: (1.5, 0.4), to: "pull.mid"), text(blue)[Pull again])
+    line("merge", (rel: (5, 2)), stroke: (thickness: 2pt, paint: black), mark: (end: "straight"), name: "merge-1")
+    content((rel: (1.5, -0.4), to: "merge-1.mid"), text(black)[Push again])
+}))
+
+#align(center, box(stroke: none, inset: 5pt)[With Git, #christina(size: 30pt) and #murphy(size: 30pt) live in peace.])
+
+== Git Hosting Services
+To collaborate effectively using Git, you need a server to store your Git repository, known as a *remote*. These remote repositories can be hosted on platforms like #link("https://github.com")[GitHub] and #link("https://gitlab.com")[GitLab]:
+
+#align(center + top, grid(columns: 2, gutter: 30pt, box(width: 200pt)[
+  #image("images/github.png", width: 20pt) #align(left + top, [*GitHub* is the most popular platform for hosting and collaborating on open-source projects.])
+  ],
+  box(width: 200pt)[
+  #image("images/gitlab.png", width: 20pt) #align(left + top, [*GitLab* is similar, but can be deployed on your own server.])
+  ])
+)
+
+
+Many famous projects are hosted on GitHub, including machine learning framework #link("https://github.com/pytorch/pytorch")[PyTorch] and #link("https://github.com/google/jax")[Jax].
+The Julia community has a tradition of hosting their packages on GitHub as well. Actually, all Julia packages are hosted on GitHub! They are registered on GitHub repository: #link("https://github.com/JuliaRegistries/General")[JuliaRegistries/General]. By the time of writing, there are more than 10,000 packages registered in the Julia registry!
+
+
+#figure(canvas({
+  import draw: *
+  import plot: *
+  plot(
+    size: (12, 6),
+    x-tick-step: 1,
+    y-tick-step: 2000,
+    y-min: 0,
+    y-max: 12000,
+    x-min: 2016,
+    x-max: 2025,
+    x-label: [Year],
+    y-label: [\# of packages],
+    name: "plot",
+    {
+      add(domain: (-2, 2), ((2016, 690), (2017, 1190), (2018, 1688), (2019, 2462), (2020, 2787), (2021, 4809), (2022, 6896), (2023, 8387), (2024, 9817), (2025, 11549)), mark: "o")
+    }
+  )
+ 
+}))
+
 
 == Install git
 
@@ -82,8 +189,7 @@ You can use `git reset` to reset the current HEAD to the specified snapshot, whi
 
 == Upload your repository to the cloud - remote
 
-To collaborate effectively using Git, you need a server to store your Git repository, known as a *remote*. These remote repositories can be hosted on platforms like #link("https://github.com")[GitHub] and #link("https://gitlab.com")[GitLab].
-
+To collaborate effectively using Git, you need a server to store your Git repository, known as a *remote*.
 Begin by creating an empty repository (without README files) on a Git hosting service. You can follow this #link("https://docs.github.com/en/get-started/quickstart/create-a-repo")[tutorial on creating a new GitHub repository]. Once created, a URL for cloning the repository will be provided, typically using the `SSH` or `HTTPS` protocol. To ensure your repository's security, configure necessary security settings such as #link("https://docs.github.com/en/authentication/connecting-to-github-with-ssh/about-ssh")[`SSH`] or #link("https://docs.github.com/en/authentication/securing-your-account-with-two-factor-authentication-2fa/about-two-factor-authentication")[two-factor authentication (2FA)].
 
 After setting up your repository, you can upload your local repository to the remote by using the following commands:
