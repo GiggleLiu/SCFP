@@ -17,7 +17,7 @@ In Ubuntu (or WSL), you can install git with the following command:
 sudo apt-get install git
 ```
 
-In MacOS, you can use [Homebrew](https://brew.sh/) to install git:
+In MacOS, you can use #link("https://brew.sh/")[Homebrew] to install git:
 ```bash
 brew install git
 ```
@@ -41,7 +41,7 @@ git status
 ```
 - Line 1: changes the directory to the specified working directory, which can be an existing or a new directory.
 - Line 2: initializes the working directory as a git repository, creating a `.git` directory that contains all data managed by git.
-- Line 3: creates a file named `README.md` with the content `Hello, World`. This file is a *markdown* file, a lightweight markup language with plain-text-formatting syntax. More information about markdown can be found in the [markdown tutorial](https://www.markdowntutorial.com/). This step can be skipped if the working directory already contains files.
+- Line 3: creates a file named `README.md` with the content `Hello, World`. This file is a *markdown* file, a lightweight markup language with plain-text-formatting syntax. More information about markdown can be found in the #link("https://www.markdowntutorial.com/")[markdown tutorial]. This step can be skipped if the working directory already contains files.
 - Line 4: adds files to the *staging area*, which temporarily stores changes to be committed.
 - Line 5: commits the changes to the repository, creating a *snapshot* of your current work.
 - Line 6: displays the status of the working directory, staging area, and repository. If the previous commands were executed correctly, the output should be `nothing to commit, working tree clean`.
