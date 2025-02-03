@@ -3,11 +3,21 @@
 
 = Setup Julia
 
-#link("https://julialang.org/")[Julia] is a high-level, high-performance, dynamic programming language. Designed from the ground up, Julia addresses the needs of high-performance numerical analysis and computational science without requiring separate compilation to achieve speed.
+== Introduction to Julia
+#link("https://julialang.org/")[Julia] is a modern, high-performance programming language designed for technical computing. Created at MIT in 2012 and now maintained by JuliaHub Inc., Julia combines the ease of use of Python with the speed of C/C++.
+
+Julia stands out from other programming languages in several important ways:
+
+1. *Open Source*: Unlike MatLab, Julia is completely open source. The source code is maintained on #link("https://github.com/JuliaLang/julia")[GitHub], and its packages are available on #link("https://juliahub.com/ui/Packages")[JuliaHub].
+
+2. *High Performance*: Unlike Python, Julia was designed from the ground up for high performance (#link("https://arxiv.org/abs/1209.5145")[arXiv:1209.5145]). It achieves C-like speeds while maintaining the simplicity of a dynamic language.
+
+3. *Easy to Use*: Unlike C/C++ or Fortran, Julia offers a clean, readable syntax and interactive development environment. Its just-in-time (JIT) compilation provides platform independence while maintaining high performance.
+
 
 While we will explore Julia in depth later in this chapter, let's begin by installing and setting up our development environment.
 
-== Step 1: Installing Julia 
+== Step 1: Install Julia 
 We recommend using #link("https://github.com/JuliaLang/juliaup")[juliaup] to install Julia. This tool manages Julia versions and installations, allowing you to seamlessly switch between different versions. Just open a terminal and run the following platform-specific command:
 
 ```bash

@@ -13,7 +13,7 @@
     #chapter("chap1-julia/terminal.typ")[Get a terminal]
     #chapter("chap1-julia/git.typ")[Version control]
     #chapter("chap1-julia/julia-setup.typ")[Setup Julia]
-    #chapter("chap1-julia/julia-why.typ")[Why Julia]
+    #chapter("chap1-julia/julia-basic.typ")[Julia Basic]
     #chapter("chap1-julia/julia-release.typ")[Release a package]
     = Matrices and tensors
     #chapter("chap2-linalg/array.typ")[Arrays]
