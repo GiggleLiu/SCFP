@@ -32,36 +32,239 @@ Return to Julian mode from any other mode by pressing `Backspace`.
 
 = Just-In-Time (JIT) Compilation
 
-Julia is a just-in-time compiled language. It means that the code is compiled to machine code at runtime, which is different from both the static compilation languages like C/C++ and the interpreted languages like Python.
+Julia is a just-in-time compiled language. It means that the code is compiled to machine code at runtime, which is different from both the static compilation languages like C/C++ and the interpreted languages like Python. The more you tell the compiler, the better it can generate efficient code. The information that accessible by a compiler is called the _static_ information, which can be determined without actually executing the code. For example, the _type_ of a variable is determined at compile time. 
+In contrast, the _value_ of a variable can only be determined at runtime.
+
+#figure(canvas({
+  import draw: *
+  content((-4, 0), box(inset: 5pt, radius: 4pt, stroke: black)[program], name: "program")
+  content((-0.5, 0), box(inset: 5pt, radius: 4pt, stroke: black)[intermediate\
+  representation], name: "intermediate")
+  content((4, 0), box(inset: 5pt, radius: 4pt, stroke: black)[binary], name: "binary")
+  line("program.east", "intermediate.west", mark: (end: "straight"))
+  line("intermediate.east", "binary.west", mark: (end: "straight"), name: "binary-intermediate")
+  bezier((rel: (-0.5, 0), to: "intermediate.north"), (rel: (0.5, 0), to: "intermediate.north"), (rel: (-1, 1), to: "intermediate.north"), (rel: (1, 1), to: "intermediate.north"), mark: (end: "straight"))
+  content((rel: (0, 1.2), to: "intermediate.north"), [_types_, _constants_, ...])
+  content((rel: (0, -0.2), to: "binary-intermediate.mid"), [compile])
+  content((rel: (0, 1.5), to: "binary"), box(inset: 5pt)[Input Values], name: "binary-inputs")
+  line("binary-inputs", "binary", mark: (end: "stealth"), stroke: 2pt)
+  content((rel: (0, -1.5), to: "binary"), box(inset: 5pt)[Output Values], name: "binary-outputs")
+  line("binary-outputs", "binary", mark: (start: "stealth"), stroke: 2pt)
+}),
+  caption: [Compiler make use of static information (types, constants, etc.) to generate efficient binary code. The input values are only available at runtime.]
+)
+
+== Types
+
+Types play a crucial role in the JIT compilation of Julia, which tells the compiler the memory layouts of data.
+In Julia, a type is composed of two parts, the _type name_ and the _type parameters_. For example, `Complex{Float64}` is a type with type name `Complex` and parameter `Float64`. If a type has no parameters, the ${}$ is omitted. For example, `Int64` is a type with no parameters. Type parameters are a part of a type, without which a type can not be instantiated in memory.
+For example, `Complex` can not be instantiated in memory. Although the compiler knows `Complex` has a real part and an imaginary part, but it does not know the specific bit size of the real and imaginary parts.
+The following example shows how to instantiate a `Complex{Float64}` type:
+```julia
+julia> 1.0 + 2im
+1.0 + 2.0im
+
+julia> typeof(1.0 + 2im)  # obtain the type of 1.0 + 2im
+Complex{Float64}
+
+julia> sizeof(1.0 + 2im)  # memory size in bytes
+16
+
+julia> sizeof(Complex{Float64})
+16
+
+julia> sizeof(Complex)
+ERROR: Argument is an incomplete Complex type and does not have a definite size.
+
+julia> isconcretetype(Complex)
+false
+```
+
+Types like `Complex{Float64}` that can be instantiated in memory are *_concrete types_*. They can be further categorized into *_primitive types_* and *_composite types_*.
+Primitive types are those directly supported by the instruction set architecture. A standard list of primitive types is given below:
+```julia
+primitive type Float16 <: AbstractFloat 16 end  # `<:` means subtype
+primitive type Float32 <: AbstractFloat 32 end
+primitive type Float64 <: AbstractFloat 64 end
+
+primitive type Bool <: Integer 8 end
+primitive type Char <: AbstractChar 32 end
+
+primitive type Int8    <: Signed   8 end
+primitive type UInt8   <: Unsigned 8 end
+primitive type Int16   <: Signed   16 end
+primitive type UInt16  <: Unsigned 16 end
+primitive type Int32   <: Signed   32 end
+primitive type UInt32  <: Unsigned 32 end
+primitive type Int64   <: Signed   64 end
+primitive type UInt64  <: Unsigned 64 end
+primitive type Int128  <: Signed   128 end
+primitive type UInt128 <: Unsigned 128 end
+```
+
+Composite types are those built from other types, e.g. `Complex{T}`:
+```julia
+struct Complex{T<:Real} <: Number
+    re::T
+    im::T
+end
+```
+Here, `Complex{T<:Real}` is a composite type with type name `Complex` and type parameter `T`. The type parameter `T` is constrained to be a subtype of `Real`. The type `Complex` is a subtype of `Number`.
+Users can easily define their own composite types by using the `struct` keyword.
+
+=== Abstract Types
+Users can define their own _abstract types_ with the `abstract type` keyword. e.g.
+```julia
+abstract type AbstractTropical{T<:Real} end
+```
+
+However, the abstract types are only conceptual types and can not be instantiated in memory. They are used for specifying the operations that can be applied to the data. Most importantly, they can derive new types, which is not the case for the concrete types.
+
+#figure(canvas({
+  import draw: *
+  circle((0, 0), radius: (4, 3), name: "Any")
+  content((-4.5, 0), [Any])
+  circle((0.5, 0), radius: (3.5, 2.5), name: "Number")
+  content((0.5, 2), [Number])
+  circle((2.1, 0), radius: (1.5, 2), name: "Complex")
+  content((2.1, 0), [Complex])
+  circle((-1.1, 0), radius: (1.5, 2), name: "Real")
+  content((-1.1, -1), [Real])
+  circle((-1.1, 0.5), radius: (1.3, 1), name: "AbstractFloat")
+  content((-1.2, 0.5), [AbstractFloat])
+  circle((-0.7, 1), radius: 0.1, name: "Float32", stroke: red)
+  circle((-1.5, 1), radius: 0.1, name: "Float64", stroke: red)
+  circle((2, 0.5), radius: 0.1, name: "Complex{Float64}", stroke: red)
+  content((-1, 3.5), box(inset: 5pt)[Float32], name: "label-Float32")
+  line("label-Float32", "Float32", mark: (end: "straight"))
+
+  content((-3, 3.5), box(inset: 5pt)[Float64], name: "label-Float64")
+  line("label-Float64", "Float64", mark: (end: "straight"))
+
+  content((3, 3.5), box(inset: 5pt)[Complex{Float64}], name: "label-Complex{Float64}")
+  line("label-Complex{Float64}", "Complex{Float64}", mark: (end: "straight"))
+  content((7, 0), box(width: 150pt)[
+    ```
+    Number <: Any
+    Complex <: Number
+    Real <: Number
+    AbstractFloat <: Real
+
+    Float32 <: AbstractFloat
+    Float64 <: AbstractFloat
+    Complex{Float64} <: Complex
+    ```
+  ])
+}), caption: [Julia's type system, where black circles represent abstract types, and red circles represent concrete types.]) <fig:type-system>
+
+With abstract types, Julia's type system is organized as a type tree. `Any` type is the root, which is the set of everything.
+The `Number` type, a direct subtype of `Any`, serves as the foundation for Julia's entire number system:
+
+```
+Number
+├─ Complex{T<:Real}
+├─ Real
+│  ├─ AbstractFloat
+│  │  ├─ BigFloat
+│  │  ├─ Float16
+│  │  ├─ Float32
+│  │  └─ Float64
+│  ├─ AbstractIrrational
+...
+```
+
+As shown in @fig:type-system, the mathematical correspondence of types is as follows:
+- types are _sets_.
+- the _subtype_ relation `<:` is associated with the _set inclusion_ relation $⊆$.
+- the union of two types `Union{T1, T2}` is the _set union_ relation $∪$.
+- the `isa` function is the _set membership_ relation $∈$.
+
+```julia
+julia> Number <: Any
+true
+julia> Complex{Float64} <: Complex <: Number
+true
+julia> Complex{Float64} <: Union{Real, Complex}
+true
+
+julia> isabstracttype(Number)
+true
+julia> subtypes(Number)
+3-element Vector{Any}:
+ Base.MultiplicativeInverses.MultiplicativeInverse
+ Complex
+ Real
+julia> supertype(Float64)
+AbstractFloat
+
+julia> 1.0 isa Float64  # 1.0 is an instance of Float64
+true
+julia> 1.0 isa Real
+true
+julia> 1.0 isa Union{Real, Complex}
+true
+```
 
 == Understanding Julia's JIT
-The JIT of Julia happens when the function is first called with a specific input types combination. Julia can infer the types of all intermediate variables when the function is first called with a specific input types combination and generate a _method instance_ for it. So there may be multiple method instances for the same function, depending on how many different input types combinations the function has been called with. JIT compilation can be slow,
+In the following, we demonstrate the power of Julia's JIT by implementing a factorial function:
 
-#align(center, canvas({
+```julia
+julia> function jlfactorial(n)
+           x = 1
+           for i in 1:n
+               x = x * i
+           end
+           return x
+       end
+jlfactorial (generic function with 1 method)
+```
+
+To accurately measure performance, we'll use the `@btime` macro from the `BenchmarkTools` package:
+```julia
+julia> using BenchmarkTools
+
+julia> @btime jlfactorial(x) setup=(x=5)
+2.208 ns (0 allocations: 0 bytes)
+120
+```
+
+The result shows that computing factorial(5) takes only about 2.2 nanoseconds—approximately 7 CPU clock cycles (with a typical ~0.3ns clock cycle). This demonstrates Julia's impressive performance capabilities.
+
+We emphasized that we did not specify the variable type of `n` in the function definition. Then how does the JIT compiler know the types of variables? It turns out that the JIT of Julia happens when the function is *first called* with a specific input types combination.
+
+#figure(canvas({
   import draw: *
   content((-3, 0), box(inset: 3pt)[Inputs], name: "inputs")
   content((0, 0), [#box(stroke: black, inset: 10pt, [Call a function], radius: 4pt)], name: "call")
-  content((6, 0), [#box(stroke: black, inset: 10pt, [Invoke], radius: 4pt)], name: "invoke")
-  content((3, -2), [#box(stroke: black, inset: 10pt, [Type Inference &\ JIT Compilation], radius: 4pt)], name: "inference")
+  content((6.5, 0), [#box(stroke: black, inset: 10pt, [Invoke], radius: 4pt)], name: "invoke")
+  content((3.5, -2), [#box(stroke: black, inset: 10pt, [JIT Compilation], radius: 4pt)], name: "inference")
   line("inputs", "call.west", mark: (end: "straight"))
   line("call.south", (rel: (0, -1.5)), "inference.west", mark: (end: "straight"))
   line("inference.east", (rel: (0, -2), to: "invoke"), "invoke.south", mark: (end: "straight"))
   line("call.east", "invoke.west", mark: (end: "straight"))
-  content((8.5, 0), box(inset: 3pt)[Outputs], name: "outputs")
+  content((8.8, 0), box(inset: 3pt)[Outputs], name: "outputs")
   line("invoke.east", "outputs", mark: (end: "straight"))
-  content((3.2, 0.5), text(green.darken(30%))[Has instance])
-  content((-1.2, -1.5), text(red.darken(30%))[No instance])
+  content((3.5, 0.5), text(green.darken(20%))[Has method instance])
+  content((-2, -1.5), text(red.darken(20%))[No method instance])
 
-  content((3, -0.8), [slow])
-  content((6, 0.9), [fast])
-}))
+  content((3.25, -1.1), [slow])
+  content((6.5, 0.9), [fast])
 
-Given a user defined Julia function, the Julia compiler will generate a binary called _method instance_ for it at the first called. This binary is generated based on the _input types_ of the function. The method instance is then stored in the method table, and it will be called when the function is called with the same input types. The method instance is generated by the LLVM compiler, and it is optimized for the input types. The method instance is a binary, and it is as fast as a C/C++ program.
+  content((3.5, -3.0), [Typed IR $arrow.double.r$ LLVM IR $arrow.double.r$ Binary Code])
+})) <fig:jit>
 
-== Step 1: Infer the types
-Knowing the types of the variables is key to generate a fast binary. Given the input types, the Julia compiler can infer the types of the variables in the function.
+When calling a Julia function with a specific input, Julia checks if the _method instance_ that associated with the input types has been compiled. If yes, the cached method instance will be invoked.
+Otherwise, it will compile the method instance and store it in the method table, and then invoke it.
+Depnding on how many different input types combinations the function has been called with, there may be multiple method instances for the same function.
+Repeated compilation should be avoided since it can be slow.
+We wish the compiled method instance can be reused multiple times, so that the JIT overhead is amortized.
+//In some extreme case, the number of input types combinations is too large, causing large JIT compilation time. This is usually caused by the abused use of type system and should be avoided.
 
-If all the types are inferred, the function is called *type stable*. One can use the `@code_warntype` macro to check if the function is type stable. For example, the `jlfactorial` function with integer input is type stable:
+
+
+=== Step 1: Infer the types
+Given a input type combination, can we infer the types of all variables in the function? It depends.
+If all the types are inferred, the function is called *type stable*. Then the function can be compiled to efficient binary code. One can use the `@code_warntype` macro to check if the function is type stable. For example, the `jlfactorial` function with integer input is type stable:
 
 ```julia
 julia> @code_warntype jlfactorial(10)
@@ -93,7 +296,8 @@ Body::Int64
 4 ┄       return x
 ```
 
-If the types are not inferred, the function is called **type unstable**. For example, the `badcode` function is type unstable:
+We can see that the types of almost all variables are inferred except some warnings.
+If not all types are inferred, the function is called *type unstable*. Then the function falls back to the _dynamic dispatch_ mode, which can be slow. For example, the following `badcode` function is type unstable:
 
 ```julia
 julia> badcode(x) = x > 3 ? 1.0 : 3
@@ -116,6 +320,9 @@ Type unstable code is slow. In the following example, the `badcode` function is 
 ```julia
 julia> x = rand(1:10, 1000);
 
+julia> typeof(badcode.(x))  # non-concrete element type
+Vector{Real} (alias for Array{Real, 1})
+
 julia> @benchmark badcode.($x)
 BenchmarkTools.Trial: 10000 samples with 8 evaluations.
  Range (min … max):  2.927 μs … 195.198 μs  ┊ GC (min … max):  0.00% … 96.52%
@@ -127,9 +334,19 @@ BenchmarkTools.Trial: 10000 samples with 8 evaluations.
   2.93 μs         Histogram: frequency by time        5.44 μs <
 
  Memory estimate: 26.72 KiB, allocs estimate: 696.
+```
 
+In the above example, the "`.`" is the broadcasting operator, it applies the function to each element of the array. "`$`" is the interpolation operator, it is used to interpolate a variable into an expression. In a benchmark, it can be used to exclude the time to initialize the variable.
+
+
+Instead, if we specify the function in a type stable way, the function can be compiled to efficient binary code:
+
+```julia
 julia> stable(x) = x > 3 ? 1.0 : 3.0
 stable (generic function with 1 method)
+
+julia> typeof(stable.(x))   # concrete element type
+Vector{Float64} (alias for Array{Float64, 1})
 
 julia> @benchmark stable.($x)
 BenchmarkTools.Trial: 10000 samples with 334 evaluations.
@@ -143,195 +360,32 @@ BenchmarkTools.Trial: 10000 samples with 334 evaluations.
 
  Memory estimate: 7.94 KiB, allocs estimate: 1.
 ```
-In the above example:
+=== Step 2: Generates the LLVM IR
 
-- "`.`" is the broadcasting operator, it applies the function to each element of the array.
-- "`$`" is the interpolation operator, it is used to interpolate a variable into an expression. In a benchmark, it can be used to avoid the overhead of variable initialization.
-
-=== Step 2: Generates the LLVM intermediate representation
-
+With the typed intermediate representation (IR), the Julia compiler the generates the LLVM IR.
 LLVM is a set of compiler and toolchain technologies that can be used to develop a front end for any programming language and a back end for any instruction set architecture. LLVM is the backend of multiple languages, including Julia, Rust, Swift and Kotlin.
 
 In Julia, one can use the `@code_llvm` macro to show the LLVM intermediate representation of a function.
 
 ```julia
 julia> @code_llvm jlfactorial(10)
-
-or any instruction set architecture. LLVM is the backend of multiple languages, including Julia, Rust, Swift and Kotlin.
-
-
-
-;  @ /Users/liujinguo/jcode/ModernScientificComputing2024/Lecture2/3.julia.jl#==#d2429055-58e9-4d84-894f-2e639723e078:1 within `jlfactorial`
-define i64 @julia_jlfactorial_3677(i64 signext %0) #0 {
-top:
-;  @ /Users/liujinguo/jcode/ModernScientificComputing2024/Lecture2/3.julia.jl#==#d2429055-58e9-4d84-894f-2e639723e078:3 within `jlfactorial`
-; ┌ @ range.jl:5 within `Colon`
-; │┌ @ range.jl:403 within `UnitRange`
-; ││┌ @ range.jl:414 within `unitrange_last`
-     %1 = call i64 @llvm.smax.i64(i64 %0, i64 0)
-; └└└
-; ┌ @ range.jl:897 within `iterate`
-; │┌ @ range.jl:672 within `isempty`
-; ││┌ @ operators.jl:378 within `>`
-; │││┌ @ int.jl:83 within `<`
-      %2 = icmp slt i64 %0, 1
-; └└└└
-  br i1 %2, label %L32, label %L17.preheader
-
-L17.preheader:                                    ; preds = %top
-;  @ /Users/liujinguo/jcode/ModernScientificComputing2024/Lecture2/3.julia.jl#==#d2429055-58e9-4d84-894f-2e639723e078:5 within `jlfactorial`
-  %min.iters.check = icmp ult i64 %1, 2
-  br i1 %min.iters.check, label %scalar.ph, label %vector.ph
-
-vector.ph:                                        ; preds = %L17.preheader
-  %n.vec = and i64 %1, 9223372036854775806
-  %ind.end = or i64 %1, 1
-  br label %vector.body
-
-vector.body:                                      ; preds = %vector.body, %vector.ph
-  %index = phi i64 [ 0, %vector.ph ], [ %induction12, %vector.body ]
-  %vec.phi = phi i64 [ 1, %vector.ph ], [ %3, %vector.body ]
-  %vec.phi11 = phi i64 [ 1, %vector.ph ], [ %4, %vector.body ]
-  %offset.idx = or i64 %index, 1
-  %induction12 = add i64 %index, 2
-;  @ /Users/liujinguo/jcode/ModernScientificComputing2024/Lecture2/3.julia.jl#==#d2429055-58e9-4d84-894f-2e639723e078:4 within `jlfactorial`
-; ┌ @ int.jl:88 within `*`
-   %3 = mul i64 %vec.phi, %offset.idx
-   %4 = mul i64 %vec.phi11, %induction12
-   %5 = icmp eq i64 %induction12, %n.vec
-   br i1 %5, label %middle.block, label %vector.body
-
-middle.block:                                     ; preds = %vector.body
-; └
-;  @ /Users/liujinguo/jcode/ModernScientificComputing2024/Lecture2/3.julia.jl#==#d2429055-58e9-4d84-894f-2e639723e078:5 within `jlfactorial`
-  %bin.rdx = mul i64 %4, %3
-  %cmp.n = icmp eq i64 %1, %n.vec
-  br i1 %cmp.n, label %L32, label %scalar.ph
-
-scalar.ph:                                        ; preds = %middle.block, %L17.preheader
-  %bc.resume.val = phi i64 [ %ind.end, %middle.block ], [ 1, %L17.preheader ]
-  %bc.merge.rdx = phi i64 [ %bin.rdx, %middle.block ], [ 1, %L17.preheader ]
-  br label %L17
-
-L17:                                              ; preds = %L17, %scalar.ph
-  %value_phi4 = phi i64 [ %7, %L17 ], [ %bc.resume.val, %scalar.ph ]
-  %value_phi6 = phi i64 [ %6, %L17 ], [ %bc.merge.rdx, %scalar.ph ]
-;  @ /Users/liujinguo/jcode/ModernScientificComputing2024/Lecture2/3.julia.jl#==#d2429055-58e9-4d84-894f-2e639723e078:4 within `jlfactorial`
-; ┌ @ int.jl:88 within `*`
-   %6 = mul i64 %value_phi6, %value_phi4
-; └
-;  @ /Users/liujinguo/jcode/ModernScientificComputing2024/Lecture2/3.julia.jl#==#d2429055-58e9-4d84-894f-2e639723e078:5 within `jlfactorial`
-; ┌ @ range.jl:901 within `iterate`
-; │┌ @ promotion.jl:521 within `==`
-    %.not = icmp eq i64 %value_phi4, %1
-; │└
-   %7 = add nuw i64 %value_phi4, 1
-; └
-  br i1 %.not, label %L32, label %L17
-
-L32:                                              ; preds = %L17, %middle.block, %top
-  %value_phi10 = phi i64 [ 1, %top ], [ %bin.rdx, %middle.block ], [ %6, %L17 ]
-;  @ /Users/liujinguo/jcode/ModernScientificComputing2024/Lecture2/3.julia.jl#==#d2429055-58e9-4d84-894f-2e639723e078:6 within `jlfactorial`
-  ret i64 %value_phi10
-}
 ```
 
 === Step 3: Compiles to binary code
 
-The LLVM intermediate representation is then compiled to binary code by the LLVM compiler. The binary code can be printed by the `@code_native` macro.
+The LLVM IR is then compiled to binary code by the LLVM compiler. The binary code can be printed by the `@code_native` macro.
 
 ```julia
 julia> @code_native jlfactorial(10)
-	.section	__TEXT,__text,regular,pure_instructions
-	.build_version macos, 14, 0
-	.globl	_julia_jlfactorial_3726         ; -- Begin function julia_jlfactorial_3726
-	.p2align	2
-_julia_jlfactorial_3726:                ; @julia_jlfactorial_3726
-; ┌ @ /Users/liujinguo/jcode/ModernScientificComputing2024/Lecture2/3.julia.jl#==#d2429055-58e9-4d84-894f-2e639723e078:1 within `jlfactorial`
-; %bb.0:                                ; %top
-; │ @ /Users/liujinguo/jcode/ModernScientificComputing2024/Lecture2/3.julia.jl#==#d2429055-58e9-4d84-894f-2e639723e078:3 within `jlfactorial`
-; │┌ @ range.jl:5 within `Colon`
-; ││┌ @ range.jl:403 within `UnitRange`
-; │││┌ @ range.jl:414 within `unitrange_last`
-	cmp	x0, #0
-	csel	x9, x0, xzr, gt
-; │└└└
-	cmp	x0, #1
-	b.lt	LBB0_3
-; %bb.1:                                ; %L17.preheader
-; │ @ /Users/liujinguo/jcode/ModernScientificComputing2024/Lecture2/3.julia.jl#==#d2429055-58e9-4d84-894f-2e639723e078:5 within `jlfactorial`
-	cmp	x9, #2
-	b.hs	LBB0_4
-; %bb.2:
-	mov	w8, #1
-	mov	w0, #1
-	b	LBB0_7
-LBB0_3:
-	mov	w0, #1
-; │ @ /Users/liujinguo/jcode/ModernScientificComputing2024/Lecture2/3.julia.jl#==#d2429055-58e9-4d84-894f-2e639723e078:6 within `jlfactorial`
-	ret
-LBB0_4:                                 ; %vector.ph
-	mov	x12, #0
-; │ @ /Users/liujinguo/jcode/ModernScientificComputing2024/Lecture2/3.julia.jl#==#d2429055-58e9-4d84-894f-2e639723e078:5 within `jlfactorial`
-	and	x10, x9, #0x7ffffffffffffffe
-	orr	x8, x9, #0x1
-	mov	w11, #1
-	mov	w13, #1
-LBB0_5:                                 ; %vector.body
-                                        ; =>This Inner Loop Header: Depth=1
-; │ @ /Users/liujinguo/jcode/ModernScientificComputing2024/Lecture2/3.julia.jl#==#d2429055-58e9-4d84-894f-2e639723e078:4 within `jlfactorial`
-; │┌ @ int.jl:88 within `*`
-	madd	x11, x11, x12, x11
-; │└
-; │ @ /Users/liujinguo/jcode/ModernScientificComputing2024/Lecture2/3.julia.jl#==#d2429055-58e9-4d84-894f-2e639723e078:5 within `jlfactorial`
-	add	x14, x12, #2
-; │ @ /Users/liujinguo/jcode/ModernScientificComputing2024/Lecture2/3.julia.jl#==#d2429055-58e9-4d84-894f-2e639723e078:4 within `jlfactorial`
-; │┌ @ int.jl:88 within `*`
-	mul	x13, x13, x14
-	mov	x12, x14
-	cmp	x10, x14
-	b.ne	LBB0_5
-; %bb.6:                                ; %middle.block
-; │└
-; │ @ /Users/liujinguo/jcode/ModernScientificComputing2024/Lecture2/3.julia.jl#==#d2429055-58e9-4d84-894f-2e639723e078:5 within `jlfactorial`
-	mul	x0, x13, x11
-	cmp	x9, x10
-	b.eq	LBB0_9
-LBB0_7:                                 ; %L17.preheader15
-	add	x9, x9, #1
-LBB0_8:                                 ; %L17
-                                        ; =>This Inner Loop Header: Depth=1
-; │ @ /Users/liujinguo/jcode/ModernScientificComputing2024/Lecture2/3.julia.jl#==#d2429055-58e9-4d84-894f-2e639723e078:4 within `jlfactorial`
-; │┌ @ int.jl:88 within `*`
-	mul	x0, x0, x8
-; │└
-; │ @ /Users/liujinguo/jcode/ModernScientificComputing2024/Lecture2/3.julia.jl#==#d2429055-58e9-4d84-894f-2e639723e078:5 within `jlfactorial`
-; │┌ @ range.jl:901 within `iterate`
-	add	x8, x8, #1
-; │└
-	cmp	x9, x8
-	b.ne	LBB0_8
-LBB0_9:                                 ; %L32
-; │ @ /Users/liujinguo/jcode/ModernScientificComputing2024/Lecture2/3.julia.jl#==#d2429055-58e9-4d84-894f-2e639723e078:6 within `jlfactorial`
-	ret
-; └
-                                        ; -- End function
-.subsections_via_symbols
 ```
 
-Single function definition may have multiple method instances.
-
-```julia
-julia> methods(jlfactorial)
-# 1 method for generic function "jlfactorial" from Main:
- [1] jlfactorial(n)
-     @ REPL[4]:1
-```
-
-Whenever the function is called with a new input type, the Julia compiler will generate a new method instance for the function. The method instance is then stored in the method table, and can be analyzed by the `MethodAnalysis` package.
+The method instance is then stored in the method table, and can be analyzed by the `MethodAnalysis` package.
 
 ```julia
 julia> using MethodAnalysis
+
+julia> jlfactorial(10)
+120
 
 julia> methodinstances(jlfactorial)
 1-element Vector{Core.MethodInstance}:
@@ -346,33 +400,9 @@ julia> methodinstances(jlfactorial)
  MethodInstance for jlfactorial(::UInt32)
 ```
 
-When a function is called with multiple arguments, the Julia compiler will invoke the correct method instance according to the type of the arguments. This is called *multiple dispatch*.
+== Experiment: Comparing with C and Python
 
-== Experiment: Performance of Julia, C, and Python
-
-To demonstrate the difference between compiled languages, interpreted languages and JIT compiled languages, let's implement a factorial function in Julia:
-
-```julia
-julia> function jlfactorial(n)
-           x = 1
-           for i in 1:n
-               x = x * i
-           end
-           return x
-       end
-jlfactorial (generic function with 1 method)
-```
-
-To accurately measure performance, we'll use the `@btime` macro from the `BenchmarkTools` package:
-```julia
-julia> using BenchmarkTools
-
-julia> @btime jlfactorial(x) setup=(x=5)
-2.208 ns (0 allocations: 0 bytes)
-120
-```
-
-The result shows that computing factorial(5) takes only about 2.2 nanoseconds—approximately 7 CPU clock cycles (with a typical ~0.3ns clock cycle). This demonstrates Julia's impressive performance capabilities.
+To demonstrate the difference between compiled languages, interpreted languages and JIT compiled languages,
 
 === Comparing with C
 To provide a fair comparison, let's benchmark against C, which is often considered the gold standard for performance. Julia's seamless C interoperability allows us to make accurate performance comparisons.
@@ -439,12 +469,12 @@ This is because python's flexibility comes at a performance cost. Python's dynam
   let dy = -0.7
   content((-0.5, 0.5), [Stack])
   for j in range(5){
-    rect((-3, dy * j), (2.0, (j+1) * dy), name: "t" + str(j))
+    rect((-2.2, dy * j), (2.0, (j+1) * dy), name: "t" + str(j))
   }
-  content((0, 1.5 * dy), align(left, box(width:150pt, inset: 3pt, [(Int, 0x11ff3323)])))
-  content((0, 2.5*dy), align(left, box(width: 150pt, inset: 3pt, [(Float64, 0x11ff3323)])))
-  content((0, 3.5*dy), align(left, box(width: 150pt, inset: 3pt, [$dots.v$])))
-  content((0, 4.5*dy), align(left, box(width: 150pt, inset: 3pt, [(Int, 0x11ff3322)])))
+  content((0.5, 1.5 * dy), align(left, box(width:150pt, inset: 3pt, [`(Int, 0x11ff3323)`])))
+  content((0.5, 2.5*dy), align(left, box(width: 150pt, inset: 3pt, [`(Float64, 0x11ff3323)`])))
+  content((0.5, 3.5*dy), align(left, box(width: 150pt, inset: 3pt, [$dots.v$])))
+  content((0.5, 4.5*dy), align(left, box(width: 150pt, inset: 3pt, [`(Int, 0x11ff3322)`])))
 
   content((5, 0.5), [Memory])
   for j in range(5){
@@ -466,14 +496,15 @@ This is because python's flexibility comes at a performance cost. Python's dynam
   line("t2.east", "a1.west", mark: (end: "straight"))
   line("t4.east", "a0.west", mark: (end: "straight"))
 
-  line((-4, 0), (-4, -3.5), mark: (end: "straight"))
-  content((-5, -1), [visit order])
+  line((-3, 0), (-3, -3.5), mark: (end: "straight"))
+  content((-4, -1), [visit order])
 }),
 caption: "Dynamic typing causes cache misses"
 )
 
+As a remark, when Julia compiler fails to infer the types, it will fall back to the dynamic dispatch mode. Then it also suffers from the problem of cache misses.
 
-= Julia Types and Multiple Dispatch
+= Multiple Dispatch
 
 == The Power of Multiple Dispatch
 Multiple dispatch is a fundamental feature of Julia that allows functions to be dynamically dispatched based on the runtime types of all their arguments. This is in contrast to single dispatch in object-oriented languages, where method selection is based only on the first argument (the object).
@@ -570,78 +601,7 @@ methodinstances(fight)
 
 Each method instance represents a specialized version of the function, compiled for specific argument types. This compilation strategy allows Julia to achieve C-like performance while maintaining the flexibility of a dynamic language.
 
-== The Julia Number System: A Case Study in Type Design
-
-=== Type Hierarchy
-Julia's type system is organized as a tree, with `Any` as the root type. The `Number` type, a direct subtype of `Any`, serves as the foundation for Julia's entire number system:
-
-```julia
-julia> Number <: Any
-true
-```
-
-The number system's hierarchy is carefully designed to balance flexibility and performance:
-
-```
-Number
-├─ Complex{T}
-├─ Real
-│  ├─ AbstractFloat
-│  │  ├─ BigFloat
-│  │  ├─ Float16
-│  │  ├─ Float32
-│  │  └─ Float64
-│  ├─ AbstractIrrational
-│  └─ Integer
-      ├─ Bool
-      ├─ Signed
-      │  ├─ Int8, Int16, Int32, Int64, Int128
-      └─ Unsigned
-          ├─ UInt8, UInt16, UInt32, UInt64, UInt128
-```
-
-Julia provides utilities to explore this type hierarchy:
-
-```julia
-julia> using InteractiveUtils
-
-julia> subtypes(Number)
-3-element Vector{Any}:
- Base.MultiplicativeInverses.MultiplicativeInverse
- Complex
- Real
-
-julia> supertype(Float64)
-AbstractFloat
-
-julia> AbstractFloat <: Real
-true
-```
-
-=== Primitive Types vs Composite Types
-Julia's number system consists of two kinds of types:
-
-1. *Primitive Types*: Built-in types with fixed bit sizes, such as:
-```julia
-# Floating-point types
-primitive type Float16 <: AbstractFloat 16 end
-primitive type Float32 <: AbstractFloat 32 end
-primitive type Float64 <: AbstractFloat 64 end
-
-# Integer types
-primitive type Int64   <: Signed   64 end
-primitive type UInt64  <: Unsigned 64 end
-```
-
-2. *Composite Types*: Built from other types, like `Complex{T}`:
-```julia
-struct Complex{T<:Real} <: Number
-    re::T
-    im::T
-end
-```
-
-=== Extending the Number System: Multiple Dispatch vs Object-Oriented Approach
+== Extending the Number System: Multiple Dispatch vs Object-Oriented Approach
 
 Let's compare how Julia and Python handle extending the number system. First, the Python approach:
 
@@ -693,7 +653,7 @@ Julia's multiple dispatch approach offers several advantages:
 - New types can be added without modifying existing code
 - Type combinations have explicit, clear behavior
 
-=== Compile-Time Computation: A Type System Example
+=== Compile-Time Computation: Abusing the type system <sec:compile-time-computation>
 
 While Julia excels at runtime performance, its type system can also enable compile-time computation. Here's an example using the Fibonacci sequence:
 
