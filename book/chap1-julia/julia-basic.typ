@@ -32,8 +32,10 @@ Return to Julian mode from any other mode by pressing `Backspace`.
 
 = Just-In-Time (JIT) Compilation
 
-Julia is a just-in-time compiled language. It means that the code is compiled to machine code at runtime, which is different from both the static compilation languages like C/C++ and the interpreted languages like Python. The more you tell the compiler, the better it can generate efficient code. The information that accessible by a compiler is called the _static_ information, which can be determined without actually executing the code. For example, the _type_ of a variable is determined at compile time. 
-In contrast, the _value_ of a variable can only be determined at runtime.
+Julia is a just-in-time compiled language. It means that the code is compiled to machine code at runtime, which is different from both the static compilation languages like C/C++ and the interpreted languages like Python.
+The more information you tell the compiler, the more efficient code it can generate.
+Unlike languages without type system, e.g. Python, in Julia, the _type_ of a variable is known to a compiler.
+On the other side, the _value_ of a variable can only be determined at runtime, just like any other programming language.
 
 #figure(canvas({
   import draw: *
@@ -464,7 +466,7 @@ At 144 nanoseconds, Python is:
 
 This is because python's flexibility comes at a performance cost. Python's dynamic typing means variables can change types at runtime. This requires storing type information with each value, typically as a `(type, *data)` tuple. This leads to scattered memory access patterns, causing frequent cache misses.
 
-#figure(canvas({
+#figure(canvas(length: 1cm, {
   import draw: *
   let dy = -0.7
   content((-0.5, 0.5), [Stack])
@@ -601,7 +603,7 @@ methodinstances(fight)
 
 Each method instance represents a specialized version of the function, compiled for specific argument types. This compilation strategy allows Julia to achieve C-like performance while maintaining the flexibility of a dynamic language.
 
-== Extending the Number System: Multiple Dispatch vs Object-Oriented Approach
+== Experiment: Extending the Number System
 
 Let's compare how Julia and Python handle extending the number system. First, the Python approach:
 
@@ -677,16 +679,3 @@ julia> @btime fib(Val(40))
   0.792 ns (0 allocations: 0 bytes)
 Val{102334155}()
 ```
-
-While this compile-time approach is impressive, it's important to note:
-1. It transfers computation cost to compile time
-2. It can increase code size
-3. It's not recommended for general use
-4. It serves as an interesting demonstration of type system capabilities
-
-=== Summary
-Julia's type system and multiple dispatch provide:
-- A flexible and extensible number system
-- Clear and symmetric operation definitions
-- Powerful compile-time capabilities
-- Superior expressiveness compared to traditional object-oriented approaches
