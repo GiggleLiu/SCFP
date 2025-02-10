@@ -66,6 +66,8 @@ It is as concise (concise $!=$ simple) as Python, but runs much faster!
   image("images/benchmark.png", width: 400pt),
 )
 
+https://benchmarksgame-team.pages.debian.net/benchmarksgame/fastest/julia-ifx.html
+
 == Just-In-Time (JIT) Compilation
 The more you tell the compiler, the more efficient code it can generate.
 - The _type_ of a variable is known at compile time. 
@@ -494,6 +496,7 @@ At 144 nanoseconds, Python is:
 As a remark, when Julia compiler fails to infer the types, it will fall back to the dynamic dispatch mode. Then it also suffers from the problem of cache misses.
 
 
+= Multiple Dispatch
 == The Power of Multiple Dispatch
 Multiple dispatch is a fundamental feature of Julia that allows functions to be dynamically dispatched based on the runtime types of all their arguments. This is in contrast to single dispatch in object-oriented languages, where method selection is based only on the first argument (the object).
 

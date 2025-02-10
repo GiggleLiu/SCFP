@@ -11,6 +11,11 @@
 #let clip(image, top: 0pt, bottom: 0pt, left: 0pt, right: 0pt) = {
   box(clip: true, image, inset: (top: -top, right: -right, left: -left, bottom: -bottom))
 }
+#let terminal(code) = {
+  box(radius: 4pt, inset: 5pt, fill:black, width: 500pt, text(10pt, fill: silver)[
+  #code
+  ])
+}
 #set cite(style: "apa")
 
 #let m = hkustgz-theme.register()
@@ -78,12 +83,12 @@ Zulip stream: `AMAT5315-2025Spring`, please let me know if you do not have acces
 
 === PART 3: Applications
 - Probabilistic inference
-- Spin-glass and computational complexity
+- Spin-glass and other computational hard problems
 
 == Assessment
 #align(center, box(stroke: black, inset: 10pt)[100% through homework])
 
-- We use the standard code review process in GitHub, submission order matters
+- We use the standard code review process in GitHub.
 
 #align(center, canvas({
     import draw: *
@@ -99,7 +104,7 @@ Zulip stream: `AMAT5315-2025Spring`, please let me know if you do not have acces
 
 Note: PR is a pull request, which is a request to merge changes from a branch into the main branch.
 
-== Polling: How do you program?
+== Survey: Let us know you better!
 
 - Name, e.g. Jinguo Liu
 - Research label, e.g. Scientific Computing
@@ -108,7 +113,90 @@ Note: PR is a pull request, which is a request to merge changes from a branch in
 
 #outline-slide()
 
-= Terminal
+= Terminal Environment
+
+== What is a terminal?
+
+A text based window where you can manage folders and files:
+
+#terminal(```bash
+(base) ➜  AMAT5315-2025Spring-Homeworks git:(main) ls
+README.md hw1
+(base) ➜  AMAT5315-2025Spring-Homeworks git:(main) cd hw1
+(base) ➜  hw1 git:(main) ls
+README.md
+```)
+
+== Monitor the system resources:
+#terminal(```bash
+top - 08:11:56 up 312 days, 11:46,  2 users,  load average: 0.00, 0.00, 0.00
+Tasks: 291 total,   1 running, 290 sleeping,   0 stopped,   0 zombie
+%Cpu(s):  0.0 us,  0.1 sy,  0.0 ni, 99.9 id,  0.0 wa,  0.0 hi,  0.0 si,  0.0 st
+MiB Mem :   7896.6 total,    414.1 free,    804.6 used,   6678.0 buff/cache
+MiB Swap:   2048.0 total,   1945.8 free,    102.2 used.   6791.0 avail Mem
+
+    PID USER      PR  NI    VIRT    RES    SHR S  %CPU  %MEM     TIME+ COMMAND
+    996 root      20   0   76324   5760   4608 S   0.3   0.1 343:13.53 vmtoolsd
+ 678990 group1    20   0   16308   4352   3456 R   0.3   0.1   0:00.02 top
+      1 root      20   0  166708  11776   8320 S   0.0   0.1   5:10.09 systemd
+      2 root      20   0       0      0      0 S   0.0   0.0   0:02.24 kthreadd
+      3 root       0 -20       0      0      0 I   0.0   0.0   0:00.00 rcu_gp
+      4 root       0 -20       0      0      0 I   0.0   0.0   0:00.00 rcu_par_gp
+      5 root       0 -20       0      0      0 I   0.0   0.0   0:00.00 slub_flushwq
+      6 root       0 -20       0      0      0 I   0.0   0.0   0:00.00 netns
+     11 root       0 -20       0      0      0 I   0.0   0.0   0:00.00 mm_percpu_wq
+     12 root      20   0       0      0      0 I   0.0   0.0   0:00.00 rcu_tasks_kthread
+     13 root      20   0       0      0      0 I   0.0   0.0   0:00.00 rcu_tasks_rude_kthread
+     14 root      20   0       0      0      0 I   0.0   0.0   0:00.00 rcu_tasks_trace_kthread
+     15 root      20   0       0      0      0 S   0.0   0.0   0:10.23 ksoftirqd/0
+     16 root      20   0       0      0      0 I   0.0   0.0 111:21.15 rcu_preempt
+     17 root      rt   0       0      0      0 S   0.0   0.0   1:47.78 migration/0
+```)
+
+== Control a remote machine:
+#terminal(```bash
+(base) ➜  hw1 git:(main) ssh group1@amat5315
+group1@10.100.0.179's password:
+Welcome to Ubuntu 22.04.4 LTS (GNU/Linux 6.5.0-26-generic x86_64)
+
+ * Documentation:  https://help.ubuntu.com
+ * Management:     https://landscape.canonical.com
+ * Support:        https://ubuntu.com/pro
+
+Expanded Security Maintenance for Applications is not enabled.
+
+86 updates can be applied immediately.
+To see these additional updates run: apt list --upgradable
+
+3 additional security updates can be applied with ESM Apps.
+Learn more about enabling ESM Apps service at https://ubuntu.com/esm
+
+New release '24.04.1 LTS' available.
+Run 'do-release-upgrade' to upgrade to it.
+
+*** System restart required ***
+Last login: Mon Feb 10 07:53:55 2025 from 10.22.6.162
+group1@amat-course-site:~$ hostname
+amat-course-site
+group1@amat-course-site:~$
+```)
+
+== Run a program:
+#terminal(```
+(base) ➜  hw1 git:(main) julia
+               _
+   _       _ _(_)_     |  Documentation: https://docs.julialang.org
+  (_)     | (_) (_)    |
+   _ _   _| |_  __ _   |  Type "?" for help, "]?" for Pkg help.
+  | | | | | | |/ _` |  |
+  | | |_| | | | (_| |  |  Version 1.11.3 (2025-01-21)
+ _/ |\__'_|_|_|\__'_|  |  Official https://julialang.org/ release
+|__/                   |
+
+julia> print("hello, world!")
+hello, world!
+julia>
+```)
 
 == Get a Terminal!
 #timecounter(10)
@@ -261,7 +349,7 @@ PID    COMMAND      %CPU  TIME     #TH    #WQ  #PORT MEM    PURG   CMPRS  PGRP  
 ...
 ```])
 
-= SSH
+= SSH - Remote Access
 == Remote access - all top 500 clusters use linux!
 ```
 ssh     # the OpenSSH remote login client
@@ -343,7 +431,7 @@ canvas({
 }))
 
 
-= Git
+= Git - Version Control
 == Version Control
 
 Version control is a system that records changes to files over time, allowing you to track modifications, compare changes, and revert to previous versions if needed.
