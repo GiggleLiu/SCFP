@@ -43,6 +43,7 @@
 #show: slides.with()
 
 == AMAT5315: Modern Scientific Computing
+#timecounter(1)
 
 - Lecturer: Jinguo LIU
 - Teaching assistant: Zhong-Yi NI
@@ -51,23 +52,17 @@
 Zulip stream: `AMAT5315-2025Spring`, please let me know if you do not have access yet.
 
 == Books (optional)
+#timecounter(1)
 - #highlight("Lecture notes"): https://scfp.jinguo-group.science/ (PDF files will be uploaded to zulip as well)
 #v(20pt)
-- Matrix Computation, 4th Edition, Gene H. Golub and Charles F. Van Loan, 2013,
+- *Matrix Computation*, 4th Edition, Gene H. Golub and Charles F. Van Loan, 2013,
   - Tag: Matrix, tensor, sparse matrices and their operations
-- The nature of computation, Cristopher Moore and Stephan Mertens, 2011,
+- *The nature of computation*, Cristopher Moore and Stephan Mertens, 2011,
   - Tag: Computational theory, probabilistic process
-- Scientific computing: an introductory survey, Michael T. Heath, 2018.
-
-#v(30pt)
-#align(center, canvas({
-    import draw: *
-    content((0, 0), box(stroke: none, inset: 10pt)[$checkmark$ Discrete])
-    content((10, 0), box(stroke: none, inset: 10pt)[#strike([Continuous (e.g. differential equations)])])
-}))
-
+- *Scientific computing: an introductory survey*, Michael T. Heath, 2018.
 
 == Lectures: 12 in total
+#timecounter(1)
 #place(dx: 80%, dy: 25%, align(right, [#text(66pt)[\u{1F4BB}]\ (Required)]))
 
 === PART 1: High Performance Computing
@@ -86,9 +81,10 @@ Zulip stream: `AMAT5315-2025Spring`, please let me know if you do not have acces
 - Spin-glass and other computational hard problems
 
 == Assessment
+#timecounter(1)
 #align(center, box(stroke: black, inset: 10pt)[100% through homework])
 
-- We use the standard code review process in GitHub.
+- We use the standard code review process (#link("https://github.com/CodingThrust/AMAT5315-2025Spring-Homeworks")[Guide]) in GitHub.
 
 #align(center, canvas({
     import draw: *
@@ -102,10 +98,10 @@ Zulip stream: `AMAT5315-2025Spring`, please let me know if you do not have acces
     content("rm.mid", [$checkmark$])
 }))
 
-Note: PR is a pull request, which is a request to merge changes from a branch into the main branch.
+Note: PR is a pull request, which is a request to merge changes to the _repository_.
 
 == Survey: Let us know you better!
-
+#timecounter(8)
 - Name, e.g. Jinguo Liu
 - Research label, e.g. Scientific Computing
 - Programming Language, e.g. Julia, Python
@@ -116,18 +112,50 @@ Note: PR is a pull request, which is a request to merge changes from a branch in
 = Terminal Environment
 
 == What is a terminal?
+#timecounter(1)
 
-A text based window where you can manage folders and files:
+A text based window where you can manage your operating system. e.g. manage folders and files:
 
 #terminal(```bash
-(base) ➜  AMAT5315-2025Spring-Homeworks git:(main) ls
+(base) ➜  AMAT5315-2025Spring-Homeworks git:(main) ls  # show content in a directory
 README.md hw1
-(base) ➜  AMAT5315-2025Spring-Homeworks git:(main) cd hw1
+(base) ➜  AMAT5315-2025Spring-Homeworks git:(main) cd hw1  # change directory
 (base) ➜  hw1 git:(main) ls
 README.md
 ```)
 
+== Edit a file:
+#timecounter(1)
+Here, we use the default editor `vim` to edit the file `README.md`.
+
+#terminal(```bash
+(base) ➜  hw1 git:(main) vim README.md
+```)
+
+== Run a program:
+#timecounter(1)
+You can access the Julia REPL by typing `julia` in the terminal.
+
+#terminal(```
+(base) ➜  hw1 git:(main) julia
+               _
+   _       _ _(_)_     |  Documentation: https://docs.julialang.org
+  (_)     | (_) (_)    |
+   _ _   _| |_  __ _   |  Type "?" for help, "]?" for Pkg help.
+  | | | | | | |/ _` |  |
+  | | |_| | | | (_| |  |  Version 1.11.3 (2025-01-21)
+ _/ |\__'_|_|_|\__'_|  |  Official https://julialang.org/ release
+|__/                   |
+
+julia> print("hello, world!")
+hello, world!
+julia>
+```)
+
 == Monitor the system resources:
+#timecounter(1)
+You can monitor the system resources by typing `top` in the terminal.
+
 #terminal(```bash
 top - 08:11:56 up 312 days, 11:46,  2 users,  load average: 0.00, 0.00, 0.00
 Tasks: 291 total,   1 running, 290 sleeping,   0 stopped,   0 zombie
@@ -154,6 +182,9 @@ MiB Swap:   2048.0 total,   1945.8 free,    102.2 used.   6791.0 avail Mem
 ```)
 
 == Control a remote machine:
+#timecounter(1)
+You can even control a remote machine from your local machine using `ssh`.
+
 #terminal(```bash
 (base) ➜  hw1 git:(main) ssh group1@amat5315
 group1@10.100.0.179's password:
@@ -165,41 +196,15 @@ Welcome to Ubuntu 22.04.4 LTS (GNU/Linux 6.5.0-26-generic x86_64)
 
 Expanded Security Maintenance for Applications is not enabled.
 
-86 updates can be applied immediately.
-To see these additional updates run: apt list --upgradable
-
-3 additional security updates can be applied with ESM Apps.
-Learn more about enabling ESM Apps service at https://ubuntu.com/esm
-
-New release '24.04.1 LTS' available.
-Run 'do-release-upgrade' to upgrade to it.
-
-*** System restart required ***
 Last login: Mon Feb 10 07:53:55 2025 from 10.22.6.162
-group1@amat-course-site:~$ hostname
+
+group1@amat-course-site:~$ hostname  # check the hostname
 amat-course-site
-group1@amat-course-site:~$
 ```)
 
-== Run a program:
-#terminal(```
-(base) ➜  hw1 git:(main) julia
-               _
-   _       _ _(_)_     |  Documentation: https://docs.julialang.org
-  (_)     | (_) (_)    |
-   _ _   _| |_  __ _   |  Type "?" for help, "]?" for Pkg help.
-  | | | | | | |/ _` |  |
-  | | |_| | | | (_| |  |  Version 1.11.3 (2025-01-21)
- _/ |\__'_|_|_|\__'_|  |  Official https://julialang.org/ release
-|__/                   |
 
-julia> print("hello, world!")
-hello, world!
-julia>
-```)
-
-== Get a Terminal!
-#timecounter(10)
+== How to get a terminal?
+#timecounter(1)
 
 - If you use Linux (an operating system) or macOS, you already have a terminal.
 - If you use Windows, you can install #link("https://docs.microsoft.com/en-us/windows/wsl/install")[Windows Subsystem for Linux] (WSL) to get a Linux terminal. Just type:
@@ -209,12 +214,14 @@ julia>
   ```
 
 == Shell (or Terminal)
+#timecounter(1)
 
 In a shell, we use
 - `CTRL-C` to stop a running program
 - `CTRL-D` to exit a shell.
 
 == Frequently used commands - getting help
+#timecounter(1)
 
 ```bash
 man ls    # an interface to the system reference manuals
@@ -226,6 +233,7 @@ ls [-@ABCFGHILOPRSTUWabcdefghiklmnopqrstuvwxy1%,] [--color=when] [-D format] [fi
 ```
 
 == Frequently used commands - manipulating directory
+#timecounter(3)
 ```bash
 ls      # list directory contents
 mkdir   # make directories
@@ -276,6 +284,7 @@ drwxr-xr-x@ 6 liujinguo  staff    192 Nov 16 10:06 images
 ```
 
 == Frequently used commands - read & write files
+#timecounter(1)
 ```bash
 echo    # display a line of text
 cat     # concatenate files and print on the standard output
@@ -294,8 +303,9 @@ hello-world
 ```
 
 == Edit files: Vim
+#timecounter(3)
 ```bash
-vim     # Vi IMproved, a programmer's text editor
+vim     # Vi IMproved, a terminal based text editor
 ```
 
 It has three primary modes, each tailored for specific tasks:
@@ -376,6 +386,7 @@ scp <path/to/local/file> <username>@<hostname>:<path/to/remote/directory>
 ```
 
 == Security your connections: Passwords are not safe
+#timecounter(2)
 #align(center, box(stroke: black, inset: 10pt, width: 600pt, align(left, [
 \u{1F430} \u{1F430} \u{1F430}: If someone knocks on the door, how do we know its you?
 
@@ -389,6 +400,7 @@ What is the problem of using passwords?
 - #highlight("Not safe") in a public network
 
 == Verify your identity without transmitting any private information
+#timecounter(2)
 #align(center, box(stroke: black, inset: 10pt, width: 700pt, align(left, [
 \u{1F43A}: I hear your secret!
 
@@ -396,6 +408,7 @@ What is the problem of using passwords?
 ])))
 
 == Public key cryptography
+#timecounter(1)
 SSH encryption is based on the public key cryptography.
 - Key $arrow.r$ Private key in SSH
 - Lock $arrow.r$ Public key in SSH
@@ -408,10 +421,11 @@ ssh-copy-id <username>@<hostname>
 When the server wants to verify your identity, it will use the public key to encrypt a message, and ask you to decrypt it with the private key. If you cannot decrypt it, then you must be a stranger. #highlight("The private key is never transmitted to the internet!")
 
 == Recap
+#timecounter(1)
 
 #grid(columns: 2, gutter: 50pt, canvas({
   import draw: *
-  content((0, 0), align(center, box(stroke: black, inset: 10pt, width: 300pt)[#text(16pt)[Terminal: The interface to control a Linux machine \ #box(stroke: black, inset: 10pt)[Vim: an editor in terminal environment]]]), name: "terminal")
+  content((0, 0), align(center, box(stroke: black, inset: 10pt, width: 300pt)[#text(16pt)[Terminal: A text based window to control a linux operating system \ #box(stroke: black, inset: 10pt)[Vim: an editor in terminal environment]]]), name: "terminal")
 
   content((0, -5), box(stroke: black, inset: 10pt, width: 300pt)[#text(16pt)[SSH: A tool to access remote machines from anywhere]], name: "ssh")
   line("terminal", "ssh", stroke: black, mark: (start: "straight"))
@@ -433,6 +447,7 @@ canvas({
 
 = Git - Version Control
 == Version Control
+#timecounter(2)
 
 Version control is a system that records changes to files over time, allowing you to track modifications, compare changes, and revert to previous versions if needed.
 
@@ -454,9 +469,10 @@ Version control is a system that records changes to files over time, allowing yo
     - *Push*: upload the code])
 }))
 
-#align(center, box(stroke: black, inset: 5pt)[Without version control, #christina() and #murphy() had a good fight.])
+#align(center, box(stroke: black, inset: 5pt)[Without version control, #murphy() may overwrite #christina()'s work due to conflicts.])
 
 == Version Control: the centralized system
+#timecounter(1)
 
 Centralized version control systems (e.g. SVN) are a type of version control system where all changes are made to a central repository. *Locking* the repository is a common practice to prevent conflicts.
 #align(center, canvas({
@@ -473,10 +489,10 @@ Centralized version control systems (e.g. SVN) are a type of version control sys
     content((4, 0.5), highlight[2 years later])
 }))
 
-#align(center, box(stroke: black, inset: 5pt)[#christina() hates #murphy()])
-
+#align(center, box(stroke: black, inset: 5pt)[With centralized version control, #christina(size: 30pt) has to wait #murphy(size: 30pt) to complete the work.]) <fig:git-centralized>
 
 == Git: version control without a lock!
+#timecounter(3)
 
 Git is a distributed version control system. Developed by Linus Torvalds (yes, the same guy who developed Linux) in 2005.
 
@@ -504,6 +520,7 @@ Git is a distributed version control system. Developed by Linus Torvalds (yes, t
 
 
 == Platforms for Git services
+#timecounter(1)
 
 The two most popular platforms that provide git services:
 #align(center + top, grid(columns: 2, gutter: 30pt, box(width: 300pt)[
@@ -515,6 +532,7 @@ The two most popular platforms that provide git services:
 )
 
 == Number of registered Julia packages
+#timecounter(1)
 Why open source software suddenly becomes popular in the past decade?
 
 #figure(canvas({
@@ -542,17 +560,18 @@ Why open source software suddenly becomes popular in the past decade?
 - They are registered on GitHub repository: #link("https://github.com/JuliaRegistries/General")[JuliaRegistries/General] (the default Julia registry)
 
 == Video Watching
+#timecounter(20)
 
 #link("https://www.youtube.com/embed/uR6G2v_WsRA?si=hW1YQLrjKzRsB_Iw")[YouTube Video]
 
-
-
 == Live Coding: Version control
+#timecounter(5)
 1. User git locally: create a code repository and introduce git commands: `add`, `commit`, `log`, `checkout` and `diff`
 2. Create a new project on GitHub
 3. Create a pull request
 
 == To learn more
+#timecounter(1)
 The missing semester of CS education: https://missing.csail.mit.edu/
 
 - 1/13/20: Course overview + the shell
@@ -562,6 +581,7 @@ The missing semester of CS education: https://missing.csail.mit.edu/
 
 
 == Homework
+#timecounter(1)
 1. Go to the homework repository:
    https://github.com/CodingThrust/AMAT5315-2025Spring-Homeworks
 2. Check the `hw1` folder for the homework description.
