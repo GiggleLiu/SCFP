@@ -5,8 +5,8 @@
 #book-meta(
   title: "Scientific Computing For Physicsists",
   description: "Scientific computing for physicsists, with codes in Julia programming language.",
-  repository: "https://github.com/Myriad-Dreamin/shiroa",
-  authors: ("Myriad-Dreamin", "7mile"),
+  repository: "https://github.com/GiggleLiu/SCFP",
+  authors: ("Jin-Guo Liu et al",),
   summary: [
     #prefix-chapter("home.typ")[Home]
     = Julia programming language
