@@ -1,10 +1,20 @@
 #import "../book.typ": book-page, cross-link, heading-reference
-#set heading(numbering: "1.")
 #show: book-page.with(title: "My First Package")
 #let boxed(it, width: 100%) = box(stroke: 1pt, inset: 10pt, radius: 4pt, width: width)[#it]
 
+#show ref: it => {
+  let el = it.element
+  if el != none and el.func() == heading {
+    // Override heading references.
+    link(el.location(), el.body)
+  } else {
+    // Other references as usual.
+    it
+  }
+}
+
 = My First Package
-You need to know the Julia package development workflow, regardless of whether you are writing project code for your own use or developing a package. Julia package system enables developers to manage project dependencies, automate unit tests and documentation, and publish packages.
+Julia package development workflow is useful for both project code and package development. It enables developers to manage project dependencies, automate unit tests and documentation, and publish packages.
 The Julia development workflow usually includes the following steps:
 
 - @sec:create-package: Create a new package using #link("https://github.com/JuliaCI/PkgTemplates.jl", "PkgTemplates").
