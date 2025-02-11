@@ -1,92 +1,91 @@
-#import "../book.typ": book-page, cross-link
-#show: book-page.with(title: "Setup Julia")
+#import "../book.typ": book-page, cross-link, heading-reference
+#set heading(numbering: "1.")
+#show: book-page.with(title: "My First Package")
+#let boxed(it, width: 100%) = box(stroke: 1pt, inset: 10pt, radius: 4pt, width: width)[#it]
 
 = My First Package
+You need to know the Julia package development workflow, regardless of whether you are writing project code for your own use or developing a package. Julia package system enables developers to manage project dependencies, automate unit tests and documentation, and publish packages.
+The Julia development workflow usually includes the following steps:
 
-One of Julia's most powerful features is its package manager, which enables developers to create, manage, and publish packages. The package manager maintains compatibility between packages by tracking exact version information in the central `General` registry - a GitHub repository containing metadata for all registered Julia packages.
+- @sec:create-package: Create a new package using #link("https://github.com/JuliaCI/PkgTemplates.jl", "PkgTemplates").
+- @sec:configure-dependencies: Configure project dependencies.
+- @sec:develop-package: Develop the package (code, tests, docs).
+- @sec:publish-package: Upload the package to GitHub or other git hosting services.
+- @sec:register-package: (Optional) Register the package in the #link("https://github.com/JuliaRegistries/General", "General") registry.
 
-To publish a package to the `General` registry, follow these steps:
+== Create a package <sec:create-package>
 
-1. Create a new package using a template
-2. Configure dependencies in `Project.toml`
-3. Develop the package (code, tests, docs)
-4. Open-source it on GitHub with CI/CD automation
-5. Register it in the `General` registry
-
-== Creating a Package
-
-We'll use `PkgTemplates.jl` to generate a new package. In the Julia REPL:
+We use #link("https://github.com/JuliaCI/PkgTemplates.jl", "PkgTemplates") to generate a new package. In the Julia REPL:
 
 ```julia
-using PkgTemplates
+julia> using PkgTemplates
 
-tpl = Template(;
-    user="YourUsername",  // Replace with your GitHub username
+julia> tpl = Template(;
+    user="YourUsername",  # Replace with your GitHub username
     authors="Your Name",
-    julia=v"1.10",
+    julia=v"1",
     plugins=[
-        License(; name="MIT"),
-        Git(; ssh=true), 
-        GitHubActions(; x86=true),
-        Codecov(),
-        Documenter{GitHubActions}(),
+        License(; name="MIT"),       # MIT license
+        Git(; ssh=true),             # Use Git protocol
+        GitHubActions(; x86=false),  # Set up GitHub Actions
+        Codecov(),                   # Enable code coverage tracking
+        Documenter{GitHubActions}(), # Configure documentation building
     ],
 )
 
-tpl("MyFirstPackage")
+julia> tpl("MyFirstPackage")     # Create a new package named MyFirstPackage
 ```
-
-The template includes several important plugins:
-
+The above template includes several useful plugins:
 - `License`: Specifies the package license (MIT in this case)
 - `Git`: Initializes Git repository with SSH protocol
 - `GitHubActions`: Sets up continuous integration
 - `Codecov`: Enables code coverage tracking
 - `Documenter`: Configures documentation building
 
+#boxed([
+  *Tips: package naming convention*\
+  - Longer than 5 characters
+  - Camel case, e.g. `MyFirstPackage`
+])
 
-#box(stroke: 1pt, inset: 10pt)[
-  When choosing a package name, follow the Julia package naming guidelines at `pkgdocs.julialang.org`. While package names must be unique within a registry, packages are actually identified by their UUID, allowing the same name to exist across different registries.
-]
-
-The template creates the following directory structure:
+After running the above code, you will get a new package named `MyFirstPackage` in the `~/.julia/dev` directory. The template creates the following directory structure:
 
 ```bash
 .
-├── .git/               // Git repository files
+├── .git/              # Git repository files
 ├── .github/           
 │   ├── dependabot.yml
-│   └── workflows/     // CI/CD configuration
+│   └── workflows/     # CI/CD configuration
 │       ├── CI.yml
 │       ├── CompatHelper.yml
 │       └── TagBot.yml
-├── .gitignore         // Files ignored by Git
-├── LICENSE            // Package license
-├── Project.toml       // Package metadata and dependencies
-├── README.md          // Package documentation
-├── docs/              // Documentation source
+├── .gitignore         # Files ignored by Git
+├── LICENSE            # Package license
+├── Project.toml       # Package metadata and dependencies
+├── README.md          # Package documentation
+├── docs/              # Documentation source
 │   ├── Project.toml
 │   ├── make.jl
 │   └── src/
 │       └── index.md
-├── src/               // Package source code
+├── src/               # Package source code
 │   └── MyFirstPackage.jl
-└── test/              // Test files
+└── test/              # Test files
     └── runtests.jl
 ```
 
 Key files and directories:
 
 - `.github/`: Contains GitHub Actions workflows for:
-  - Continuous integration testing
-  - Dependency updates
-  - Release tagging
+  - `CI.yml`: Continuous integration testing
+  - `CompatHelper.yml`: Manages dependency compatibility
+  - `TagBot.yml`: Automates release tagging
 - `Project.toml`: Defines package metadata, dependencies, and version constraints
 - `docs/`: Documentation files with their own dependency environment
 - `src/`: Source code directory
 - `test/`: Test files directory
 
-== Managing Dependencies
+== Manage dependencies <sec:configure-dependencies>
 
 To add dependencies to your package:
 
@@ -141,7 +140,7 @@ Add version constraints in the `[compat]` section:
 ```toml
 [compat]
 julia = "1.10"
-LinearAlgebra = "1"  // Matches all 1.x.y versions
+LinearAlgebra = "1"  # Matches all 1.x.y versions
 ```
 
 Version specifier rules:
@@ -149,24 +148,21 @@ Version specifier rules:
 - `0.8`: Matches `0.8.0`, `0.8.1`, `0.8.2`, etc.
 - `1.2`: Matches `1.2.0`, `1.2.1`, etc.
 
-#box(stroke: 1pt, inset: 10pt)[
-  Version numbers starting with `0` indicate development versions. The first non-zero component should be incremented when making breaking changes to exported functions.
-]
+The version numbers starting with `0` indicate development versions. The first non-zero component should be incremented when making breaking changes to exported functions.
 
-/// ... existing code ...
+== Develop the package <sec:develop-package>
 
-== Developing the Package
-
-=== Writing Source Code
+=== Write source code
 
 Let's create a package that implements the Lorenz system. First, edit the main module file:
 
-```julia:src/MyFirstPackage.jl
+_File_: `src/MyFirstPackage.jl`
+```julia
 module MyFirstPackage
 
 using LinearAlgebra
 
-// Export public interfaces
+# Export public interfaces
 export Lorenz, integrate_step
 export Point, Point2D, Point3D
 export RungeKutta, Euclidean
@@ -178,19 +174,13 @@ end
 
 Then create the implementation file:
 
-```julia:src/lorenz.jl
-#doc[
-  Point{D, T}
+_File_: `src/lorenz.jl`
+```julia
+"""
+    Point{D, T}
 
-  A point in D-dimensional space with coordinates of type T.
-
-  Example:
-  ```julia
-  p1 = Point(1.0, 2.0)
-  p2 = Point(3.0, 4.0)
-  p1 + p2  // Returns Point{2, Float64}((4.0, 6.0))
-  ```
-]
+A point in D-dimensional space, with coordinates of type T.
+"""
 struct Point{D, T <: Real}
     data::NTuple{D, T}
 end
@@ -199,19 +189,19 @@ Point(x::Real...) = Point((x...,))
 const Point2D{T} = Point{2, T}
 const Point3D{T} = Point{3, T}
 
-// Vector operations
+# Vector operations
 LinearAlgebra.dot(x::Point, y::Point) = mapreduce(*, +, x.data, y.data)
 Base.:*(x::Real, y::Point) = Point(x .* y.data)
 Base.:/(y::Point, x::Real) = Point(y.data ./ x)
 Base.:+(x::Point, y::Point) = Point(x.data .+ y.data)
 Base.isapprox(x::Point, y::Point; kwargs...) = all(isapprox.(x.data, y.data; kwargs...))
 
-// Collection interface
+# Collection interface
 Base.getindex(p::Point, i::Int) = p.data[i]
 Base.broadcastable(p::Point) = p.data
 Base.iterate(p::Point, args...) = iterate(p.data, args...)
 
-// Lorenz system implementation
+# Lorenz system implementation
 struct Lorenz
     σ::Float64
     ρ::Float64
@@ -223,7 +213,7 @@ function field(p::Lorenz, u)
     Point(p.σ*(y-x), x*(p.ρ-z)-y, x*y-p.β*z)
 end
 
-// Integration methods
+# Integration methods
 abstract type AbstractIntegrator end
 struct RungeKutta{K} <: AbstractIntegrator end
 struct Euclidean <: AbstractIntegrator end
@@ -249,7 +239,8 @@ end
 
 Create a test suite in two files:
 
-```julia:test/runtests.jl
+_File_: `test/runtests.jl`
+```julia
 using Test
 using MyFirstPackage
 
@@ -258,7 +249,8 @@ using MyFirstPackage
 end
 ```
 
-```julia:test/lorenz.jl
+_File_: `test/lorenz.jl`
+```julia
 using Test, MyFirstPackage
 
 @testset "Point" begin
@@ -286,24 +278,25 @@ Run tests in the package environment:
 
 Create an example that visualizes the Lorenz attractor:
 
-```julia:examples/lorenz.jl
+_File_: `examples/lorenz.jl`
+```julia
 using CairoMakie, MyFirstPackage
 set_theme!(theme_black())
 
-// Initialize system
+# Initialize system
 lz = Lorenz(10, 28, 8/3)
 y = Point(1.0, 1.0, 1.0)
  
 points = Observable(Point3f[])
 colors = Observable(Int[])
 
-// Create visualization
+# Create visualization
 fig, ax, l = lines(points, color = colors,
     colormap = :inferno, transparency = true, 
     axis = (; type = Axis3, protrusions = (0, 0, 0, 0), 
               viewmode = :fit, limits = (-30, 30, -30, 30, 0, 50)))
 
-// Generate animation
+# Generate animation
 record(fig, "lorenz.mp4", 1:120) do frame
     for i in 1:50
         y = integrate_step(lz, RungeKutta{4}(), y, 0.01)
@@ -321,58 +314,55 @@ end
   caption: [Visualization of the Lorenz attractor]
 )
 
-== Documentation
+== Document the package <sec:document-package>
 
 Documentation is built using Documenter.jl. To build the documentation:
 
 1. Navigate to the docs directory and start Julia:
-```bash
+  ```bash
 cd docs
 julia --project
 ```
 
 2. Set up the documentation environment:
-```julia
-(@v1.10) pkg> dev ..        // Add local package
-(@v1.10) pkg> instantiate   // Install dependencies
+  ```julia
+(@v1.10) pkg> dev ..        # Add local package
+(@v1.10) pkg> instantiate   # Install dependencies
 ```
 
 3. Build the documentation:
-```julia
+  ```julia
 julia> include("make.jl")
 ```
 
-The generated HTML files will be in `docs/build/`. Open `index.html` to preview.
-
-#box(stroke: 1pt, inset: 10pt)[
-  For live documentation preview during development, use LiveServer.jl:
+  The generated HTML files will be in `docs/build/`. To preview the documentation during development, one can use #link("https://github.com/tlienart/LiveServer.jl", "LiveServer.jl"):
   ```julia
-  using LiveServer
-  serve(dir="docs/build")
-  ```
-]
+julia> using MyFirstPackage, LiveServer
 
-== Publishing Your Package
+julia> servedocs()
+```
 
-=== Creating a GitHub Repository
+== Publish the package <sec:publish-package>
+
+=== Create a GitHub repository
 
 1. Create a new repository named `MyFirstPackage.jl` on GitHub
 
 2. Verify your remote repository configuration:
-```bash
+  ```bash
 git remote -v
 origin git@github.com:YourUsername/MyFirstPackage.jl.git (fetch)
 origin git@github.com:YourUsername/MyFirstPackage.jl.git (push)
 ```
 
 3. Push your code:
-```bash
+  ```bash
 git add -A
 git commit -m "Initial commit"
 git push
 ```
 
-=== Setting Up GitHub Actions
+=== Set up GitHub Actions
 
 The `.github/workflows` directory contains three important configuration files:
 
@@ -388,11 +378,12 @@ The `.github/workflows` directory contains three important configuration files:
    - Monitors dependency updates
    - Creates PRs to update version bounds
 
-#box(stroke: 1pt, inset: 10pt)[
-  For GitHub Actions configuration examples, refer to established packages like OMEinsum.jl.
-]
+#boxed([
+  *Tips: Learn from established packages*\
+  It is always a good practise to learn from established packages. For GitHub Actions configuration examples, #link("https://github.com/under-Peter/OMEinsum.jl", "OMEinsum.jl") is a good example.
+])
 
-=== Registering Your Package
+== Register the package <sec:register-package>
 
 To make your package available to the Julia community:
 
@@ -412,20 +403,20 @@ To make your package available to the Julia community:
    - Your package will be available via Julia's package manager
    - Users can install it with `] add MyFirstPackage`
 
-== Case Study: OMEinsum.jl
+== Case study: OMEinsum.jl
 
 OMEinsum.jl provides a good example of package organization:
 
 ```
 .
-├── .github/          // CI/CD configuration
-├── Project.toml      // Package metadata
-├── benchmark/        // Performance tests
-├── docs/            // Documentation
-├── examples/        // Usage examples
-├── ext/             // Package extensions
-├── src/             // Source code
-└── test/            // Test suite
+├── .github/          # CI/CD configuration
+├── Project.toml      # Package metadata
+├── benchmark/        # Performance tests
+├── docs/             # Documentation
+├── examples/         # Usage examples
+├── ext/              # Package extensions
+├── src/              # Source code
+└── test/             # Test suite
 ```
 
 Key features:
@@ -449,16 +440,8 @@ CUDA = "4, 5"
 julia = "1"
 ```
 
-#box(stroke: 1pt, inset: 10pt)[
-  1. Is ChainRulesCore 1.2 compatible with OMEinsum?
-  2. What should be done when ChainRulesCore 2.0 is released?
-  3. How should bug fixes be released?
-  4. What version changes are needed for API changes?
-]
-
-#box(stroke: 1pt, inset: 10pt)[
-  1. Yes, because `ChainRulesCore = "1"` matches all 1.x versions
-  2. CompatHelper will create a PR to update bounds; maintainers review
-  3. Increment patch version (1.2.3 → 1.2.4)
-  4. Increment minor/major version depending on breaking changes
-]
+* Excercises *
+1. Is ChainRulesCore 1.2 compatible with OMEinsum?
+2. What should be done when ChainRulesCore 2.0 is released?
+3. How should bug fixes be released?
+4. What version changes are needed for API changes?

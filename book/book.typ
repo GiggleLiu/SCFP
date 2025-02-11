@@ -14,7 +14,7 @@
     #chapter("chap1-julia/git.typ")[Version control]
     #chapter("chap1-julia/julia-setup.typ")[Setup Julia]
     #chapter("chap1-julia/julia-basic.typ")[Julia Basic]
-    #chapter("chap1-julia/julia-release.typ")[Release a Package]
+    #chapter("chap1-julia/julia-release.typ")[My First Package]
     = Matrices and tensors
     #chapter("chap2-linalg/array.typ")[Arrays]
     #chapter("chap2-linalg/fft.typ")[Fast Fourier Transform]
@@ -33,5 +33,5 @@
 
 
 // re-export page template
-#import "templates/page.typ": project
+#import "templates/page.typ": project, heading-reference
 #let book-page = project
