@@ -12,41 +12,44 @@ Maintaining a software project is challenging, especially when multiple develope
 
 The solution to these problems is *version control*. Among all version control software, *git* is the most popular.
 
-== Git is a Version Control System
+== Git - a distributed version control system
 
 _Version control_ is a system that records changes to files over time, allowing you to track modifications, compare changes, and revert to previous versions if needed.
+It is a critical component of modern software development, especially when a project has multiple developers. It prevents unwanted overwrites and conflicts.
 
 #figure(canvas(length: 0.8cm, {
     import draw: *
-    line((-8, 0), (8, 0), stroke: 2pt, mark: (end: "straight"))
-    content((8, 0.5), [Time])
-    content((0, 2), box(inset: 5pt)[#christina(size: 30pt) Alice], name: "update1")
-    line("update1", (rel: (-2, -2)), stroke: 2pt, mark: (start: "straight"), name: "update1-1")
-    line("update1", (rel: (2, -2)), stroke: 2pt, mark: (end: "straight"), name: "update1-2")
-    content((rel: (-1, 0.3), to: "update1-1.mid"), [Pull])
-    content((rel: (1, 0.3), to: "update1-2.mid"), [Push])
-    content((0, -2), box(inset: 5pt)[#murphy(size: 30pt) Bob], name: "update2")
-    line("update2", (rel: (-5, 2)), stroke: 2pt, mark: (start: "straight"), name: "update2-1")
-    line("update2", (rel: (5, 2)), stroke: 2pt, mark: (end: "straight"), name: "update2-2")
-    content((rel: (-1, -0.3), to: "update2-1.mid"), [Pull])
-    content((rel: (2.5, -0.3), to: "update2-2.mid"), [Push (#highlight("danger!!!"))])
-    content((8, 2), [- *Pull*: download the code
+    let s(it) = text(12pt, it)
+    line((-6, 0), (8, 0), stroke: 2pt, mark: (end: "straight"))
+    content((8, 0.5), s[Time])
+    content((0, 2), box(inset: 5pt, s[#christina(size: 30pt) Alice]), name: "update1")
+    line("update1", (rel: (-2, -2)), stroke: 1pt, mark: (start: "straight"), name: "update1-1")
+    line("update1", (rel: (2, -2)), stroke: 1pt, mark: (end: "straight"), name: "update1-2")
+    content((rel: (-1, 0.3), to: "update1-1.mid"), s[Pull])
+    content((rel: (1, 0.3), to: "update1-2.mid"), s[Push])
+    content((0, -2), box(inset: 5pt, s[#murphy(size: 30pt) Bob]), name: "update2")
+    line("update2", (rel: (-5, 2)), stroke: 1pt, mark: (start: "straight"), name: "update2-1")
+    line("update2", (rel: (5, 2)), stroke: 1pt, mark: (end: "straight"), name: "update2-2")
+    content((rel: (-1, -0.3), to: "update2-1.mid"), s[Pull])
+    content((rel: (2.5, -0.3), to: "update2-2.mid"), s[Push (*overwrite!!!*)])
+    content((8, 2), s[- *Pull*: download the code
     - *Push*: upload the code])
 }), caption: [Without version control, #murphy(size: 30pt) may overwrite #christina(size: 30pt)'s work due to conflicts.])
 
 In the early days, _Centralized version control systems_ (e.g. SVN) is the main way to manage version control. All changes are made to a central repository. *Locking* the repository is a common practice to prevent conflicts. Whenever someone wants to make changes to the repository, they need to lock some part of the repository, which blocks other developers from making changes to the same part of the repository. Just like the figure @fig:git-centralized shows, some long lasting work may harm the productivity of the whole team.
 #figure(canvas(length: 0.8cm, {
     import draw: *
-    line((-6, 0), (12, 0), stroke: 2pt, mark: (end: "straight"))
-    content((12, 0.5), [Time])
-    content((8, 2), box(inset: 5pt)[#christina(size: 30pt) Alice], name: "update1")
-    line("update1", (rel: (-2, -2)), stroke: 2pt, mark: (start: "straight"), name: "update1-1")
-    line("update1", (rel: (2, -2)), stroke: 2pt, mark: (end: "straight"), name: "update1-2")
-    content((0, -2), box(inset: 5pt)[#murphy(size: 30pt) Bob], name: "update2")
-    line("update2", (rel: (-5, 2)), stroke: 2pt, mark: (start: "straight"), name: "update2-1")
-    line("update2", (rel: (5, 2)), stroke: 2pt, mark: (end: "straight"), name: "update2-2")
-    content((0, 0.5), [Lock])
-    content((4, 0.5), highlight[2 years later])
+    let s(it) = text(12pt, it)
+    line((-3, 0), (12, 0), stroke: 2pt, mark: (end: "straight"))
+    content((12, 0.5), s[Time])
+    content((8, 2), box(inset: 5pt, s[#christina(size: 30pt) Alice]), name: "update1")
+    line("update1", (rel: (-2, -2)), stroke: 1pt, mark: (start: "straight"), name: "update1-1")
+    line("update1", (rel: (2, -2)), stroke: 1pt, mark: (end: "straight"), name: "update1-2")
+    content((1, -2), box(inset: 5pt, s[#murphy(size: 30pt) Bob]), name: "update2")
+    line("update2", (rel: (-3, 2)), stroke: 1pt, mark: (start: "straight"), name: "update2-1")
+    line("update2", (rel: (3, 2)), stroke: 1pt, mark: (end: "straight"), name: "update2-2")
+    content((0, 0.5), s[Lock])
+    content((4, 0.5), s[2 years later])
 }), caption: [With centralized version control, #christina(size: 30pt) has to wait #murphy(size: 30pt) to complete the work.]) <fig:git-centralized>
 
 
@@ -55,25 +58,26 @@ It was initially developed by Linus Torvalds (yes, the same guy who developed Li
 
 #figure(canvas(length: 0.8cm, {
     import draw: *
+    let s(it) = text(12pt, it)
     line((-6, 0), (12, 0), stroke: 2pt, mark: (end: "straight"))
-    content((12, 0.5), [Time])
-    content((0, 2), box(inset: 5pt)[#christina(size: 30pt) Alice], name: "update1")
-    line("update1", (rel: (-2, -2)), stroke: 2pt, mark: (start: "straight"), name: "update1-1")
-    line("update1", (rel: (2, -2)), stroke: 2pt, mark: (end: "straight"), name: "update1-2")
-    content((0, -2), box(inset: 5pt)[#murphy(size: 30pt) Bob], name: "update2")
-    line("update2", (rel: (-5, 2)), stroke: 2pt, mark: (start: "straight"), name: "update2-1")
-    line("update2", (rel: (5, 2)), stroke: (thickness: 2pt, dash: "dashed"), mark: (end: "straight"), name: "update2-2")
+    content((12, 0.5), s[Time])
+    content((0, 2), box(inset: 5pt, s[#christina(size: 30pt) Alice]), name: "update1")
+    line("update1", (rel: (-2, -2)), stroke: 1pt, mark: (start: "straight"), name: "update1-1")
+    line("update1", (rel: (2, -2)), stroke: 1pt, mark: (end: "straight"), name: "update1-2")
+    content((0, -2), box(inset: 5pt, s[#murphy(size: 30pt) Bob]), name: "update2")
+    line("update2", (rel: (-5, 2)), stroke: 1pt, mark: (start: "straight"), name: "update2-1")
+    line("update2", (rel: (5, 2)), stroke: (thickness: 1pt, dash: "dashed"), mark: (end: "straight"), name: "update2-2")
     content("update2-2.mid", box(fill: white)[$crossmark$])
 
-    content((rel: (5, 0), to: "update2"), box(fill: aqua, inset: 5pt, radius: 4pt)[Resolve conflicts], name: "merge")
-    line("update2", "merge", stroke: (thickness: 2pt), mark: (end: "straight"), name: "update2-3")
-    line((rel: (0, 2)), "merge", stroke: (thickness: 2pt, paint: blue), mark: (end: "straight"), name: "pull")
-    content((rel: (1.5, 0.4), to: "pull.mid"), text(blue)[Pull again])
-    line("merge", (rel: (5, 2)), stroke: (thickness: 2pt, paint: black), mark: (end: "straight"), name: "merge-1")
-    content((rel: (1.5, -0.4), to: "merge-1.mid"), text(black)[Push again])
-}), caption: [With Git, #christina(size: 30pt) and #murphy(size: 30pt) live in peace.]) <fig:git-distributed>
+    content((rel: (5, 0), to: "update2"), box(fill: aqua, inset: 5pt, radius: 4pt, s[Resolve conflicts]), name: "merge")
+    line("update2", "merge", stroke: (thickness: 1pt), mark: (end: "straight"), name: "update2-3")
+    line((rel: (0, 2)), "merge", stroke: (thickness: 1pt, paint: blue), mark: (end: "straight"), name: "pull")
+    content((rel: (1.5, 0.4), to: "pull.mid"), s[Pull again])
+    line("merge", (rel: (5, 2)), stroke: (thickness: 1pt, paint: black), mark: (end: "straight"), name: "merge-1")
+    content((rel: (1.5, -0.4), to: "merge-1.mid"), s[Push again])
+}), caption: [With Git, #christina(size: 30pt) and #murphy(size: 30pt) collaborate peacefully.]) <fig:git-distributed>
 
-As shown in @fig:git-distributed. A project managed by Git, or a _repository_, may have multiple _branches_, each being a "copy" of the project. One branch is more important than the others, which is the _main_ branch that accessible to users. Developers can freely deriving one branch from another, and make changes to the their own branches without blocking others, however, updating the main branch needs to be done carefully, since it will affect all users and developers.
+As shown in @fig:git-distributed. A project managed by Git, or a _repository_, may have multiple _branches_, each being a "copy" of the project. The _main_ branch (the thick line) is the default branch that accessible to users. Developers can freely derive one branch from another, and make changes to the their own branches without blocking others, however, updating the main branch needs to be done carefully, since it will affect all users and developers.
 Consider the scenario where both Alice and Bob want to make changes to the main branches. Each of them _checkout_ a new branch from the main branch, which effectively "copies" the main branch (not a hard copy).
 
 Alice and Bob do not know the existence of each other's branches, inevitably, they will make changes to the same file.
@@ -82,16 +86,7 @@ When Bob tries to push his changes, he will be notified about a previous commit 
 You may wonder: Where do they store their code if they do not know each other? How can they verify the correctness of their code? e.g. what if Bob just delete all the changes made by Alice? These questions are related to the Git hosting services, _pull requests_, the automated _unit tests_, and _continuous integration_/_continuous deployment_ (CI/CD) that we will discuss later.
 
 == Git Hosting Services
-To collaborate effectively using Git, you need a server to store your Git repository, known as a *remote*. These remote repositories can be hosted on platforms like #link("https://github.com")[GitHub] and #link("https://gitlab.com")[GitLab]:
-
-#align(center + top, grid(columns: 2, gutter: 30pt, box(width: 200pt)[
-  #image("images/github.png", width: 20pt) #align(left + top, [*GitHub* is the most popular platform for hosting and collaborating on open-source projects.])
-  ],
-  box(width: 200pt)[
-  #image("images/gitlab.png", width: 20pt) #align(left + top, [*GitLab* is similar, but can be deployed on your own server.])
-  ])
-)
-
+To collaborate effectively using Git, you need a server to store your Git repository, known as a *remote*. These remote repositories can be hosted on platforms like #link("https://github.com")[GitHub] and #link("https://gitlab.com")[GitLab]. GitHub is the most popular platform for hosting and collaborating on open-source projects. While GitHub is like a "centralized" hub, GitLab is more like a piece of software that you can deploy on your own server.
 
 Many famous projects are hosted on GitHub, including machine learning framework #link("https://github.com/pytorch/pytorch")[PyTorch] and #link("https://github.com/google/jax")[Jax].
 The Julia community has a tradition of hosting their packages on GitHub as well. Actually, all Julia packages are hosted on GitHub! They are registered on GitHub repository: #link("https://github.com/JuliaRegistries/General")[JuliaRegistries/General]. By the time of writing, there are more than 10,000 packages registered in the Julia registry!
@@ -100,6 +95,7 @@ The Julia community has a tradition of hosting their packages on GitHub as well.
 #figure(canvas({
   import draw: *
   import plot: *
+  let s(it) = text(12pt, it)
   plot(
     size: (12, 6),
     x-tick-step: 1,
@@ -108,8 +104,8 @@ The Julia community has a tradition of hosting their packages on GitHub as well.
     y-max: 12000,
     x-min: 2016,
     x-max: 2025,
-    x-label: [Year],
-    y-label: [\# of packages],
+    x-label: s[Year],
+    y-label: s[\# of packages],
     name: "plot",
     {
       add(domain: (-2, 2), ((2016, 690), (2017, 1190), (2018, 1688), (2019, 2462), (2020, 2787), (2021, 4809), (2022, 6896), (2023, 8387), (2024, 9817), (2025, 11549)), mark: "o")
@@ -118,16 +114,16 @@ The Julia community has a tradition of hosting their packages on GitHub as well.
  
 }))
 
-== Working with others - issues and pull requests
+== Collaborating with others - issues and pull requests
 
-When working with others, you may want to propose changes to a repository and discuss them with others. This is where *issues* and *pull requests* come in. Issues and pull requests are features of git hosting services like GitHub and GitLab.
+When collaborating with others, you may want to propose changes to a repository and discuss them with others. This is where *issues* and *pull requests* come in. Issues and pull requests are features of git hosting services like GitHub and GitLab.
 - *Issue* is relatively simple, it is a way to report a bug or request a feature.
 - *Pull request* (resource: #link("https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-a-pull-request")[how to create a pull request]) is a way to propose changes to a repository and discuss them with others. It is also a way to merge code from source branch to target branch. The source branch can be a branch in the same repository or a branch in a *forked repository* - a copy of the repository in your account. Forking a repository is needed when you want to propose changes to a repository that you do not have write access to.
 
 To update the main branch, one should use pull requests as much as possible, even if you have write access to the repository. It is a good practice to discuss the changes with others before merging them to the main branch. A pull request also makes the changes more traceable, which is useful when you want to revert the changes.
 
 
-
+= A Minimum Introduction to Git
 == Install git
 
 In Ubuntu (or WSL), you can install git with the following command:
@@ -289,56 +285,41 @@ git fetch   # Download objects and refs from another repository
 git push    # Update remote refs along with associated objects
 ```
 
-=== Resources
-* #link("https://githubtraining.github.io/training-manual/book.pdf")[The Official GitHub Training Manual]
-* MIT online course #link("https://missing.csail.mit.edu/2020/")[missing semester].
-
-= Correctness - Unit Tests
+= Correctness - Unit Tests and CI/CD
 
 In terms of scientific computing, accuracy of your result is most certainly more important than anything else.
-Checking the correctness is definitely one of the most challenging tasks in software development. Consider the following scenario:
-
-!!! question "The problem of code review"
-    Suppose you are one of the maintainers of the Julia programming language. One day, a GitHub user Oscar Smith submitted a [6k-line PR](https://github.com/JuliaLang/julia/pull/51319) to the `JuliaLang/julia` repository:
-    ![](../assets/images/memorypr.png)
-
-    You want to check if this huge PR did something expected, requiring the following conditions to be satisfied:
-    - The build is successfully on Linux, macOS and Windows.
-    - No existing feature breaks.
-    - The added feature does something expected.
-
-    What would you do?
-    1. Checking to the 128 changed files line-by-line with human eye.
-    2. Hire a part-time worker, try installing the PR on three fresh machines, and try using as many features as possible and see if anything breaks.
-    3. Something more efficient.
-
-In the above scenario, the first option is not reliable for a software project expected to be used by millions of users. The second option is too expensive and time-consuming.
-Clever software engineers have come up with a more efficient way to check the correctness of the code, which is to use **Unit Tests** and **CI/CD**.
+Checking the correctness of contributed code is definitely one of the most challenging tasks in the open-source community.
+As checking the code line by line and test over all the edge cases is too expensive and time-consuming, clever software engineers have come up with a more efficient way to check the correctness of the code, which is to use *Unit Tests* and *CI/CD*.
 
 == Unit Test
-#link("https://en.wikipedia.org/wiki/Unit_testing")[Unit Tests] is a software a testing method for the smallest testable **unit** of an application, e.g. functions.
+#link("https://en.wikipedia.org/wiki/Unit_testing")[Unit Tests] is a software a testing method for the smallest testable *unit* of an application, e.g. functions.
 Unit tests are composed of a series of individual test cases, each of which is composed of:
 - a collection of inputs and expected outputs for a function.
 - an *assertion* statement to verify the function returns the expected output for a given input.
 
-To verify the correctness of the code, we run the unit tests. If the tests pass and the coverage is high, we can be confident that the code is working as expected.
-- Tests pass: all assertions in the test cases are true.
-- Test coverage: the percentage of the code that is covered by tests, i.e. the higher the coverage, the more *robust* the code is.
+For example, in Julia language, we can test the `sin` function with the `@test` macro:
+```julia
+julia> using Test  # import the Test package
 
-In Julia, #link("https://docs.julialang.org/en/v1/stdlib/Test/")[Test] is a built-in package for writing and running unit tests. We will learn how to write and run unit tests in the section #cross-link("/chap1/julia-release.typ")[`my-first-package`].
+julia> @test sin(π/2) ≈ 1.0  # test if sin(π/2) is equal to 1.0 up to machine precision
+Test Passed
+```
+Here, the input is `π/2` and the expected output is `1.0`. The `@test` macro will check if the followed statement is true. If it is, the test will pass. Otherwise, the test will fail.
+
+In practice, unit tests will be written in a separate file, e.g. `test/runtests.jl` in a Julia package. They will be run automatically with the `]test` command in the Julia REPL.
+The more test cases, the more *robust* the code is. As a metric, *test coverage* is often used to measure the quality of the unit tests. It is the percentage of the code that is covered by tests, i.e. the higher the coverage, the more robust the code is.
 
 == Automate your workflow - CI/CD
-You still need to set up three clean machines to run the tests. What if you do not have three machines?
+Even with unit tests, you still need to set up three clean machines to run the tests. Is there a convenient way to run the tests on the cloud?
 The key to solving this problem is to automate the workflow on the cloud with the containerization technology, e.g. #link("https://www.docker.com/")[Docker].
 You do not need to configure the dockers on the cloud manually. Instead, you can use a #link("https://en.wikipedia.org/wiki/CI/CD")[Continuous Integration/Continuous Deployment (CI/CD)] service to automate the workflow of
 - (CI) *build*, *test* and *merge* the code changes whenever a developer commits code to the repository.
 - (CD) *deploy* the code or documentation to a cloud service and *register* the package to the package registry.
 
-CI/CD are often integrated with git hosting services, e.g. #link("https://docs.github.com/en/actions")[Github Actions]. A typical CI/CD pipeline include the following steps:
-- code updated detected,
-- for each task, initialize a virtual machine on the cloud,
-- the virtual machine initializes the environment and runs the tests,
-- the virtual machine reports the test results.
+CI/CD are often provided by git hosting services, e.g. #link("https://docs.github.com/en/actions")[Github Actions]. When a developer commits code to the repository, or create a pull request, the GitHub action will detect the change and trigger a CI/CD pipeline. The pipeline will initialize a virtual machine on the cloud, install the dependencies, run the tests, and report the test results.
+To configure the CI/CD pipeline, you need to create a configuration file, e.g. `.github/workflows/ci.yml`. We will learn how to set up a CI/CD pipeline in the section #cross-link("/chap1-julia/julia-release.typ")[My First Package].
 
-The tasks of CI/CD are often defined in a configuration file, e.g. `.github/workflows/ci.yml`. We will learn how to set up a CI/CD pipeline in the section #cross-link("/chap1/julia-release.typ")[`my-first-package`].
+= Resources
+- #link("https://githubtraining.github.io/training-manual/book.pdf")[The Official GitHub Training Manual]
+- MIT online course #link("https://missing.csail.mit.edu/2020/")[missing semester].
 

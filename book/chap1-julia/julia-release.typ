@@ -1,7 +1,7 @@
 #import "../book.typ": book-page, cross-link
 #show: book-page.with(title: "Setup Julia")
 
-= My First Package <my-first-package>
+= My First Package
 
 One of Julia's most powerful features is its package manager, which enables developers to create, manage, and publish packages. The package manager maintains compatibility between packages by tracking exact version information in the central `General` registry - a GitHub repository containing metadata for all registered Julia packages.
 
