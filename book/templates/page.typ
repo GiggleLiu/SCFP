@@ -38,7 +38,11 @@
 } else {
   10.5pt
 }
-#let heading-sizes = (26pt, 22pt, 14pt, 12pt, main-size)
+#let heading-sizes = if is-web-target {
+  (31.5pt, 27.5pt, 19.5pt, 17.5pt, main-size)
+} else {
+  (26pt, 22pt, 14pt, 12pt, main-size)
+}
 #let list-indent = 0.5em
 
 /// The project function defines how your document looks.
@@ -96,13 +100,13 @@
 
   // Set text, spacing for headings
   // Render a dash to hint headings instead of bolding it as well if it's for web.
-  show heading: set text(weight: "regular") if is-web-target
+  // show heading: set text(weight: "regular") if is-web-target
   show heading: it => {
     let it = {
       set text(size: heading-sizes.at(it.level))
-      if is-web-target {
-        heading-hash(it, hash-color: dash-color)
-      }
+      // if is-web-target {
+      //   heading-hash(it, hash-color: dash-color)
+      // }
       it
     }
 
