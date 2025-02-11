@@ -10,11 +10,11 @@
   summary: [
     #prefix-chapter("home.typ")[Home]
     = Julia programming language
-    #chapter("chap1-julia/terminal.typ")[Get a terminal]
+    #chapter("chap1-julia/terminal.typ")[Terminal Environment]
     #chapter("chap1-julia/git.typ")[Version control]
     #chapter("chap1-julia/julia-setup.typ")[Setup Julia]
     #chapter("chap1-julia/julia-basic.typ")[Julia Basic]
-    #chapter("chap1-julia/julia-release.typ")[Release a package]
+    #chapter("chap1-julia/julia-release.typ")[Release a Package]
     = Matrices and tensors
     #chapter("chap2-linalg/array.typ")[Arrays]
     #chapter("chap2-linalg/fft.typ")[Fast Fourier Transform]
