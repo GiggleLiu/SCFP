@@ -1,3 +1,4 @@
+#import "@preview/cetz:0.2.2": *
 #import "../book.typ": book-page
 
 #show: book-page.with(title: "Manipulating array")
@@ -28,48 +29,120 @@ A[2:-1:1] # first two elements in reverse order
 
 B = [1 2 3; 4 5 6; 7 8 9]
 B[1:2]        # first two elements (column-major)
+B[2]          # the second element in linearized representation
 B[1:2, 1:2]   # 2×2 submatrix
 ```
 
 == Map, reduction, broadcasting, filtering and searching
 
-Broadcasting in Julia provides a powerful way to apply functions element-wise across arrays. The dot syntax (`.`) indicates broadcasting:
+_Broadcasting_ in Julia provides a powerful way to apply functions element-wise across arrays. For example, to compute function $y = sin(x) + cos(3x)$ for each element $x$ in an array, you can use the following syntax:
 
 ```julia
 x = 0:0.1π:2π
-y = sin.(x) .+ cos.(3 .* x)
+y = sin.(x) .+ cos.(3 .* x)        # Broadcasting
+y = map(a -> sin(a) + cos(3a), x)  # The mapping version
 ```
 
-#box(stroke: 1pt, inset: 10pt)[
-  Broadcasting performs loop fusion, executing all operations in a single pass without creating intermediate arrays. This often leads to better performance than explicit loops.
-]
+When you have multiple broadcasting operations in a single expression, Julia performs loop fusion, executing all operations in a single pass without creating intermediate arrays. This often leads to better performance than having separate operations.
 
-=== Protecting Objects from Broadcasting
-
-Use `Ref` to prevent broadcasting over an entire object:
+Sometimes, you may want to protect an object from broadcasting. You can use `Ref` to prevent broadcasting over an entire object:
 
 ```julia
-Ref([3,2,1,0]) .* (1:3)  # Vector treated as single value
+Ref([3,2,1,0]) .* (1:3)  # returns [[3, 2, 1, 0], [6, 4, 2, 0], [9, 6, 3, 0]]
 ```
 
-== High dimensional array indexing and strides
+_Reduction_ is a common operation in scientific computing. Given a generic vector of size $n$ and element type $T$, $bold(v) in T^n$, left and right folding this vector with a function $f: T times T arrow.r T$ is equivalent to computing
+$
+f(f(f(v_1, v_2), v_3), ..., v_n),
+$
+and 
+$
+f(v_1, f(v_2, f(v_3, ..., f(v_(n-1), v_n))))
+$
+respectively.
 
-Column-Major Array Storage
+For example, we can use `foldl` and `foldr` as follows:
+```julia
+foldl((x, y) -> [x, y], [1, 2, 3, 4])  # returns [[[1, 2], 3], 4]
+foldr((x, y) -> [x, y], [1, 2, 3, 4])  # returns [1, [2, [3, 4]]]
+```
+In many cases, the operation is commutative, so the result is the same regardless of the direction of folding. For example, to compute the sum of all elements in an array, you can use the following syntax:
 
-Julia stores arrays in column-major order, which can significantly impact performance.
+```julia
+sum(1:10)
+foldl(+, 1:10)
+foldr(+, 1:10)
+reduce(+, 1:10)
+```
 
-#figure(
-  image("images/colmajor.png", width: 200pt),
-  caption: [Column-major memory layout]
-)
+They are equivalent to each other in this case. `reduce` does not promise the order of evaluation, but it brings advantage in parallelization.
 
-Consider two implementations of the Frobenius norm:
+_Map-reduce_ is an even more powerful operation that applies a function to each element of an array and then reduces the result. For example, to compute the squared norm of a vector, you can use the following syntax:
+```julia
+sum(abs2, 1:10)
+mapreduce(abs2, +, 1:10)
+```
+The first argument of `mapreduce` is the function applied to each element, the second argument is the reduction operation, and the third argument is the array.
+The whole process does not create intermediate arrays.
+
+_Filtering_ is another common operation in scientific computing. For example, to filter the even elements in an array, you can use the following syntax:
+```julia
+filter(iseven, 1:10)  # returns [2, 4, 6, 8, 10]
+```
+
+_Searching_ specific element(s) from an array can be achieved by `findfirst`, `findlast`, and `findall`:
+```julia
+findfirst(iseven, 1:10)  # returns 2
+findlast(iseven, 1:10)   # returns 10
+findall(iseven, 1:10)   # returns [2, 4, 6, 8, 10]
+```
+
+== High dimensional array indexing
+
+Arrays are stored as vectors in memory, either in row-major or column-major order. If a matrix is stored in row-major order, the elements are stored in the order on the left panel:
+#align(center, canvas({
+  import draw: *
+  let dx = 1
+  let dy = 0.6
+  content((0, 0), text(14pt)[$ mat(a_(1 1), a_(1 2), a_(1 3); a_(2 1), a_(2 2), a_(2 3); a_(3 1), a_(3 2), a_(3 3)) $])
+  line((-dx, dy), (-dx, -dy), (0, dy), (0, -dy), (dx, dy), (dx, -dy), mark: (end: "straight"))
+  content((0, -1.5), text(12pt)[Column-major order])
+  content((0, -2), text(12pt)[(Julia, Fortran)])
+  set-origin((5, 0))
+  content((0, 0), text(14pt)[$ mat(a_(1 1), a_(1 2), a_(1 3); a_(2 1), a_(2 2), a_(2 3); a_(3 1), a_(3 2), a_(3 3)) $])
+  line((-dx, dy), (dx, dy), (-dx, 0), (dx, 0), (-dx, -dy), (dx, -dy), mark: (end: "straight"))
+  content((0, -1.5), text(12pt)[Row-major order])
+  content((0, -2), text(12pt)[(C, Python)])
+}))
+
+Given a matrix `A` of size `(m, n)` stored in the column-major order, the row stride is $1$, while the column stride is $m$. It means the distance in memory between `A[i,j]` and `A[i+1,j]` is $1$, while the distance between `A[i,j]` and `A[i,j+1]` is $m$. When extends to higher dimension, we use strides to describe the distance between elements in each dimension.
+```julia
+A = randn(3, 4, 5)
+st = strides(A)  # returns (1, 3, 12)
+```
+Strides can be used to efficiently access elements in an array. For example, to access the element `A[2,3,2]`, we can use
+```julia
+ids = [2, 3, 2]
+
+A[1 + st[1] * (ids[1]-1) + st[2] * (ids[2]-1) + st[3] * (ids[3]-1)]
+A[mapreduce(i -> st[i] * (ids[i]-1), +, 1:ndims(A), init=1)]
+```
+
+In Julia, linear indices and cartesian indices can be converted to each other by `LinearIndices` and `CartesianIndices`:
+```julia
+inds = LinearIndices(A)
+inds[2,3,2]  # returns 20
+inds = CartesianIndices(A)
+inds[20]     # returns CartesianIndex(2, 3, 2)
+```
+
+The memory layout significantly affect the performance of array operations. Consider two implementations of the Frobenius norm:
 
 ```julia
 # Row-major traversal (slower)
 function frobenius_norm(A::AbstractMatrix)
-    s = zero(eltype(A))
-    @inbounds for i in 1:size(A, 1)
+    s = zero(eltype(A))  # zero element of the same type as the array
+    @inbounds for i in 1:size(A, 1)  # remove the bounds check
         for j in 1:size(A, 2)
             s += A[i, j]^2
         end
@@ -89,9 +162,7 @@ function frobenius_norm_colmajor(A::AbstractMatrix)
 end
 ```
 
-#box(stroke: 1pt, inset: 10pt)[
-  The column-major version is typically 2x faster due to better cache utilization. When accessing array elements, following the memory layout improves performance.
-]
+The column-major version is typically much faster due to better cache utilization.
 
 == Example: Triangular Lattice Generation
 
@@ -107,25 +178,10 @@ mesh1 = [i * b1 + j * b2 for i in 1:n, j in 1:n]
 
 # Broadcasting approach
 mesh2 = (1:n) .* Ref(b1) .+ (1:n)' .* Ref(b2)
+
+using CairoMakie
+scatter(vec(getindex.(mesh2, 1)), vec(getindex.(mesh2, 2)))  # scatter(x, y)
 ```
-
-// #figure(
-//   image("images/triangle.svg", width: 200pt),
-//   caption: [Triangular lattice visualization]
-// )
-
-== Storage and performance
-
-Matrix multiplication is fundamental in scientific computing. Julia's built-in `*` operator leverages optimized BLAS libraries:
-
-```julia
-A = randn(1000, 1000)
-B = similar(A)
-
-# Benchmark results show ~165 GFLOPS on typical hardware
-@benchmark $A * $B
-```
-
-#box(stroke: 1pt, inset: 10pt)[
-  For an n×n matrix multiplication, the operation count is 2n³. Modern CPUs can achieve hundreds of GFLOPS through vectorization and multiple cores.
-]
+Here, we use the `scatter` function from the #link("https://github.com/MakieOrg/Makie.jl")[`CairoMakie`] package to visualize the triangular lattice, which takes two vectors representing the $x$ and $y$ coordinates of the points as input.
+The `CairoMakie` package is the default data visualization method in the rest of the book.
+#image("images/triangle.svg", width: 400pt)
