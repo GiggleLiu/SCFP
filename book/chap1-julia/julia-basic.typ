@@ -39,18 +39,19 @@ On the other side, the _value_ of a variable can only be determined at runtime, 
 
 #figure(canvas({
   import draw: *
-  content((-4, 0), box(inset: 5pt, radius: 4pt, stroke: black)[program], name: "program")
-  content((-0.5, 0), box(inset: 5pt, radius: 4pt, stroke: black)[intermediate\
-  representation], name: "intermediate")
-  content((4, 0), box(inset: 5pt, radius: 4pt, stroke: black)[binary], name: "binary")
+  let s(it) = text(12pt, it)
+  content((-4, 0), box(inset: 5pt, radius: 4pt, stroke: black, s[program]), name: "program")
+  content((-0.5, 0), box(inset: 5pt, radius: 4pt, stroke: black, s[intermediate\
+  representation]), name: "intermediate")
+  content((4, 0), box(inset: 5pt, radius: 4pt, stroke: black, s[binary]), name: "binary")
   line("program.east", "intermediate.west", mark: (end: "straight"))
   line("intermediate.east", "binary.west", mark: (end: "straight"), name: "binary-intermediate")
   bezier((rel: (-0.5, 0), to: "intermediate.north"), (rel: (0.5, 0), to: "intermediate.north"), (rel: (-1, 1), to: "intermediate.north"), (rel: (1, 1), to: "intermediate.north"), mark: (end: "straight"))
-  content((rel: (0, 1.2), to: "intermediate.north"), [_types_, _constants_, ...])
-  content((rel: (0, -0.2), to: "binary-intermediate.mid"), [compile])
-  content((rel: (0, 1.5), to: "binary"), box(inset: 5pt)[Input Values], name: "binary-inputs")
+  content((rel: (0, 1.2), to: "intermediate.north"), s[_types_, _constants_, ...])
+  content((rel: (0, -0.2), to: "binary-intermediate.mid"), s[compile])
+  content((rel: (0, 1.5), to: "binary"), box(inset: 5pt, s[Input Values]), name: "binary-inputs")
   line("binary-inputs", "binary", mark: (end: "stealth"), stroke: 2pt)
-  content((rel: (0, -1.5), to: "binary"), box(inset: 5pt)[Output Values], name: "binary-outputs")
+  content((rel: (0, -1.5), to: "binary"), box(inset: 5pt, s[Output Values]), name: "binary-outputs")
   line("binary-outputs", "binary", mark: (start: "stealth"), stroke: 2pt)
 }),
   caption: [Compiler make use of static information (types, constants, etc.) to generate efficient binary code. The input values are only available at runtime.]
@@ -124,28 +125,29 @@ However, the abstract types are only conceptual types and can not be instantiate
 
 #figure(canvas({
   import draw: *
+  let s(it) = text(12pt, it)
   circle((0, 0), radius: (4, 3), name: "Any")
-  content((-4.5, 0), [Any])
+  content((-4.5, 0), s[Any])
   circle((0.5, 0), radius: (3.5, 2.5), name: "Number")
-  content((0.5, 2), [Number])
+  content((0.5, 2), s[Number])
   circle((2.1, 0), radius: (1.5, 2), name: "Complex")
-  content((2.1, 0), [Complex])
+  content((2.1, 0), s[Complex])
   circle((-1.1, 0), radius: (1.5, 2), name: "Real")
-  content((-1.1, -1), [Real])
+  content((-1.1, -1), s[Real])
   circle((-1.1, 0.5), radius: (1.3, 1), name: "AbstractFloat")
-  content((-1.2, 0.5), [AbstractFloat])
+  content((-1.1, 0.5), s[AbstractFloat])
   circle((-0.7, 1), radius: 0.1, name: "Float32", stroke: red)
   circle((-1.5, 1), radius: 0.1, name: "Float64", stroke: red)
   circle((2, 0.5), radius: 0.1, name: "Complex{Float64}", stroke: red)
-  content((-1, 3.5), box(inset: 5pt)[Float32], name: "label-Float32")
+  content((-1, 3.5), box(inset: 5pt, s[Float32]), name: "label-Float32")
   line("label-Float32", "Float32", mark: (end: "straight"))
 
-  content((-3, 3.5), box(inset: 5pt)[Float64], name: "label-Float64")
+  content((-3, 3.5), box(inset: 5pt, s[Float64]), name: "label-Float64")
   line("label-Float64", "Float64", mark: (end: "straight"))
 
-  content((3, 3.5), box(inset: 5pt)[Complex{Float64}], name: "label-Complex{Float64}")
+  content((3, 3.5), box(inset: 5pt, s[Complex{Float64}]), name: "label-Complex{Float64}")
   line("label-Complex{Float64}", "Complex{Float64}", mark: (end: "straight"))
-  content((7, 0), box(width: 150pt)[
+  content((7, 0), box(width: 150pt, s[
     ```
     Number <: Any
     Complex <: Number
@@ -156,7 +158,7 @@ However, the abstract types are only conceptual types and can not be instantiate
     Float64 <: AbstractFloat
     Complex{Float64} <: Complex
     ```
-  ])
+  ]))
 }), caption: [Julia's type system, where black circles represent abstract types, and red circles represent concrete types.]) <fig:type-system>
 
 With abstract types, Julia's type system is organized as a type tree. `Any` type is the root, which is the set of everything.
@@ -236,23 +238,24 @@ We emphasized that we did not specify the variable type of `n` in the function d
 
 #figure(canvas({
   import draw: *
-  content((-3, 0), box(inset: 3pt)[Inputs], name: "inputs")
-  content((0, 0), [#box(stroke: black, inset: 10pt, [Call a function], radius: 4pt)], name: "call")
-  content((6.5, 0), [#box(stroke: black, inset: 10pt, [Invoke], radius: 4pt)], name: "invoke")
-  content((3.5, -2), [#box(stroke: black, inset: 10pt, [JIT Compilation], radius: 4pt)], name: "inference")
+  let s(it) = text(12pt, it)
+  content((-3, 0), box(inset: 3pt, s[Inputs]), name: "inputs")
+  content((0, 0), s[#box(stroke: black, inset: 10pt, s[Call a function], radius: 4pt)], name: "call")
+  content((6.5, 0), s[#box(stroke: black, inset: 10pt, s[Invoke], radius: 4pt)], name: "invoke")
+  content((3.5, -2), s[#box(stroke: black, inset: 10pt, [JIT Compilation], radius: 4pt)], name: "inference")
   line("inputs", "call.west", mark: (end: "straight"))
   line("call.south", (rel: (0, -1.5)), "inference.west", mark: (end: "straight"))
   line("inference.east", (rel: (0, -2), to: "invoke"), "invoke.south", mark: (end: "straight"))
   line("call.east", "invoke.west", mark: (end: "straight"))
-  content((8.8, 0), box(inset: 3pt)[Outputs], name: "outputs")
+  content((8.8, 0), box(inset: 3pt, s[Outputs]), name: "outputs")
   line("invoke.east", "outputs", mark: (end: "straight"))
-  content((3.5, 0.5), text(green.darken(20%))[Has method instance])
-  content((-2, -1.5), text(red.darken(20%))[No method instance])
+  content((3.5, 0.5), text(green.darken(20%), 10pt)[Has method instance])
+  content((-2, -1.5), text(red.darken(20%), 10pt)[No method instance])
 
-  content((3.25, -1.1), [slow])
-  content((6.5, 0.9), [fast])
+  content((3.25, -1.1), text(10pt)[slow])
+  content((6.5, 0.9), text(10pt)[fast])
 
-  content((3.5, -3.0), [Typed IR $arrow.double.r$ LLVM IR $arrow.double.r$ Binary Code])
+  content((3.5, -3.0), s[Typed IR $arrow.double.r$ LLVM IR $arrow.double.r$ Binary Code])
 })) <fig:jit>
 
 When calling a Julia function with a specific input, Julia checks if the _method instance_ that associated with the input types has been compiled. If yes, the cached method instance will be invoked.
@@ -469,37 +472,38 @@ This is because python's flexibility comes at a performance cost. Python's dynam
 #figure(canvas(length: 1cm, {
   import draw: *
   let dy = -0.7
-  content((-0.5, 0.5), [Stack])
+  let s(it) = text(12pt, it)
+  content((-0.5, 0.5), s[Stack])
   for j in range(5){
-    rect((-2.2, dy * j), (2.0, (j+1) * dy), name: "t" + str(j))
+    rect((-2.2, dy * j), (2.4, (j+1) * dy), name: "t" + str(j))
   }
-  content((0.5, 1.5 * dy), align(left, box(width:150pt, inset: 3pt, [`(Int, 0x11ff3323)`])))
-  content((0.5, 2.5*dy), align(left, box(width: 150pt, inset: 3pt, [`(Float64, 0x11ff3323)`])))
-  content((0.5, 3.5*dy), align(left, box(width: 150pt, inset: 3pt, [$dots.v$])))
-  content((0.5, 4.5*dy), align(left, box(width: 150pt, inset: 3pt, [`(Int, 0x11ff3322)`])))
+  content((0.5, 1.5 * dy), align(left, box(width:150pt, inset: 3pt, s[`(Int, 0x11ff3323)`])))
+  content((0.5, 2.5*dy), align(left, box(width: 150pt, inset: 3pt, s[`(Float64, 0x11ff3323)`])))
+  content((0.5, 3.5*dy), align(left, box(width: 150pt, inset: 3pt, s[$dots.v$])))
+  content((0.5, 4.5*dy), align(left, box(width: 150pt, inset: 3pt, s[`(Int, 0x11ff3322)`])))
 
-  content((5, 0.5), [Memory])
+  content((5, 0.5), s[Memory])
   for j in range(5){
     rect((4, dy * j), (6, (j+1) * dy), name: "a" + str(j))
   }
-  content((5, 0.5 * dy), [233])
-  content((5, 1.5*dy), [0.4])
-  content((5, 2.5*dy), [$dots.v$])
-  content((5, 3.5*dy), [9])
-  content((5, 4.5*dy), [0.33])
+  content((5, 0.5 * dy), s[233])
+  content((5, 1.5*dy), s[0.4])
+  content((5, 2.5*dy), s[$dots.v$])
+  content((5, 3.5*dy), s[9])
+  content((5, 4.5*dy), s[0.33])
 
-  content((8, dy/2), align(left, box(width:100pt, inset: 3pt, [`0x11ff3322`])))
-  content((8, 1.5*dy), align(left, box(width: 100pt, inset: 3pt, [`0x11ff3323`])))
-  content((8.5, 2.5*dy), align(left, box(width: 100pt, inset: 3pt, [$dots.v$])))
-  content((8, 3.5*dy), align(left, box(width: 100pt, inset: 3pt, [`0x2ef36511`])))
-  content((8.5, 4.5*dy), align(left, box(width: 100pt, inset: 3pt, [$dots.v$])))
+  content((8, dy/2), align(left, box(width:100pt, inset: 3pt, s[`0x11ff3322`])))
+  content((8, 1.5*dy), align(left, box(width: 100pt, inset: 3pt, s[`0x11ff3323`])))
+  content((8.5, 2.5*dy), align(left, box(width: 100pt, inset: 3pt, s[$dots.v$])))
+  content((8, 3.5*dy), align(left, box(width: 100pt, inset: 3pt, s[`0x2ef36511`])))
+  content((8.5, 4.5*dy), align(left, box(width: 100pt, inset: 3pt, s[$dots.v$])))
 
   line("t1.east", "a3.west", mark: (end: "straight"))
   line("t2.east", "a1.west", mark: (end: "straight"))
   line("t4.east", "a0.west", mark: (end: "straight"))
 
   line((-3, 0), (-3, -3.5), mark: (end: "straight"))
-  content((-4, -1), [visit order])
+  content((-4.2, -1), s[visit order])
 }),
 caption: "Dynamic typing causes cache misses"
 )
