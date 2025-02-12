@@ -4,36 +4,19 @@
 
 = Fast Fourier Transform
 
-== Introduction and Definition
+The Fourier transform is a linear transformation to a function that widely used in signal process, image processing and physics. For a complex-valued function $f(x)$, the Fourier transform is defined as:
 
-The Fourier transform is a fundamental mathematical tool that decomposes functions into frequency components. For a complex-valued function $f(x)$, the Fourier transform is defined as:
-
-$ g(u) = integral(-infinity, infinity, e^(-2 pi i u x) f(x) dif x) $
+$ g(u) = cal(F)(f(x)) = integral_(-infinity)^infinity e^(-2 pi i u x) f(x) dif x $
 
 Here, $u$ represents frequency in the momentum space, while $x$ represents position in the physical space. The inverse Fourier transform recovers the original function:
 
-$ f(x) = integral(-infinity, infinity, e^(2 pi i u x) g(u) dif u) $
+$ f(x) = cal(F)^(-1)(g(u)) = 1/(2pi)integral_(-infinity)^infinity e^(2 pi i u x) g(u) dif u $
 
-For two-dimensional functions, the transform extends naturally to:
+Let us consider the descrete case, where a function is represented as a vector.
+Let $x$ be a vector of length $n$, then the Fourier transformation on $x$ is defined as
+$ y_i=sum_(n=0)^(n-1)x_j e^(-(i 2 pi\/n) i j) $
 
-$ g(u,v) = integral(-infinity, infinity, integral(-infinity, infinity, 
-    e^(-2 pi i(u x + v y)) f(x,y) dif x) dif y) $
-
-$ f(x,y) = integral(-infinity, infinity, integral(-infinity, infinity,
-    e^(2 pi i(u x + v y)) g(u,v) dif u) dif v) $
-
-The Fourier transform finds applications across numerous fields:
-- Signal Processing: Audio and image compression
-- Physics: Crystal structure analysis in solid state physics
-- Quantum Computing: Quantum algorithms and simulation
-- Optics: Image processing and optical system analysis
-
-== Discrete Fourier Transformation (DFT)
-
-Let $x$ be a vector of length $n$, the DFT of $x$ is defined as
-$ y_i=sum_(n=0)^(n-1)x_j dot e^(-(i 2 pi\/n) i j) $
-
-Since this transformation is linear, we can represent it as a matrix multiplication. Let $F_n$ be the matrix of size $n times n$ defined as
+Since this transformation is linear, we can represent it as a matrix
 
 $ F_n = mat(
 1 , 1 , 1 , dots , 1;
@@ -43,7 +26,7 @@ dots.v , dots.v , dots.v , dots.down , dots.v;
 1 , omega^(n-1) , omega^(2n-2) , dots , omega^((n-1)^2)
 ) $
 
-where $omega = e^(-2 pi i\/n)$.  This matrix is called the DFT matrix, and the DFT of $x$ is represented as $F_n x$. The inverse transformation is defined as $F_n^dagger x\/n$, i.e. $F_n F_n^dagger = I$.
+where $omega = e^(-2 pi i\/n)$.  This matrix $F_n$ is called the DFT matrix. The inverse transformation is defined as $F_n^dagger x\/n$, i.e. $F_n F_n^dagger = I$.
 
 ```julia
 using Test, LinearAlgebra

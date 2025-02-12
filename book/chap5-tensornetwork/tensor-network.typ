@@ -1,13 +1,12 @@
 #import "@preview/cetz:0.2.2": canvas, draw, tree
 #import "@preview/ctheorems:1.1.3": *
+#import "@preview/ouset:0.2.0": ouset
 #import "../book.typ": book-page
 
 #set math.equation(numbering: "(1)")
 
 #show: book-page.with(title: "Tensor Networks")
 #show: thmrules
-
-#import "@preview/ouset:0.2.0": ouset
 
 #let definition = thmbox("definition", "Definition", inset: (x: 1.2em, top: 1em, bottom: 1em), base: none, stroke: black)
 #let theorem = thmbox("theorem", "Theorem", base: none, stroke: black)
@@ -37,7 +36,7 @@
   )
 }
 
-= Tensor decomposition
+= Tensor Networks
 Let us define a complex matrix $A in CC^(m times n)$, and let its singular value decomposition be
 $
 A = U S V^dagger
@@ -51,7 +50,7 @@ $
 T_(i j k l) = sum_(c) U_1^(i c) U_2^(j c) U_3^(k c) U_4^(l c) Lambda_(c)
 $
 
-#canvas({
+#align(center, text(10pt, canvas({
   import draw: *
   tensor((-5.5, 0), "T", [$T$])
   labeledge("T", (rel: (0, 1.2)), [$i$])
@@ -76,7 +75,7 @@ $
   line("c", "B")
   line("c", "A")
   line("c", "L")
-})
+})))
 
 == Tucker decomposition
 
@@ -86,7 +85,7 @@ T_(i j k l) = sum_(a,b,c,d) U_1^(i a) U_2^(j b) U_3^(k c) U_4^(l d) X_(a b c d)
 $
 where $U_1, U_2, U_3, U_4$ are unitary matrices and $X$ is a rank-4 tensor.
 
-#canvas({
+#align(center, text(10pt, canvas({
   import draw: *
   tensor((-5.5, 0), "T", [$T$])
   labeledge("T", (rel: (0, 1.2)), [$i$])
@@ -110,12 +109,12 @@ where $U_1, U_2, U_3, U_4$ are unitary matrices and $X$ is a rank-4 tensor.
   labeledge("X", "B", [$d$])
   labeledge("X", "C", [$c$])
   labeledge("X", "D", [$a$])
-})
+})))
 
 
 == Tensor training decomposition
 
-#canvas({
+#align(center, text(10pt, canvas({
   import draw: *
   tensor((-3.5, 0), "T", [$T$])
   labeledge("T", (rel: (0, 1.2)), [$i$])
@@ -137,14 +136,14 @@ where $U_1, U_2, U_3, U_4$ are unitary matrices and $X$ is a rank-4 tensor.
   labeledge("A", "B", [$a$])
   labeledge("B", "C", [$b$])
   labeledge("C", "D", [$c$])
-})
+})))
 
 = Tensor networks
 
 Tensor network is a diagrammatic representation of tensor _contractions_. Tensor contraction is a generalization of the multiplication of matrices, which is defined as the summation of the product of the corresponding elements of the two tensors.
 In this representation, a tensor is represented as a node, and an index is represented as a hyperedge (a hyperedge connects a single variable to any number of nodes). For example, vectors, matrices and higher order tensors can be represented as
 
-#align(center, canvas({
+#align(center, text(10pt, canvas({
   import draw: *
   tensor((-7, 1), "V", [$V$])
   labeledge("V", (rel: (0, 1.5)), [$i$])
@@ -158,11 +157,11 @@ In this representation, a tensor is represented as a node, and an index is repre
   labeledge("A", (rel: (0, 1.5)), [$j$])
   labeledge("A", (rel: (-1.5, 0)), [$k$])
   content((rel: (0, -1), to: "A"), [Tensor $A_(i j k)$])
-}))
+})))
 
 In the same diagram, the tensors associated with the same variable are connected by the same hyperedge. If a variable appears in the output tensor, the hyperedge is left _open_. For example, the diagrammatic representation of the matrix multiplication is given as follows:
 
-#align(center, canvas({
+#align(center, text(10pt, canvas({
   import draw: *
   tensor((-2, 1), "A", [$A$])
   tensor((0, 1), "B", [$B$])
@@ -170,7 +169,7 @@ In the same diagram, the tensors associated with the same variable are connected
   labeledge("A", (rel: (1.5, 0)), [$j$])
   labeledge("B", (rel: (1.5, 0)), [$k$])
   content((-1, -0.5), [$ C_(i k) := sum_j A_(i j) B_(j k) $])
-}))
+})))
 
 #definition([_(Tensor Network)_ A tensor network@Liu2022@Roa2024 is a mathematical framework for defining multilinear maps, which can be represented by a triple $cal(N) = (Lambda, cal(T), V_0)$, where:
 - $Lambda$ is the set of variables present in the network $cal(N)$.
