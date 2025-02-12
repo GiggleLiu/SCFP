@@ -15,7 +15,7 @@
 
 #let tensor(location, name, label) = {
   import draw: *
-  circle(location, radius: 13pt, name: name)
+  circle(location, radius: 10pt, name: name)
   content((), text(black, label))
 }
 
@@ -45,11 +45,99 @@ $
 where $U$ and $V$ are unitary matrices and $S$ is a diagonal matrix with non-negative real numbers on the diagonal.
 
 == CP-decomposition
-One way to generalize 
+
+For example, the CP-decomposition of a rank-4 tensor $T$ can be represented as
+$
+T_(i j k l) = sum_(c) U_1^(i c) U_2^(j c) U_3^(k c) U_4^(l c) Lambda_(c)
+$
+
+#canvas({
+  import draw: *
+  tensor((-5.5, 0), "T", [$T$])
+  labeledge("T", (rel: (0, 1.2)), [$i$])
+  labeledge("T", (rel: (-1.2, 0)), [$j$])
+  labeledge("T", (rel: (0, -1.2)), [$k$])
+  labeledge("T", (rel: (1.2, 0)), [$l$])
+
+  content((-3.5, 0), [$=$])
+
+  tensor((-1.5, 0), "A", [$U_1$])
+  tensor((1.5, 0), "B", [$U_2$])
+  tensor((0, -1.5), "C", [$U_3$])
+  tensor((0, 1.5), "D", [$U_4$])
+  tensor((1, 1), "L", [$Lambda$])
+  labeledge("D", (rel: (0, 1.2)), [$i$])
+  labeledge("A", (rel: (-1.2, 0)), [$j$])
+  labeledge("C", (rel: (0, -1.2)), [$k$])
+  labeledge("B", (rel: (1.2, 0)), [$l$])
+  content((0, 0), box(inset: 3pt)[$c$], name: "c")
+  line("c", "D")
+  line("c", "C")
+  line("c", "B")
+  line("c", "A")
+  line("c", "L")
+})
 
 == Tucker decomposition
 
+The Tucker decomposition of a rank-4 tensor $T$ can be represented as
+$
+T_(i j k l) = sum_(a,b,c,d) U_1^(i a) U_2^(j b) U_3^(k c) U_4^(l d) X_(a b c d)
+$
+where $U_1, U_2, U_3, U_4$ are unitary matrices and $X$ is a rank-4 tensor.
+
+#canvas({
+  import draw: *
+  tensor((-5.5, 0), "T", [$T$])
+  labeledge("T", (rel: (0, 1.2)), [$i$])
+  labeledge("T", (rel: (-1.2, 0)), [$j$])
+  labeledge("T", (rel: (0, -1.2)), [$k$])
+  labeledge("T", (rel: (1.2, 0)), [$l$])
+
+  content((-3.5, 0), [$=$])
+
+
+  tensor((-1.5, 0), "A", [$U_1$])
+  tensor((1.5, 0), "B", [$U_2$])
+  tensor((0, -1.5), "C", [$U_3$])
+  tensor((0, 1.5), "D", [$U_4$])
+  tensor((0, 0), "X", [$X$])
+  labeledge("D", (rel: (0, 1.2)), [$i$])
+  labeledge("A", (rel: (-1.2, 0)), [$j$])
+  labeledge("C", (rel: (0, -1.2)), [$k$])
+  labeledge("B", (rel: (1.2, 0)), [$l$])
+  labeledge("X", "A", [$b$])
+  labeledge("X", "B", [$d$])
+  labeledge("X", "C", [$c$])
+  labeledge("X", "D", [$a$])
+})
+
+
 == Tensor training decomposition
+
+#canvas({
+  import draw: *
+  tensor((-3.5, 0), "T", [$T$])
+  labeledge("T", (rel: (0, 1.2)), [$i$])
+  labeledge("T", (rel: (-1.2, 0)), [$j$])
+  labeledge("T", (rel: (0, -1.2)), [$k$])
+  labeledge("T", (rel: (1.2, 0)), [$l$])
+
+  content((-1.5, 0), [$=$])
+
+  tensor((0, 0), "A", [$U_1$])
+  tensor((1.5, 0), "B", [$U_2$])
+  tensor((3, 0), "C", [$U_3$])
+  tensor((4.5, 0), "D", [$A_4$])
+  labeledge("A", (rel: (0, 1.2)), [$i$])
+  labeledge("B", (rel: (0, 1.2)), [$j$])
+  labeledge("C", (rel: (0, 1.2)), [$k$])
+  labeledge("D", (rel: (0, 1.2)), [$l$])
+
+  labeledge("A", "B", [$a$])
+  labeledge("B", "C", [$b$])
+  labeledge("C", "D", [$c$])
+})
 
 = Tensor networks
 
@@ -142,7 +230,11 @@ $
 ])
 
 
-== Example 1: Tensor Train
+== Hidden Markov model
+
+(introduce tropical tensor formalism)
+
+== Spin-glass and tensor networks
 
 For example, the contraction of two tensors $A_(i j k)$ and $B_(k l)$, i.e. $sum_k A_(i j k) B_(k l)$, can be diagrammatically represented as
 

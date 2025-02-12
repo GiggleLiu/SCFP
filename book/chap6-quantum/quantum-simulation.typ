@@ -82,7 +82,16 @@ The Krylov space method is widely used in quantum simulation. In the following w
 
 Quantum many-body scar.
 
+= Circuit based simulation
+
+== Noisy quantum systems
+
+Some standard noisy models include
+
 = Tensor network based simulation
+
+SWAP test.
+
 A quantum circuit is a sequence of quantum gates that act on the quantum state.
 
 To store a quantum state in a $n$ qubit system, we need a complex vector of length $2^n$.
