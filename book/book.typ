@@ -19,14 +19,12 @@
     #chapter("chap2-linalg/array.typ")[Arrays]
     #chapter("chap2-linalg/fft.typ")[Fast Fourier Transform]
     #chapter("chap2-linalg/linalg.typ")[Linear Algebra]
+    #chapter("chap2-linalg/tensor-network.typ")[Tensor networks]
     = Mathematical optimization
     #chapter("chap3-optimization/linear_integer.typ")[Linear/Integer programming]
-    = Automatic differentiation
-    #chapter("chap4-ad/ad.typ")[Automatic differentiation]
-    = Tensor networks
-    #chapter("chap5-tensornetwork/tensor-network.typ")[Tensor networks]
+    #chapter("chap3-optimization/ad.typ")[Automatic differentiation]
     = Quantum systems
-    #chapter("chap6-quantum/quantum-simulation.typ")[Quantum circuit]
+    #chapter("chap4-quantum/quantum-simulation.typ")[Quantum simulation]
   ]
 )
 
