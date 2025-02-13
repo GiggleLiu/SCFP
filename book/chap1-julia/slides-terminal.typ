@@ -12,7 +12,7 @@
   box(clip: true, image, inset: (top: -top, right: -right, left: -left, bottom: -bottom))
 }
 #let terminal(code) = {
-  box(radius: 4pt, inset: 5pt, fill:black, width: 500pt, text(10pt, fill: silver)[
+  box(radius: 4pt, inset: 5pt, fill:black, width: 500pt, text(14pt, fill: silver)[
   #code
   ])
 }
@@ -569,6 +569,14 @@ Why open source software suddenly becomes popular in the past decade?
 1. User git locally: create a code repository and introduce git commands: `add`, `commit`, `log`, `checkout` and `diff`
 2. Create a new project on GitHub
 3. Create a pull request
+
+== Tasks
+1. (Windows) Install WSL:
+  ```bash
+  wsl --install
+  ```
+
+2. Complete the homework through pull request.
 
 == To learn more
 #timecounter(1)
