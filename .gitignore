@@ -2,3 +2,4 @@ dist
 Manifest.toml
 .DS_Store
 *.swp
+.vscode/
