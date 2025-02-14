@@ -8,10 +8,10 @@ function lstsq(A, b)
 end
 
 # define the backward function
-function lstsq_back(A, b, x, dx)
+function lstsq_back(A, b, x, x̅)
     Q, R_ = LinearAlgebra.qr(A)
     R = LinearAlgebra.UpperTriangular(R_)
-    y = R' \ dx
+    y = R' \ x̅
     z = R \ y
     residual = b .- A*x
     b̅ = Q * y
@@ -21,10 +21,9 @@ end
 # port the backward function to ChainRules
 function ChainRulesCore.rrule(::typeof(lstsq), A, b)
 	x = lstsq(A, b) 
-    function pullback(dy)
-        Δy = unthunk(dy)
-        ΔA, Δb = @thunk lstsq_back(A, b, x, Δy)
-        return (NoTangent(), ΔA, Δb)
+    function pullback(x̅)
+        A̅, b̅ = @thunk lstsq_back(A, b, x, unthunk(x̅))
+        return (NoTangent(), A̅, b̅)
     end
     return x, pullback
 end

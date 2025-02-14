@@ -1,5 +1,6 @@
 #import "@preview/cetz:0.2.2": canvas, draw, tree
 #import "@preview/ctheorems:1.1.3": *
+#import "@preview/cetz:0.2.2": *
 #import "../book.typ": book-page
 
 #set math.equation(numbering: "(1)")
@@ -196,6 +197,35 @@ Computing local Jacobian directly can be expensive. In practice, we can use the 
 
 == Chain rules
 
+The Julia AD ecosystem is composed of two main parts, the rule sets and the engines.
+The rule sets define the forward and backward rules for the basic operations,
+while the AD engines makes use of the rules to compute the gradient of a general program.
+The most popular rule set is `ChainRules`, which is built on top of `ChainRulesCore`.
+Users can easily define their own rules by overloading the `ChainRulesCore.rrule` function.
+`ChainRulesCore` provides a unified interface for the rules, and many AD engines, such as `Zygote` and `Mooncake` support it.
+With these rules, the AD engines can focus on handling the computational graph.
+
+#align(center, canvas({
+  import draw: *
+  let s(it) = text(12pt, it)
+  rect((-0.2, 1), (8.5, -3), stroke: (dash: "dashed"))
+  content((4, 0), box(stroke: black, inset: 10pt, radius: 4pt, s[`ChainRulesCore.jl`]), name: "core")
+  content((1.8, -2), box(stroke: black, inset: 10pt, radius: 4pt, s[`ChainRules.jl`]), name: "rules")
+  content((6, -2), box(stroke: black, inset: 10pt, radius: 4pt, s[`User defined rules`]), name: "user")
+  line("core", "rules", mark: (end: "straight"))
+  line("core", "user", mark: (end: "straight"))
+
+  content((4, -3.3), s[Rule set])
+
+  rect((10, 1), (14, -3), stroke: (dash: "dashed"), name: "ad-engines")
+  content((12, 0), box(stroke: black, inset: 10pt, radius: 4pt, s[`Mooncake.jl`]), name: "Mooncake")
+  content((12, -1.5), box(stroke: black, inset: 10pt, radius: 4pt, s[`Zygote.jl`]), name: "Zygote")
+  content((12, -2.5), s[`...`], name: "...")
+  content((12, -3.3), s[AD Engines])
+  line("core", "ad-engines", mark: (end: "straight"))
+}))
+
+In the following example, we implement the least square problem solver and its gradient function.
 ```julia
 using DifferentiationInterface
 import Mooncake, ChainRulesCore, LinearAlgebra
@@ -207,35 +237,44 @@ function lstsq(A, b)
 end
 
 # define the backward function
-function lstsq_back(A, b, x, dx)
+function lstsq_back(A, b, x, x̅)
     Q, R_ = LinearAlgebra.qr(A)
     R = LinearAlgebra.UpperTriangular(R_)
-    y = R' \ dx
+    y = R' \ x̅
     z = R \ y
     residual = b .- A*x
     b̅ = Q * y
     return residual * z' - b̅ * x', b̅
 end
+```
+In the backward function, the values of the input `A`, `b`, the output `x`, and the adjoint of the output `x̅` are required. In `ChainRulesCore`, we can overload the `rrule` function to define the backward rule for the `lstsq` function.
 
+```julia
 # port the backward function to ChainRules
 function ChainRulesCore.rrule(::typeof(lstsq), A, b)
 	x = lstsq(A, b) 
-    function pullback(dy)
-        Δy = unthunk(dy)
-        ΔA, Δb = @thunk lstsq_back(A, b, x, Δy)
-        return (NoTangent(), ΔA, Δb)
+    function pullback(x̅)
+        A̅, b̅ = @thunk lstsq_back(A, b, x, unthunk(x̅))
+        return (NoTangent(), A̅, b̅)
     end
     return x, pullback
 end
 ```
-
+Here, the backward function (`pullback`) is implemented as a closure, which captures the values of the input `A`, `b`, and the output `x` automatically. It takes the adjoint of the output `x` as input and returns the adjoint of the function instance, function inputs `A` and `b`.
+Note the function instance can be parameterized and carry adjoints as well, i.e. a callable object. Here, the function instance is `lstsq` of type `typeof(lstsq)`, which is a constant that does not carry adjoints. So we return `NoTangent()` for the function instance.
+In the body of the `pullback` function, we use `@thunk` to delay the evaluation of the function arguments, and `unthunk` to extract the value from the `Thunk` type. This technique is called the lazy evaluation, or evaluation on demand. Lazy evaluation is a powerful technique to avoid unnecessary computations in an AD engine.
+The return value of `rrule` is a tuple of the function value and the pullback function. The function value is used in the forward computation and the pullback function is used in the backward pass. It indicates that the intermediate variables captured by the closure will not be deallocated until the backward pass is finished.
 
 == Mooncake AD engine
+
+We will introduce the Mooncake AD engine in the following example. It provides a convenient way to port the `rrule` to the AD engine.
 ```julia
 # port the backward function to Mooncake
 Mooncake.@from_rrule Mooncake.DefaultCtx Tuple{typeof(lstsq), Matrix{Float64}, Vector{Float64}}
+```
 
-# test
+```julia
+# prepare a test function
 T = Float64
 M, N = 10, 5
 A = randn(T, M, N)
@@ -248,10 +287,21 @@ function tfunc(A, b)
     return x'*op*x
 end
 
+# use the Mooncake AD engine
 backend = DifferentiationInterface.AutoMooncake(; config=nothing)
+
+# the function only takes one argument, so we wrap it in a tuple
 wrapped(x) = tfunc(x...)
+
+# pre-allocate the memory for the gradient, speed up the gradient computation
 prep = DifferentiationInterface.prepare_gradient(wrapped, backend, (A, b))
+
+# compute the gradient
 g2 = DifferentiationInterface.gradient(wrapped, prep, backend, (A, b))
+```
+
+Mooncake also provides a convenient way to test the correctness of the rule by comparing with the finite difference method.
+```julia
 Mooncake.TestUtils.test_rule(Mooncake.Xoshiro(123), wrapped, (A, b); is_primitive=false)
 ```
 
