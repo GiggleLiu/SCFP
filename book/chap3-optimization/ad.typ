@@ -225,43 +225,52 @@ With these rules, the AD engines can focus on handling the computational graph.
   line("core", "ad-engines", mark: (end: "straight"))
 }))
 
-In the following example, we implement the least square problem solver and its gradient function.
+In the following example, we implement the symmetric eigen decomposition and its gradient function.
 ```julia
 using DifferentiationInterface
 import Mooncake, ChainRulesCore, LinearAlgebra
-using ChainRulesCore: unthunk, NoTangent, @thunk
+using ChainRulesCore: unthunk, NoTangent, @thunk, AbstractZero
 
-# define the forward function
-function lstsq(A, b)
-    return A \ b
+# the forward function
+function symeigen(A::AbstractMatrix)
+    E, U = LinearAlgebra.eigen(A)
+    E, Matrix(U)
 end
 
-# define the backward function
-function lstsq_back(A, b, x, x̅)
-    Q, R_ = LinearAlgebra.qr(A)
-    R = LinearAlgebra.UpperTriangular(R_)
-    y = R' \ x̅
-    z = R \ y
-    residual = b .- A*x
-    b̅ = Q * y
-    return residual * z' - b̅ * x', b̅
+# the backward function for the eigen decomposition
+# References: Seeger, M., Hetzel, A., Dai, Z., Meissner, E., & Lawrence, N. D. (2018). Auto-Differentiating Linear Algebra.
+function symeigen_back(E::AbstractVector{T}, U, E̅, U̅; η=1e-40) where T
+    all(x->x isa AbstractZero, (U̅, E̅)) && return NoTangent()
+    η = T(η)
+    if U̅ isa AbstractZero
+        D = LinearAlgebra.Diagonal(E̅)
+    else
+        F = E .- E'
+        F .= F./(F.^2 .+ η)
+        dUU = U̅' * U .* F
+        D = (dUU + dUU')/2
+        if !(E̅ isa AbstractZero)
+            D = D + LinearAlgebra.Diagonal(E̅)
+        end
+    end
+    U * D * U'
 end
 ```
-In the backward function, the values of the input `A`, `b`, the output `x`, and the adjoint of the output `x̅` are required. In `ChainRulesCore`, we can overload the `rrule` function to define the backward rule for the `lstsq` function.
+In the backward function, the values of the output `E`, `U`, the adjoint of the output `E̅` and `U̅` are required. In `ChainRulesCore`, we can overload the `rrule` function to define the backward rule for the `symeigen` function.
 
 ```julia
 # port the backward function to ChainRules
-function ChainRulesCore.rrule(::typeof(lstsq), A, b)
-	x = lstsq(A, b) 
-    function pullback(x̅)
-        A̅, b̅ = @thunk lstsq_back(A, b, x, unthunk(x̅))
-        return (NoTangent(), A̅, b̅)
+function ChainRulesCore.rrule(::typeof(symeigen), A)
+    E, U = symeigen(A)
+    function pullback(y̅)
+        A̅ = @thunk symeigen_back(E, U, unthunk.(y̅)...)
+        return (NoTangent(), A̅)
     end
-    return x, pullback
+    return (E, U), pullback
 end
 ```
-Here, the backward function (`pullback`) is implemented as a closure, which captures the values of the input `A`, `b`, and the output `x` automatically. It takes the adjoint of the output `x` as input and returns the adjoint of the function instance, function inputs `A` and `b`.
-Note the function instance can be parameterized and carry adjoints as well, i.e. a callable object. Here, the function instance is `lstsq` of type `typeof(lstsq)`, which is a constant that does not carry adjoints. So we return `NoTangent()` for the function instance.
+Here, the backward function (`pullback`) is implemented as a closure, which captures the values of the input `A`, and the output `E`, `U` automatically. It takes the adjoint of the output `(E̅, U̅)` as input and returns the adjoint of the function instance and function inputs.
+Note the function instance can be parameterized and carry adjoints as well, i.e. a callable object. Here, the function instance is `symeigen` of type `typeof(symeigen)`, which is a constant that does not carry adjoints. So we return `NoTangent()` for the function instance.
 In the body of the `pullback` function, we use `@thunk` to delay the evaluation of the function arguments, and `unthunk` to extract the value from the `Thunk` type. This technique is called the lazy evaluation, or evaluation on demand. Lazy evaluation is a powerful technique to avoid unnecessary computations in an AD engine.
 The return value of `rrule` is a tuple of the function value and the pullback function. The function value is used in the forward computation and the pullback function is used in the backward pass. It indicates that the intermediate variables captured by the closure will not be deallocated until the backward pass is finished.
 
@@ -270,21 +279,15 @@ The return value of `rrule` is a tuple of the function value and the pullback fu
 We will introduce the Mooncake AD engine in the following example. It provides a convenient way to port the `rrule` to the AD engine.
 ```julia
 # port the backward function to Mooncake
-Mooncake.@from_rrule Mooncake.DefaultCtx Tuple{typeof(lstsq), Matrix{Float64}, Vector{Float64}}
+Mooncake.@from_rrule Mooncake.DefaultCtx Tuple{typeof(symeigen), Matrix{Float64}}
 ```
+Note here, it is required to specify the type of the function inputs, since the above `rrule` is not valid for all input types.
 
 ```julia
 # prepare a test function
-T = Float64
-M, N = 10, 5
-A = randn(T, M, N)
-b = randn(T, M)
-op = randn(N, N)
-op += op'
-
-function tfunc(A, b)
-    x = lstsq(A, b)
-    return x'*op*x
+function tfunc(A, target)
+    E, U = symeigen(A)
+    return sum(abs2, U[:, 1] - target)
 end
 
 # use the Mooncake AD engine
@@ -294,15 +297,17 @@ backend = DifferentiationInterface.AutoMooncake(; config=nothing)
 wrapped(x) = tfunc(x...)
 
 # pre-allocate the memory for the gradient, speed up the gradient computation
-prep = DifferentiationInterface.prepare_gradient(wrapped, backend, (A, b))
+A = randn(Float64, 100, 100); A += A'
+house = LinearAlgebra.normalize(vcat(zeros(20), 50 .+ (0:29), 80 .- (29:-1:0) , zeros(20)))
+prep = DifferentiationInterface.prepare_gradient(wrapped, backend, (A, house))
 
 # compute the gradient
-g2 = DifferentiationInterface.gradient(wrapped, prep, backend, (A, b))
+g2 = DifferentiationInterface.gradient(wrapped, prep, backend, (A, house))
 ```
 
 Mooncake also provides a convenient way to test the correctness of the rule by comparing with the finite difference method.
 ```julia
-Mooncake.TestUtils.test_rule(Mooncake.Xoshiro(123), wrapped, (A, b); is_primitive=false)
+Mooncake.TestUtils.test_rule(Mooncake.Xoshiro(123), wrapped, (A, house); is_primitive=false)
 ```
 
 = Obtaining Hessian
