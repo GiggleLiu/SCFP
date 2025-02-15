@@ -62,3 +62,23 @@ prep = DifferentiationInterface.prepare_gradient(wrapped, backend, (A, house))
 g2 = DifferentiationInterface.gradient(wrapped, prep, backend, (A, house))
 
 Mooncake.TestUtils.test_rule(Mooncake.Xoshiro(123), wrapped, (A, house); is_primitive=false)
+
+using Optim
+
+function train(house::Vector{Float64})
+    A = randn(Float64, 100, 100); A += A'
+    function objective(A)
+        E, U = symeigen(A)
+        return sum(abs2, U[:, 1] - house)
+    end
+    prep = DifferentiationInterface.prepare_gradient(objective, backend, A)
+    function gradient!(g, A)
+        g .= DifferentiationInterface.gradient(objective, prep, backend, A)
+    end
+    res = Optim.optimize(objective, gradient!, A, Optim.LBFGS())
+    return res.minimizer
+end
+
+train(house)
+
+using CairoMakie

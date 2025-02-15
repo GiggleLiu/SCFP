@@ -41,6 +41,7 @@
 
 = Introduction
 == Julia: A Modern and Efficient Programming Language
+#timecounter(1)
 
 #link("https://julialang.org/")[Julia] is a modern, high-performance programming language designed for technical computing. Created at MIT in 2012 and now maintained by JuliaHub Inc., Julia combines the ease of use of Python with the speed of C/C++.
 
@@ -52,6 +53,8 @@
 
 
 == Growing Adoption
+#timecounter(1)
+
 Many prominent scientists and engineers have switched to Julia:
 
 - *Steven G. Johnson*: Creator of #link("http://www.fftw.org/")[FFTW], transitioned from C++
@@ -60,20 +63,105 @@ Many prominent scientists and engineers have switched to Julia:
 - *Jutho Haegeman* and *Chris Rackauckas*: Leading researchers in quantum physics and differential equations
 
 == Julia is fast
+#timecounter(1)
+
 Julia is a just-in-time (JIT) compiled language. It means that the code is compiled to machine code at runtime.
 It is as concise (concise $!=$ simple) as Python, but runs much faster!
 #figure(
   image("images/benchmark.png", width: 400pt),
 )
 
-https://benchmarksgame-team.pages.debian.net/benchmarksgame/fastest/julia-ifx.html
+== Benchmarking and Profiling
+#timecounter(5)
+
+#link("https://benchmarksgame-team.pages.debian.net/benchmarksgame/fastest/julia-ifx.html")[The Computer Language Benchmarks Game]
+
+- How to measure the performance of your code? `BenchmarkTools`
+  - Run the function for multiple times to get the minimum time.
+
+- How to find the bottleneck of your code? `Profile`
+  - _Event based profiler_, e.g. triggered by the function call event.
+  - _Statistical profiler_ (used by Julia), e.g. sample the _call stack_ of the running program every 1ms (default). This has less overhead, and profiles small functions more accurately.
+
+#align(center, box(stroke: black, inset: 10pt, [Live Demo: Benchmarking and Profiling the binary tree program]))
+
+== The Julia REPL
+#timecounter(1)
+
+- Type `?` to get help
+ ```julia
+help?> sum
+```
+- Type `;` to enter shell mode
+ ```julia
+shell> ls
+```
+- Type `]` to enter package mode
+ ```julia
+pkg> add BenchmarkTools
+```
+
+Type `Backspace` to return to the normal mode. Type `Ctrl-C` to cancel the current command. Type `Ctrl-D` to exit the REPL.
+
+== Benchmarking
+#timecounter(1)
+
+```julia
+julia> using BenchmarkTools
+
+julia> @btime advance!($bodies)  # `$` is used to interpolate the value
+  7.875 μs (216 allocations: 8.06 KiB)
+
+julia> @benchmark advance!($bodies)  # for more detailed information
+```
+
+Note: `@btime` and `@benchmark` are macros - code for generating code. Use `@macroexpand` to check the generated code.
+
+== Profiling
+#timecounter(1)
+
+```julia
+julia> using Profile
+
+julia> Profile.init(; delay=0.001)  # How often to sample the call stack
+
+julia> @profile for i=1:500000 advance!($bodies) end
+
+julia> Profile.print(; mincount=10)  # Print the profile results
+
+julia> Profile.clear()   # Clear the profile results
+```
+
+== Hands-on: Benchmarking and Profiling
+#timecounter(20)
+
+1. Download the n-body Julia \#5 program: https://benchmarksgame-team.pages.debian.net/benchmarksgame/program/nbody-julia-5.html . Save it as `nbody.jl`.
+2. Run it in a Julia REPL with `include("nbody.jl")`. Use `@benchmark` to benchmark the performance of the program, and `Profile` to profile the program. Save the benchmark and profile results to a markdown file (as a part of the assignment).
+3. Remove the type annotation of the field `m` of the `Body` type, and compare the performance of the original and the modified versions.
+  ```julia
+struct Body
+    x::NTuple{3,Float64}
+    v::NTuple{3,Float64}
+    m   # remove the type annotation
+end
+```
+
+== Why type matters?
+#timecounter(1)
+
+```julia
+julia> @code_warntype advance!(bodies)
+```
+
 
 == Just-In-Time (JIT) Compilation
+#timecounter(1)
+
 The more you tell the compiler, the more efficient code it can generate.
 - The _type_ of a variable is known at compile time. 
 - The _value_ of a variable can only be determined at runtime.
 
-#figure(canvas(length: 1.8cm, {
+#figure(canvas(length: 1.5cm, {
   import draw: *
   content((-4, 0), box(inset: 10pt, radius: 4pt, stroke: black)[program], name: "program")
   content((-0.5, 0), box(inset: 10pt, radius: 4pt, stroke: black)[intermediate\
@@ -91,9 +179,29 @@ The more you tell the compiler, the more efficient code it can generate.
 })
 )
 
+```julia
+julia> @code_native advance!(bodies)
+```
+
 = Julia Type System
 
-== Julia type hierarchy
+== Parameterized types
+#timecounter(1)
+
+Subtyping operator "`<:`"
+```julia
+struct Complex{T<:Real} <: Number
+    re::T
+    im::T
+end
+```
+- _type name_: `Complex`
+- _type parameters_: `T`
+- _type constraint_: `T <: Real`
+
+== Julia type system is a tree, `Any` is the root
+#timecounter(1)
+
 ```
 Any      # supertype of all types
 ├─ Number
@@ -108,7 +216,10 @@ Any      # supertype of all types
 ...
 ```
 
-== Subtyping operator "`<:`"
+Quiz: What are the sizes of `Float64` and `Complex{Float64}` in bytes?
+
+== Julia type hierarchy
+#timecounter(1)
 #figure(canvas(length: 1.55cm, {
   import draw: *
   circle((0, 0), radius: (4, 3), name: "Any")
@@ -146,6 +257,15 @@ Any      # supertype of all types
   ])
 })) <fig:type-system>
 
+== Question: Characterize the types
+
+Characterize the types in the previous slide into the following categories:
+
+- _Primitive types_: types natively supported by the instruction set architecture.
+- _Composite types_: types built from other types.
+- _Abstract types_: types that do not have fields, and cannot be instantiated in memory.
+- _Concrete types_: types that can be instantiated in memory. Concrete types can not derive new types.
+
 
 == Play with types
 #box(text(14pt)[```julia
@@ -169,18 +289,6 @@ julia> supertype(Float64)
 AbstractFloat
 ```
 ])
-
-== Parameterized types
-
-```julia
-struct Complex{T<:Real} <: Number
-    re::T
-    im::T
-end
-```
-- _type name_: `Complex`
-- _type parameters_: `T`
-- _type constraint_: `T <: Real`
 
 == Concrete types have fixed memory layout
 #box(text(14pt)[```julia

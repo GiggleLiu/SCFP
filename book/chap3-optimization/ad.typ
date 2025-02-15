@@ -195,9 +195,9 @@ Computing local Jacobian directly can be expensive. In practice, we can use the 
   ]
 )
 
-== Chain rules
+== Rule based AD
 
-The Julia AD ecosystem is composed of two main parts, the rule sets and the engines.
+The Julia rule based AD ecosystem is composed of two main parts, the rule sets and the engines.
 The rule sets define the forward and backward rules for the basic operations,
 while the AD engines makes use of the rules to compute the gradient of a general program.
 The most popular rule set is `ChainRules`, which is built on top of `ChainRulesCore`.
