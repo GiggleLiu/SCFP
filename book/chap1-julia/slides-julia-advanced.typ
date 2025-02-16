@@ -22,7 +22,7 @@
 // Global information configuration
 #let m = (m.methods.info)(
   self: m,
-  title: [Julia: A Modern and Efficient Programming Language],
+  title: [Julia: Advanced Topics],
   subtitle: [],
   author: [Jin-Guo Liu],
   date: datetime.today(),
@@ -39,102 +39,40 @@
 
 #outline-slide()
 
-# AMAT5315-3: My first Julia package
+= Create a Julia package
+== What is a Julia package?
 
----
+Julia package management is important, regardless of whether you are a package developer or not.
 
-## Homework report: HW1
-- number of submissions: 9 + 1 (Shiyi Bai)
+- Source code
+- Unit tests
+- Dependencies specification
+- CI/CD
+- Documentation
+- License
+- README
+- ...
 
-    <img src="image-1.png" width=200/>
+== Case study: OMEinsum.jl
 
----
+To install OMEinsum
 
-## Congratulations to the first submission!
+Type `]` in a Julia REPL to enter the package mode (powered by *package manager*).
 
-- In the old days, the version control tools like SVN, if you want to submit a change, you need to lock the file/folder first.
-
----
-
-## One pull request for one submission
-- update from the main branch of the source repository:
-  ```
-  git checkout main
-  git remote add source git@code.hkust-gz.edu.cn:jinguoliu/amat5315courseworks2024.git
-  git pull source main
-  ```
-- create a new branch from the updated main branch:
-  ```
-  git checkout -b jinguoliu/hw2
-  ```
-- do some changes and make a pull request as usual.
-
----
-
-## Review of Lecture 2
-- Julia's just-in-time (JIT) compilation.
-- Julia's type system and multiple dispatch.
-
----
-
-### Quiz
-- What is the difference between **method** and **method instance**? Are they many-to-many, many-to-one, or one-to-many?
-- What does the macro `@code_warntype` tell us?
-- When running a benchmark, which time is more important, `min`, `max`, `mean` or `median`?
-
----
-
-## Today's topic: How to create a Julia package
-- Package, package versions, package dependency, package environment and package registry.
-- Unit tests, Continuous Integration (CI), and Continuous Deployment (CD).
-- Open-source licenses.
-- Hands-on: create a simple package.
-
----
-
-## What is a Julia package?
-
-A **module** that contains a set of functions, types, and other modules.
-- Can be released by any Julia user.
-- Can be installed by any Julia user.
-- Can depend on other packages.
-
----
-
-## Case study: OMEinsum.jl
-
----
-
-## To install OMEinsum
-
-Type `]` in a Julia REPL to enter the package mode (powered by **package manager**)
 ```julia-repl
 (@v1.10) pkg> add OMEinsum
 ```
-The string before `pkg>` is the environment name, and the default value is the Julia version name, which is also known as the **global environment**.
+The string before `pkg>` is the environment name, and the default value is the Julia version name, which is also known as the *global environment*.
 
----
+== GitHub based package management
 
-## GitHub based package management
-Repository, dependency and documentation
+*public repository*: https://github.com/under-Peter/OMEinsum.jl
 
-**public repository**: https://github.com/under-Peter/OMEinsum.jl
+== The package registry
 
----
+Registered to the #link("https://github.com/JuliaRegistries/General", "General") registry.
 
-## The package registry
-
-Registered to the [General registry](https://github.com/JuliaRegistries/General):
-
-<img src="image-2.png" width=400/>
-
----
-
-Updated through pull requests:
-
-<img src="image.png" width=400/>
-
----
+== Package manager resolves the environment with the known registries.
 
 Package manager resolves the environment with the known registries.
 ```julia-repl
@@ -145,9 +83,7 @@ Registry Status
 - Multiple registries can be used
 - `General` is the only one that accessible by all Julia users.
 
----
-
-## The global package environment
+== The global package environment
 ```bash
 (base) ➜  .julia cat ~/.julia/environments/v1.10/Project.toml
 [deps]
@@ -159,16 +95,12 @@ OMEinsum = "ebe7aa44-baf0-506c-a96f-8464559b3922"
 
 - Packages are identified by UUIDs.
 
----
-
-The file storing **resolved dependencies**:
+== The file storing *resolved dependencies*:
 ```bash
 cat ~/.julia/environments/v1.10/Manifest.toml
 ```
 
----
-
-## Quiz
+== Quiz
 
 Suppose I have `OMEinsum` installed in the global environment, and now I want to experiment with `Yao`. What if they have conflicting dependencies? e.g.
 - The latest OMEinsum depends on `A` at version `2` and `B` at version `3`
@@ -177,20 +109,15 @@ Suppose I have `OMEinsum` installed in the global environment, and now I want to
 
 What can I do?
 
+== Install OMEinsum in a local environment
 
----
-
-## Install OMEinsum in a local environment
-
-A **local environment** (recommended) can be specified in any folder, which provides a more isolated environment.
+A *local environment* (recommended) can be specified in any folder, which provides a more isolated environment.
 
 ```bash
 $ mkdir localenv
 $ cd localenv
 $ julia --project=.
 ```
-
----
 
 Alternatively, environments can be switched in the pkg mode with
 ```julia-repl
@@ -201,9 +128,7 @@ pkg> activate    # the global environment
 pkg> activate --temp # a temperary environment
 ```
 
----
-
-## The resolved versions
+== The resolved versions
 ```julia-repl
 (localenv) pkg> add OMEinsum
 
@@ -218,23 +143,7 @@ shell> cat Manifest.toml
 ...
 ```
 
----
-
-## Summary 1
-
-- Registry
-  - General - the default registry
-- Package dependencies, versioning
-  - Project.toml - the metadata of the package
-  - Manifest.toml - the resolved versions of the package
-- Package environment
-  - Global environment is easy to use
-  - Local environment can avoid conflicts
-  - Temporary environment for testing
-
----
-
-## Steps to create a package
+== Steps to create a package
 
 1. Create a package
 2. Specify the dependency
@@ -242,19 +151,13 @@ shell> cat Manifest.toml
 4. Open-source the package
 5. Register the package
 
----
+== 1. Create a package
 
-## 1. Create a package
+We use #link("https://github.com/JuliaCI/PkgTemplates.jl", "PkgTemplates.jl"). Open a Julia REPL and type the following commands to initialize a new package named `MyFirstPackage`:
 
-We use [PkgTemplate](https://github.com/JuliaCI/PkgTemplates.jl). Open a Julia REPL and type the following commands to initialize a new package named `MyFirstPackage`:
-
-```julia
+#box(text(14pt)[```julia
 julia> using PkgTemplates
-```
 
----
-
-```julia
 julia> tpl = Template(;
     user="GiggleLiu",
     authors="GiggleLiu",
@@ -268,58 +171,24 @@ julia> tpl = Template(;
     ],
 )
 ```
+])
 
----
-
-## Key concept: Unit Tests and CI/CD
-
-Oscar Smith submitted a 6k-line PR to the `JuliaLang/julia` repository.
-
-![Alt text](image-4.png)
-
-https://github.com/JuliaLang/julia/pull/51319
-
----
-
-## Now you are the reviewer
-
-How do you check this huge PR did something right?
-
-### Requirements
-- Build successfully on Linux, macOS and Windows.
-- Not breaking any existing feature.
-- The added feature does something expected.
-
----
-
-### How to check?
-
-- Checking to the 128 changed files line-by-line with human eye?
-- Hire a part-time worker, try installing the PR on three fresh machines, and try using as many features as possible and see if anything breaks?
-- Can we expect something better?
-
----
-
-## Unit Tests
-
+== Unit Tests
 - Unit Tests is a software testing method, which consists of:
   - a collection of inputs and expected outputs for a function.
-  - **assertion** that the function returns the expected output for a given input.
-
----
+  - *assertion* that the function returns the expected output for a given input.
 
 - Test passing: the function is working as expected (assertion is true), i.e. no feature breaks.
-- Test coverage: the percentage of the code that is covered by tests, i.e. the higher the coverage, the more **robust** the code is.
+- Test passing: the function is working as expected (assertion is true), i.e. no feature breaks.
+- Test coverage: the percentage of the code that is covered by tests, i.e. the higher the coverage, the more *robust* the code is.
 
----
+== What if I do not have three machines?
 
-## What if I do not have three machines?
+- CI/CD (for Continuous Integration/Continuous Deployment) is an *automation process* that runs the unit tests, documentation building, and deployment.
 
-- CI/CD (for Continuous Integration/Continuous Deployment) is an **automation process** that runs the unit tests, documentation building, and deployment.
+- Workflow: code updated > CI/CD tasks created > virtual machines initialized on CI machines > virtual machines run tests > tests pass and status updated
 
-* Workflow: code updated > CI/CD tasks created > virtual machines initialized on CI machines > virtual machines run tests > tests pass and status updated
-
----
+== How to write tests?
 
 ```julia
     user="GiggleLiu",
@@ -327,56 +196,50 @@ How do you check this huge PR did something right?
 where the username `"GiggleLiu"` should be replaced with your GitHub username.
 Many plugins are used in the above example:
 
----
-
 ```julia
         License(; name="MIT"),
 ```
 - `License`: to choose a license for the package. Here we use the MIT license, which is a permissive free software license.
 
----
+== Popular open-source licenses
 
-## Popular open-source licenses
+- #link("https://en.wikipedia.org/wiki/MIT_License", "MIT"): a permissive free software license, featured with a short and simple permissive license with conditions only requiring preservation of copyright and license notices.
+- #link("https://en.wikipedia.org/wiki/Apache_License", "Apache2"): a permissive free software license, featured with a contributor license agreement and a patent grant.
+- #link("https://en.wikipedia.org/wiki/GNU_General_Public_License", "GPL"): a copyleft free software license, featured with a strong copyleft license that requires derived works to be available under the same license.
 
-- [MIT](https://en.wikipedia.org/wiki/MIT_License): a permissive free software license, featured with a short and simple permissive license with conditions only requiring preservation of copyright and license notices.
-- [Apache2](https://en.wikipedia.org/wiki/Apache_License): a permissive free software license, featured with a contributor license agreement and a patent grant.
-- [GPL](https://en.wikipedia.org/wiki/GNU_General_Public_License): a copyleft free software license, featured with a strong copyleft license that requires derived works to be available under the same license.
-
----
+== Git
 
 ```julia
         Git(; ssh=true),
 ```
 
-- `Git`: to initialize a Git repository for the package. Here we use the SSH protocol for Git for convenience. Using [two-factor authentication (2FA)](https://docs.github.com/en/authentication/securing-your-account-with-two-factor-authentication-2fa/configuring-two-factor-authentication) can make your GitHub account more secure.
+- `Git`: to initialize a Git repository for the package. Here we use the SSH protocol for Git for convenience. Using #link("https://docs.github.com/en/authentication/securing-your-account-with-two-factor-authentication-2fa/configuring-two-factor-authentication", "two-factor authentication (2FA)") can make your GitHub account more secure.
 
----
+== GitHub Actions
 
 ```julia
         GitHubActions(; x86=true),
 ```
-- `GitHubActions`: to enable continuous integration (CI) with [GitHub Actions](https://docs.github.com/en/actions).
+- `GitHubActions`: to enable continuous integration (CI) with #link("https://docs.github.com/en/actions", "GitHub Actions").
 
----
+== Codecov
 
 ```julia
         Codecov(),
 ```
 
-- `Codecov`: to enable code coverage tracking with [Codecov](https://about.codecov.io/). It is a tool that helps you to measure the test coverage of your code. A package with high test coverage is more reliable.
+- `Codecov`: to enable code coverage tracking with #link("https://about.codecov.io/", "Codecov"). It is a tool that helps you to measure the test coverage of your code. A package with high test coverage is more reliable.
 
----
+== Documenter
 
 ```julia
         Documenter{GitHubActions}(),
 ```
 
-- `Documenter`: to enable documentation building and deployment with [Documenter.jl](https://documenter.juliadocs.org/stable/) and [GitHub pages](https://pages.github.com/).
+- `Documenter`: to enable documentation building and deployment with #link("https://documenter.juliadocs.org/stable/", "Documenter.jl") and #link("https://pages.github.com/", "GitHub pages").
 
 
----
-
-## Create the package
+== Create the package
 
 ```julia
 julia> tpl("MyFirstPackage")
@@ -384,9 +247,8 @@ julia> tpl("MyFirstPackage")
 
 After running the above commands, a new directory named `MyFirstPackage` will be created in the folder `~/.julia/dev/` - the default location for Julia packages.
 
----
+== The file structure of the package
 
-The file structure of the package is as follows:
 ```bash
 tree .   
 .
@@ -415,8 +277,7 @@ tree .
     └── runtests.jl
 ```
 
----
-
+==
 - `.git` and `.gitignore`: the files that are used by Git. The `.gitingore` file contains the files that should be ignored by Git. By default, the `.gitignore` file contains the following lines:
   ```gitignore
   *.jl.*.cov
@@ -427,40 +288,24 @@ tree .
   /docs/build/
   ```
 
----
-
 - `.github`: the folder that contains the GitHub Actions configuration files.
 - `LICENSE`: the file that contains the license of the package. The MIT license is used in this package.
-
----
-
 - `README.md`: the manual that shows up in the GitHub repository of the package, which contains the description of the package.
-
----
-
 - `Project.toml`: the file that contains the metadata of the package, including the name, UUID, version, dependencies and compatibility of the package.
 - `Manifest.toml`: the file that contains the exact versions of all the packages that are compatible with each other. It is usually automatically resolved from the `Project.toml` file, and it is not recommended pushing it to the remote repository.
-
----
-
 - `docs`: the folder that contains the documentation of the package. It has its own `Project.toml` and `Manifest.toml` files, which are used to manage the documentation environment. The `make.jl` file is used to build the documentation and the `src` folder contains the source code of the documentation.
-
----
 
 - `src`: the folder that contains the source code of the package.
 - `test`: the folder that contains the test code of the package, which contains the main test file `runtests.jl`.
 
----
-
-## 2. Specify the dependency
-To **add a new dependency**, you can use the following command in the package path:
+= Manage dependencies
+== Specify the dependency
+To *add a new dependency*, you can use the following command in the package path:
 ```bash
 $ cd ~/.julia/dev/MyFirstPackage
 
 $ julia --project
 ```
-
----
 
 This will open a Julia REPL in the package environment. To check the package environment, you can type the following commands in the package mode (press `]`) of the REPL:
 
@@ -470,7 +315,7 @@ Project MyFirstPackage v1.0.0-DEV
 Status `~/.julia/dev/MyFirstPackage/Project.toml` (empty project)
 ```
 
----
+==
 
 After that, you can add a new dependency by typing:
 ```julia-repl
@@ -487,7 +332,7 @@ julia> using OMEinsum
 ```
 The dependency is added correctly if no error is thrown.
 
----
+==
 
 Type `;` to enter the shell mode and then type
 ```julia-repl
@@ -511,9 +356,9 @@ test = ["Test"]
 ```
 You will see that the dependency `OMEinsum` is added to the `[deps]` section of the `Project.toml` file.
 
----
+==
 
-We also need to specify which version of `OMEinsum` is **compatible** with the current package. To do so, you need to edit the `[compat]` section of the `Project.toml` file with your favorite editor.
+We also need to specify which version of `OMEinsum` is *compatible* with the current package. To do so, you need to edit the `[compat]` section of the `Project.toml` file with your favorite editor.
 ```toml
 [compat]
 julia = "1.10"
@@ -522,7 +367,7 @@ OMEinsum = "0.8"
 
 Here, we have used the most widely used dependency version specifier `=`, which means matching the first nonzero component of the version number.
 
----
+==
 
 For example:
 
@@ -530,26 +375,25 @@ For example:
 - `0.8` matches `0.8.0`, `0.8.1`, `0.8.2`, but not `0.9.0` or `0.7.0`.
 - `1.2` matches `1.2.0`, `1.3.1`, but not `1.2.0` or `2.0.0`.
 
----
+==
 
 - whenever an exported function is changed in a package, the first nonzero component of the version number should be increased.
 - version number starts with `0` is considered as a development version, and it is not stable.
 
-Please check the Julia documentation about [package compatibility](https://pkgdocs.julialang.org/v1/compatibility/) for advanced usage.
+Please check the Julia documentation about #link("https://pkgdocs.julialang.org/v1/compatibility/", "package compatibility") for advanced usage.
 
----
-
-## 3. Develop the package
+== Develop the package
 Developers develop packages in the package environment. The package development process includes:
 
 1. Edit the source code of the package
 The source code of the package is located in the `src` folder of the package path.
 
----
+==
 
 Let us add a simple function to the package. The source code of the package is as follows:
 
 *File*: `src/MyFirstPackage.jl`
+
 ```julia
 module MyFirstPackage
 
@@ -565,7 +409,7 @@ include("lorenz.jl")
 end
 ```
 
----
+==
 
 *File*: `src/lorenz.jl`
 
@@ -586,7 +430,7 @@ Base.broadcastable(p::Point) = p.data
 Base.iterate(p::Point, args...) = iterate(p.data, args...)
 ```
 
----
+==
 
 ```julia
 struct Lorenz
@@ -601,9 +445,7 @@ function field(p::Lorenz, u)
 end
 ```
 
----
-
-## Runge-Kutta 4th order method
+== Runge-Kutta 4th order method
 
 ```julia
 # Runge-Kutta 4th order method
@@ -620,7 +462,7 @@ function rk4_step(l::Lorenz, u, Δt)
 end
 ```
 
----
+==
 
 To use this function, you can type the following commands in the package environment:
 ```julia-repl
@@ -630,7 +472,7 @@ julia> MyFirstPackage.greet("Julia")
 "Hello, Julia!"
 ```
 
----
+==
 
 2. Write tests for the package
 
@@ -647,13 +489,11 @@ end
 
 ```
 
----
+== Lorenz attractor
 
-## Lorenz attractor
+- #link("https://www.youtube.com/watch?v=hIYqkydaMdw", "YouTube: Chaos Theory - the language of (in)stability")
 
-- [YouTube: Chaos Theory - the language of (in)stability](https://www.youtube.com/watch?v=hIYqkydaMdw)
-
----
+==
 
 *File*: `test/lorenz.jl`
 ```julia
@@ -675,7 +515,7 @@ end
 end
 ```
 
----
+==
 
 To run the tests, you can use the following command in the package environment:
 ```julia-repl
@@ -692,20 +532,18 @@ lorenz        |    2      2  0.1s
 
 Cheers! All tests passed.
 
----
+==
 
 1. Write documentation for the package
 
-The documentation is built with [Documenter.jl](https://documenter.juliadocs.org/stable/). The build script is `docs/make.jl`. To **build the documentation**, you can use the following command in the package path:
+The documentation is built with #link("https://documenter.juliadocs.org/stable/", "Documenter.jl"). The build script is `docs/make.jl`. To *build the documentation*, you can use the following command in the package path:
 ```bash
 $ cd docs
 $ julia --project make.jl
 ```
-Instantiate the documentation environment if necessary. For seamless **debugging** of documentation, it is highly recommended using the [LiveServer.jl](https://github.com/tlienart/LiveServer.jl) package.
+Instantiate the documentation environment if necessary. For seamless *debugging* of documentation, it is highly recommended using the #link("https://github.com/tlienart/LiveServer.jl", "LiveServer.jl") package.
 
----
-
-## 4. Open-source the package
+== 4. Open-source the package
 To open-source the package, you need to push the package to a public repository on GitHub.
 
 1. First create a GitHub repository with the same as the name of the package. In this example, the repository name should be `GiggleLiu/MyFirstPackage.jl`. To check the remote repository of the package, you can use the following command in the package path:
@@ -715,7 +553,7 @@ To open-source the package, you need to push the package to a public repository 
    origin	git@github.com:GiggleLiu/MyFirstPackage.jl.git (push)
    ```
 
----
+==
 
 2. Then push the package to the remote repository:
    ```bash
@@ -724,7 +562,7 @@ To open-source the package, you need to push the package to a public repository 
    $ git push
    ```
 
----
+==
 
 3. After that, you need to check if all your GitHub Actions are passing. You can check the status of the GitHub Actions from the badge in the `README.md` file of the package repository. The configuration of GitHub Actions is located in the `.github/workflows` folder of the package path. Its file structure is as follows:
    ```bash
@@ -736,43 +574,41 @@ To open-source the package, you need to push the package to a public repository 
        └── TagBot.yml
    ```
 
----
+==
 
    - The `CI.yml` file contains the configuration for the CI of the package, which is used to automate the process of
-      - **Testing** the package after a pull request is opened, or the main branch is updated. This process can be automated with the [julia-runtest](https://github.com/julia-actions/julia-runtest) action.
-      - Building the **documentation** after the main branch is updated. Please check the [Documenter documentation](https://documenter.juliadocs.org/stable/man/hosting/) for more information.
+      - *Testing* the package after a pull request is opened, or the main branch is updated. This process can be automated with the #link("https://github.com/julia-actions/julia-runtest", "julia-runtest") action.
+      - Building the *documentation* after the main branch is updated. Please check the #link("https://documenter.juliadocs.org/stable/man/hosting/", "Documenter documentation") for more information.
 
----
+==
 
-   - The `TagBot.yml` file contains the configuration for the [TagBot](https://github.com/JuliaRegistries/TagBot), which is used to automate the process of tagging a release after a pull request is merged.
-   - The `CompatHelper.yml` file contains the configuration for the [CompatHelper](https://github.com/JuliaRegistries/CompatHelper.jl), which is used to automate the process of updating the `[compat]` section of the `Project.toml` file after a pull request is merged.
+   - The `TagBot.yml` file contains the configuration for the #link("https://github.com/JuliaRegistries/TagBot", "TagBot"), which is used to automate the process of tagging a release after a pull request is merged.
+   - The `CompatHelper.yml` file contains the configuration for the #link("https://github.com/JuliaRegistries/CompatHelper.jl", "CompatHelper"), which is used to automate the process of updating the `[compat]` section of the `Project.toml` file after a pull request is merged.
 
----
+==
 
-   Configuring GitHub Actions is a bit complicated. For beginners, it is a good practise to mimic the configuration of another package, e.g. [OMEinsum.jl](https://github.com/under-Peter/OMEinsum.jl).
+   Configuring GitHub Actions is a bit complicated. For beginners, it is a good practise to mimic the configuration of another package, e.g. #link("https://github.com/under-Peter/OMEinsum.jl", "OMEinsum.jl").
 
----
-
-## 5. Register the package
+== 5. Register the package
 Package registration is the process of adding the package to the `General` registry. To do so, you need to create a pull request to the `General` registry and wait for the pull request to be reviewed and merged.
-This process can be automated by the [Julia registrator](https://github.com/JuliaRegistries/Registrator.jl). If the pull request meets all guidelines, your pull request will be merged after a few days. Then, your package is available to the public. 
+This process can be automated by the #link("https://github.com/JuliaRegistries/Registrator.jl", "Julia registrator"). If the pull request meets all guidelines, your pull request will be merged after a few days. Then, your package is available to the public. 
 
----
+==
 
-A good practice is to **tag a release** after the pull request is merged so that your package version update can be reflected in your GitHub repository. This process can be automated by the [TagBot](https://github.com/JuliaRegistries/TagBot).
+A good practice is to *tag a release* after the pull request is merged so that your package version update can be reflected in your GitHub repository. This process can be automated by the #link("https://github.com/JuliaRegistries/TagBot", "TagBot").
 
----
+==
 
 
-## The file structure of [OMEinsum](https://github.com/under-Peter/OMEinsum.jl)
+The file structure of #link("https://github.com/under-Peter/OMEinsum.jl", "OMEinsum.jl")
 
-![Alt text](image-3.png)
+#image("images/omeinsum.png", width: 60%)
 
 - `build/passing`: the tests executed by GitHub Actions are passing.
 - `codecov/89%`: the code coverage is 89%, meaning that 89% of the code is covered by tests.
 - `docs/dev`: the documentation is built and deployed with GitHub pages.
 
----
+==
 
 Now, let's take a look at the file structure of the package by running the following command in the package path (`~/.julia/dev/OMEinsum`):
 ```bash
@@ -793,16 +629,12 @@ $ tree . -L 1 -a
 └── test
 ```
 
----
+== Hands-on
 
-## Summary 2
+1. Create a new package named `MyFirstPackage.jl` in your local machine.
+2. Add a simple function to the package.
+3. Write tests for the package.
+4. Build the documentation for the package.
+5. Open-source the package to GitHub.
 
-- Unit tests
-  - test passing
-  - test coverage
-- CI/CD
-  - GitHub Actions
-- License
-  - MIT
-  - Apache2
-  - GPL
+
