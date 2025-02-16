@@ -200,26 +200,22 @@ end
 - _type constraint_: `T <: Real`
 
 == Julia type system is a tree, `Any` is the root
-#timecounter(1)
+#timecounter(2)
 
-```
-Any      # supertype of all types
-├─ Number
-│  ├─ Complex{T<:Real}
-│  ├─ Real
-│  │  ├─ AbstractFloat
-│  │  │  ├─ BigFloat
-│  │  │  ├─ Float16
-│  │  │  ├─ Float32
-│  │  │  └─ Float64
-│  │  ├─ AbstractIrrational
-...
-```
+// ```
+// Any      # supertype of all types
+// ├─ Number
+// │  ├─ Complex{T<:Real}
+// │  ├─ Real
+// │  │  ├─ AbstractFloat
+// │  │  │  ├─ BigFloat
+// │  │  │  ├─ Float16
+// │  │  │  ├─ Float32
+// │  │  │  └─ Float64
+// │  │  ├─ AbstractIrrational
+// ...
+// ```
 
-Quiz: What are the sizes of `Float64` and `Complex{Float64}` in bytes?
-
-== Julia type hierarchy
-#timecounter(1)
 #figure(canvas(length: 1.55cm, {
   import draw: *
   circle((0, 0), radius: (4, 3), name: "Any")
@@ -254,10 +250,14 @@ Quiz: What are the sizes of `Float64` and `Complex{Float64}` in bytes?
     Float64 <: AbstractFloat
     Complex{Float64} <: Complex
     ```
+
+
+Quiz: What are the sizes of `Float64` and `Complex{Float64}` in bytes?
   ])
 })) <fig:type-system>
 
 == Question: Characterize the types
+#timecounter(3)
 
 Characterize the types in the previous slide into the following categories:
 
@@ -266,9 +266,26 @@ Characterize the types in the previous slide into the following categories:
 - _Abstract types_: types that do not have fields, and cannot be instantiated in memory.
 - _Concrete types_: types that can be instantiated in memory. Concrete types can not derive new types.
 
+== Union of types
+#timecounter(1)
+```julia
+julia> 1.0 isa Float64  # 1.0 is an instance of Float64
+true
+
+julia> 1.0 isa Real
+true
+
+julia> 1.0 isa Union{Real, Complex}
+true
+
+julia> 1.0+2im isa Union{Real, Complex}
+true
+```
+Note: Union of types can not derive new types. i.e. multi-inheritance is not allowed in Julia.
 
 == Play with types
-#box(text(14pt)[```julia
+#timecounter(2)
+#grid(columns: 2, gutter: 10pt, box(width: 370pt, text(14pt)[```julia
 julia> Number <: Any
 true
 julia> Complex{Float64} <: Complex <: Number
@@ -276,9 +293,9 @@ true
 julia> Complex{Float64} <: Union{Real, Complex}
 true
 
-julia> isabstracttype(Number)  # for deriving new types
+julia> isabstracttype(Number)
 true
-julia> isconcretetype(Float64) # has fixed memory layout
+julia> isconcretetype(Float64)
 true
 julia> subtypes(Number)
 3-element Vector{Any}:
@@ -288,14 +305,11 @@ julia> subtypes(Number)
 julia> supertype(Float64)
 AbstractFloat
 ```
-])
-
-== Concrete types have fixed memory layout
-#box(text(14pt)[```julia
+]), box(width: 370pt, text(14pt)[```julia
 julia> 1.0 + 2im
 1.0 + 2.0im
 
-julia> typeof(1.0 + 2im)  # obtain the type of 1.0 + 2im
+julia> typeof(1.0 + 2im)
 Complex{Float64}
 
 julia> sizeof(1.0 + 2im)  # memory size in bytes
@@ -310,9 +324,10 @@ ERROR: Argument is an incomplete Complex type and does not have a definite size.
 julia> isconcretetype(Complex)
 false
 ```
-])
+]))
 
 == Experiment: Vector of concrete types
+#timecounter(1)
 
 ```julia
 using BenchmarkTools
@@ -326,7 +341,8 @@ typeof(y)
 @btime sin.(y)
 ```
 
-== Dynamic typing causes cache misses
+== Handling dynamic typing: boxing and unboxing
+#timecounter(1)
 
 #figure(scale(150%, text(10pt, canvas(length: 1cm, {
   import draw: *
@@ -362,6 +378,7 @@ typeof(y)
 
   line((-3, 0), (-3, -3.5), mark: (end: "straight"))
   content((-4, -1), [visit order])
+  content((3, -3), [cache miss])
 })))
 )
 
@@ -381,34 +398,62 @@ typeof(y)
 // === Examples of composite types
 // - The `Complex{T <: Real}` type.
 
-== Abstract Types
-Users can define their own _abstract types_ with the `abstract type` keyword. e.g.
+== Example: Tropical Numbers
+#timecounter(4)
+In the following, we show how to customize a special number system, called _semirings_ (rings without "`-`" operation).
+
+https://github.com/TensorBFS/TropicalNumbers.jl
+
+A Topical algebra can be described as a tuple $(R, plus.circle, times.circle, bb(0), bb(1))$, where $R$ is the set, $plus.circle$ and $times.circle$ are the operations and $bb(0)$ and $bb(1)$ are their identity element, respectively. In this package, the following tropical algebras are implemented:
+- `TropicalAndOr`: $({T, F}, or, and, F, T)$;
+- `Tropical` (`TropicalMaxPlus`): $(bb(R), max, +, -infinity, 0)$;
+- `TropicalMinPlus`: $(bb(R), min, +, infinity, 0)$;
+- `TropicalMaxMul`: $(bb(R^+), max, *, 0, 1)$.
+
+
+== Example: Tropical Numbers
+#timecounter(3)
+#align(left, text(14pt)[```julia
+abstract type AbstractSemiring <: Number end
+
+struct Tropical{T <: Real} <: AbstractSemiring
+    n::T
+    Tropical{T}(x) where T = new{T}(T(x))
+    function Tropical(x::T) where T <: Real
+        new{T}(x)  # constructor
+    end
+    function Tropical{T}(x::Tropical{T}) where T <: Real
+        x
+    end
+    function Tropical{T1}(x::Tropical{T2}) where {T1 <: Real, T2 <: Real}
+        new{T1}(T2(x.n))
+    end
+end
+```])
+
+== Overloading arithemetics operations
+#timecounter(2)
+`Base` is the module of the built-in functions. e.g. `Base.:*` is the multiplication operator.
+`Base.zero` is the zero element of the type.
+
 ```julia
-abstract type AbstractTropical{T<:Real} end
-```
+# we use ":" to avoid ambiguity
+Base.:*(a::Tropical, b::Tropical) = Tropical(a.n + b.n)
+Base.:+(a::Tropical, b::Tropical) = Tropical(max(a.n, b.n))
 
-- cannot be instantiated in memory.
-- can derive new types, which is not the case for the concrete types.
+# `Type{Tropical{T}}` is the type of the Tropical{T} type.
+Base.zero(::Type{Tropical{T}}) where T = typemin(Tropical{T})
+Base.zero(::Tropical{T}) where T = zero(Tropical{T})
 
-== Union of types
-```julia
-julia> 1.0 isa Float64  # 1.0 is an instance of Float64
-true
-
-julia> 1.0 isa Real
-true
-
-julia> 1.0 isa Union{Real, Complex}
-true
-
-julia> 1.0+2im isa Union{Real, Complex}
-true
+Base.one(::Type{Tropical{T}}) where T = Tropical(zero(T))
+Base.one(::Tropical{T}) where T = one(Tropical{T})
 ```
 
 == Understanding Julia's JIT
-In the following, we demonstrate the power of Julia's JIT by implementing a factorial function:
+#timecounter(2)
+The following is a factorial function:
 
-```julia
+#align(left, text(16pt)[```julia
 julia> function jlfactorial(n)
            x = 1
            for i in 1:n
@@ -419,7 +464,6 @@ julia> function jlfactorial(n)
 jlfactorial (generic function with 1 method)
 ```
 
-To accurately measure performance, we'll use the `@btime` macro from the `BenchmarkTools` package:
 ```julia
 julia> using BenchmarkTools
 
@@ -427,12 +471,51 @@ julia> @btime jlfactorial(x) setup=(x=5)
 2.208 ns (0 allocations: 0 bytes)
 120
 ```
+])
 
-The result shows that computing factorial(5) takes only about 2.2 nanoseconds—approximately 7 CPU clock cycles (with a typical ~0.3ns clock cycle).
+==
+#timecounter(2)
 
 Q: We emphasized that we did not specify the variable type of `n` in the function definition. Then how does the JIT compiler know the types of variables?
 
+#grid(columns: 2, gutter: 10pt, box(width: 370pt, text(16pt)[```julia
+function jlfactorial(n::Int)
+    x::Int = 1
+    for i::Int in 1:n::Int
+        x::Int = x::Int * i::Int
+    end
+    return x::Int
+end
+```
+]), box(width: 370pt, text(16pt)[```julia
+function jlfactorial(n::UInt32)
+    x::Int = 1
+    for i::Int in 1:n::UInt32
+        x::Int = x::Union{UInt32, Int} * i::Int
+    end
+    return x::Int
+end
+```
+Note: This code is _type unstable_ in previous Julia versions since `x::Union{UInt32, Int}` does not have a definite type. Now we have more powerful type inference system.
+])
+)
+
+== The recommended way to write type stable code
+#timecounter(1)
+
+```julia
+function jlfactorial(n::T) where T <: Integer
+    x = one(T)
+    for i in one(T):n
+        x = x * i
+    end
+    return x
+end
+```
+
+
 == JIT happens when the function is first called
+#timecounter(1)
 
 #figure(scale(150%, text(10pt, canvas({
   import draw: *
@@ -456,73 +539,66 @@ Q: We emphasized that we did not specify the variable type of `n` in the functio
 })))) <fig:jit>
 
 
-== Step 1: Infer the types
-Given a input type combination, can we infer the types of all variables in the function? It depends.
-If all the types are inferred, the function is called *type stable*. Then the function can be compiled to efficient binary code. One can use the `@code_warntype` macro to check if the function is type stable. For example, the `jlfactorial` function with integer input is type stable:
+// == Step 1: Infer the types
+// Given a input type combination, can we infer the types of all variables in the function? It depends.
+// If all the types are inferred, the function is called _type stable_.
 
-```julia
-julia> @code_warntype jlfactorial(10)
-??
-```
+// ```julia
+// julia> @code_warntype jlfactorial(10)
+// ```
 
-== Type stability
-If not all types are inferred, the function is called *type unstable*. Then the function falls back to the _dynamic dispatch_ mode, which can be slow. For example, the following `badcode` function is type unstable:
+// Otherwise, the function is called _type unstable_. Then the function falls back to the _dynamic dispatch_ mode, which can be slow. For example, the following `badcode` function is type unstable:
 
-```julia
-julia> badcode(x) = x > 3 ? 1.0 : 3
+// ```julia
+// julia> badcode(x) = x > 3 ? 1.0 : 3
 
-julia> @code_warntype badcode(4)
-??
-```
+// julia> @code_warntype badcode(4)
+// ```
 
-== Type unstable code is slow
-```julia
-julia> x = rand(1:10, 1000);
+// == Type unstable code is slow
+// ```julia
+// julia> x = rand(1:10, 1000);
 
-julia> typeof(badcode.(x))  # non-concrete element type
-Vector{Real} (alias for Array{Real, 1})
+// julia> typeof(badcode.(x))  # non-concrete element type
+// Vector{Real} (alias for Array{Real, 1})
 
-julia> @btime badcode.($x)
-??
-```
+// julia> @btime badcode.($x)
+// ??
+// ```
 
-In the above example, the "`.`" is the broadcasting operator, it applies the function to each element of the array.
+// In the above example, the "`.`" is the broadcasting operator, it applies the function to each element of the array.
 
-== Type stable code is fast
-Instead, if we specify the function in a type stable way, the function can be compiled to efficient binary code:
+// == Type stable code is fast
+// Instead, if we specify the function in a type stable way, the function can be compiled to efficient binary code:
 
-```julia
-julia> stable(x) = x > 3 ? 1.0 : 3.0
-stable (generic function with 1 method)
+// ```julia
+// julia> stable(x) = x > 3 ? 1.0 : 3.0
+// stable (generic function with 1 method)
 
-julia> typeof(stable.(x))   # concrete element type
-Vector{Float64} (alias for Array{Float64, 1})
+// julia> typeof(stable.(x))   # concrete element type
+// Vector{Float64} (alias for Array{Float64, 1})
 
-julia> @btime stable.($x)
-??
-```
-== Step 2: Generates the LLVM IR
+// julia> @btime stable.($x)
+// ??
+// ```
+== The LLVM IR
+#timecounter(2)
 
-With the typed intermediate representation (IR), the Julia compiler the generates the LLVM IR.
 LLVM is a set of compiler and toolchain technologies that can be used to develop a front end for any programming language and a back end for any instruction set architecture. LLVM is the backend of multiple languages, including Julia, Rust, Swift and Kotlin.
 
-In Julia, one can use the `@code_llvm` macro to show the LLVM intermediate representation of a function.
 
 ```julia
 julia> @code_llvm jlfactorial(10)
-??
 ```
-
-== Step 3: Compiles to binary code
 
 The LLVM IR is then compiled to binary code by the LLVM compiler. The binary code can be printed by the `@code_native` macro.
 
 ```julia
 julia> @code_native jlfactorial(10)
-??
 ```
 
 == Experiment: analyze the method instances
+#timecounter(2)
 
 The method instance is then stored in the method table, and can be analyzed by the `MethodAnalysis` package.
 
@@ -538,6 +614,169 @@ julia> jlfactorial(UInt32(5))
 julia> methodinstances(jlfactorial)
 ??
 ```
+
+= Multiple Dispatch
+== The Power of Multiple Dispatch
+#timecounter(1)
+Multiple dispatch is a fundamental feature of Julia that allows functions to be dynamically dispatched based on the runtime types of all their arguments. This is in contrast to single dispatch in object-oriented languages, where method selection is based only on the first argument (the object).
+
+Let's explore this concept through a practical example:
+
+```julia
+# Define an abstract type for animals
+abstract type AbstractAnimal end
+```
+
+== Create a hierarchy of types
+#timecounter(1)
+#box(text(12pt)[```julia
+# Define concrete types for different animals
+struct Dog <: AbstractAnimal
+    color::String
+end
+
+struct Cat <: AbstractAnimal
+    color::String
+end
+
+struct Cock <: AbstractAnimal
+    gender::Bool
+end
+
+struct Human{FT <: Real} <: AbstractAnimal
+    height::FT
+    function Human(height::T) where T <: Real
+        if height <= 0 || height > 300
+            error("Human height must be between 0 and 300 cm")
+        end
+        return new{T}(height)
+    end
+end
+```
+])
+
+== Implementing Multiple Dispatch
+#timecounter(1)
+Let's implement a `fight` function to demonstrate multiple dispatch:
+
+```julia
+# Default fallback method
+fight(a::AbstractAnimal, b::AbstractAnimal) = "draw"
+
+# Specific methods for different combinations
+fight(dog::Dog, cat::Cat) = "win"
+fight(hum::Human, a::AbstractAnimal) = "win"
+fight(hum::Human, a::Union{Dog, Cat}) = "loss"
+fight(hum::AbstractAnimal, a::Human) = "loss"
+```
+
+Here, `Union{Dog, Cat}` represents a type that can be either `Dog` or `Cat`. This demonstrates how Julia's type system allows for precise method definitions.
+
+==
+#timecounter(1)
+However, this implementation has an ambiguity:
+
+```julia
+fight(Human(170), Human(180))
+ERROR: MethodError: fight(::Human{Int64}, ::Human{Int64}) is ambiguous...
+```
+
+The error occurs because two methods could apply: humans win against all animals, but also lose to humans. We can resolve this by adding a specific method for human-vs-human encounters:
+
+```julia
+# Resolve ambiguity with a specific method
+fight(hum1::Human{T}, hum2::Human{T}) where T<:Real = 
+    hum1.height > hum2.height ? "win" : "loss"
+
+# Now we can test various combinations
+julia> fight(Cock(true), Cat("red"))
+"draw"
+
+julia> fight(Dog("blue"), Cat("white"))
+"win"
+
+julia> fight(Human(180), Cat("white"))
+"win"
+
+julia> fight(Human(170), Human(180))
+"loss"
+```
+
+== Why object oriented programming is bad?
+#timecounter(1)
+
+The Python approach to overload the "+" operation:
+
+#box(text(14pt)[```python
+class X:
+    def __init__(self, num):
+        self.num = num
+
+    def __add__(self, other):
+        return X(self.num + other.num)
+
+    def __radd__(self, other):
+        return X(other.num + self.num)
+
+class Y:
+    def __init__(self, num):
+        self.num = num
+
+    def __add__(self, other):
+        return Y(self.num + other.num)
+```
+])
+
+==
+#timecounter(2)
+The object-oriented approach has limitations:
+- Method resolution depends primarily on the left operand
+- Complex interactions between types require careful method ordering
+- Adding new types requires modifying existing classes
+
+=== But Why?
+Imagine you have $m$ types in your type system, and you want to write a function `f` that takes $k$ arguments, and returns a value.
+
+`f(x::T1, y::T2, ...)`
+
+Q: how many methods can you write in Julia/Python?
+
+Comment: Julia provides exponentially large method space, while for OOP languages, its linear. This explains why overloading "+" is so hard in OOP languages.
+
+== Experiment: Compile-Time Computation
+#timecounter(1)
+
+Here's an example computing the Fibonacci sequence:
+
+```julia
+# Runtime implementation
+fib(n::Int) = n <= 2 ? 1 : fib(n-1) + fib(n-2)
+
+julia> @btime fib(40)
+  278.066 ms (0 allocations: 0 bytes)
+102334155
+```
+
+== A completely static implementation
+We can leverage Julia's type system to compute Fibonacci numbers at zero cost!
+
+```julia
+# Compile-time implementation using Val types
+fib(::Val{x}) where x = x <= 2 ? Val(1) : addup(fib(Val(x-1)), fib(Val(x-2)))
+addup(::Val{x}, ::Val{y}) where {x, y} = Val(x + y)
+
+julia> @btime fib(Val(40))
+  0.792 ns (0 allocations: 0 bytes)
+Val{102334155}()
+```
+
+Q: What is happening here? Is it recommended to use this approach in practice?
+
+== Hands-on
+
+1. Clone the repo: https://github.com/TensorBFS/TropicalNumbers.jl to your local machine.
+2. Run the tests in your VSCode/Cursor.
+3. After that, you can try to complete the second homework.
 
 == Experiment: Comparing with C and Python
 
@@ -604,183 +843,3 @@ At 144 nanoseconds, Python is:
 As a remark, when Julia compiler fails to infer the types, it will fall back to the dynamic dispatch mode. Then it also suffers from the problem of cache misses.
 
 
-= Multiple Dispatch
-== The Power of Multiple Dispatch
-Multiple dispatch is a fundamental feature of Julia that allows functions to be dynamically dispatched based on the runtime types of all their arguments. This is in contrast to single dispatch in object-oriented languages, where method selection is based only on the first argument (the object).
-
-Let's explore this concept through a practical example:
-
-```julia
-# Define an abstract type for animals
-abstract type AbstractAnimal end
-```
-
-==
-Now, let's define some concrete animal types:
-
-#box(text(10pt)[```julia
-# Define concrete types for different animals
-struct Dog <: AbstractAnimal
-    color::String
-end
-
-struct Cat <: AbstractAnimal
-    color::String
-end
-
-struct Cock <: AbstractAnimal
-    gender::Bool
-end
-
-struct Human{FT <: Real} <: AbstractAnimal
-    height::FT
-    function Human(height::T) where T <: Real
-        if height <= 0 || height > 300
-            error("Human height must be between 0 and 300 cm")
-        end
-        return new{T}(height)
-    end
-end
-```
-])
-
-Notice how `Human` includes a custom constructor with validation. The `<:` operator indicates a subtype relationship, so `Dog <: AbstractAnimal` means "Dog is a subtype of AbstractAnimal."
-
-=== Implementing Multiple Dispatch
-Let's implement a `fight` function to demonstrate multiple dispatch:
-
-```julia
-# Default fallback method
-fight(a::AbstractAnimal, b::AbstractAnimal) = "draw"
-
-# Specific methods for different combinations
-fight(dog::Dog, cat::Cat) = "win"
-fight(hum::Human, a::AbstractAnimal) = "win"
-fight(hum::Human, a::Union{Dog, Cat}) = "loss"
-fight(hum::AbstractAnimal, a::Human) = "loss"
-```
-
-Here, `Union{Dog, Cat}` represents a type that can be either `Dog` or `Cat`. This demonstrates how Julia's type system allows for precise method definitions.
-
-However, this implementation has an ambiguity:
-
-```julia
-fight(Human(170), Human(180))
-ERROR: MethodError: fight(::Human{Int64}, ::Human{Int64}) is ambiguous...
-```
-
-The error occurs because two methods could apply: humans win against all animals, but also lose to humans. We can resolve this by adding a specific method for human-vs-human encounters:
-
-```julia
-# Resolve ambiguity with a specific method
-fight(hum1::Human{T}, hum2::Human{T}) where T<:Real = 
-    hum1.height > hum2.height ? "win" : "loss"
-
-# Now we can test various combinations
-julia> fight(Cock(true), Cat("red"))
-"draw"
-
-julia> fight(Dog("blue"), Cat("white"))
-"win"
-
-julia> fight(Human(180), Cat("white"))
-"win"
-
-julia> fight(Human(170), Human(180))
-"loss"
-```
-
-== Method Instances and Runtime Optimization
-Julia creates optimized method instances for each unique combination of argument types:
-
-```julia
-using MethodAnalysis
-methodinstances(fight)
-```
-
-Each method instance represents a specialized version of the function, compiled for specific argument types. This compilation strategy allows Julia to achieve C-like performance while maintaining the flexibility of a dynamic language.
-
-== Experiment: Comparing with object oriented programming
-
-The Python approach:
-
-#box(text(14pt)[```python
-class X:
-    def __init__(self, num):
-        self.num = num
-
-    def __add__(self, other):
-        return X(self.num + other.num)
-
-    def __radd__(self, other):
-        return X(other.num + self.num)
-
-class Y:
-    def __init__(self, num):
-        self.num = num
-
-    def __add__(self, other):
-        return Y(self.num + other.num)
-```
-])
-
-==
-The object-oriented approach has limitations:
-- Method resolution depends primarily on the left operand
-- Complex interactions between types require careful method ordering
-- Adding new types requires modifying existing classes
-
-== The Julia approach
-
-#box(text(14pt)[```julia
-# Define new number types
-struct X{T} <: Number
-    num::T
-end
-
-struct Y{T} <: Number
-    num::T
-end
-
-# Define addition operations
-Base.:(+)(a::X, b::Y) = X(a.num + b.num)
-Base.:(+)(a::Y, b::X) = Y(a.num + b.num)
-Base.:(+)(a::X, b::X) = X(a.num + b.num)
-Base.:(+)(a::Y, b::Y) = Y(a.num + b.num)
-```
-])
-
-==
-
-Julia's multiple dispatch approach offers several advantages:
-- Operations can be defined symmetrically
-- New types can be added without modifying existing code
-- Type combinations have explicit, clear behavior
-
-== Experiment 2: Compile-Time Computation
-
-While Julia excels at runtime performance, its type system can also enable compile-time computation. Here's an example using the Fibonacci sequence:
-
-```julia
-# Runtime implementation
-fib(n::Int) = n <= 2 ? 1 : fib(n-1) + fib(n-2)
-
-julia> @btime fib(40)
-  278.066 ms (0 allocations: 0 bytes)
-102334155
-```
-
-== A completely static implementation
-We can leverage Julia's type system to compute Fibonacci numbers at compile time:
-
-```julia
-# Compile-time implementation using Val types
-fib(::Val{x}) where x = x <= 2 ? Val(1) : addup(fib(Val(x-1)), fib(Val(x-2)))
-addup(::Val{x}, ::Val{y}) where {x, y} = Val(x + y)
-
-julia> @btime fib(Val(40))
-  0.792 ns (0 allocations: 0 bytes)
-Val{102334155}()
-```
-
-Q: What is happening here?

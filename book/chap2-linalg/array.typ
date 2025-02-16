@@ -164,6 +164,8 @@ end
 
 The column-major version is typically much faster due to better cache utilization.
 
+== BLAS and LAPACK
+
 == Example: Triangular Lattice Generation
 
 Here's how to create a triangular lattice using two different approaches:

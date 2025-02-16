@@ -28,13 +28,67 @@ help> sum
 ... docstring for sum ...
 ```
 
-Return to Julian mode from any other mode by pressing `Backspace`.
+Return to Julian mode from any other mode by pressing `Backspace`. To exit the REPL, press `Ctrl-D`. To stop a running program, press `Ctrl-C`.
+
+= Benchmarking and Profiling
+We use Julia for high performance computing. Before we start to introduce how to program with Julia, we first introduce how to benchmark and profile your code.
+In Julia, we can use #link("https://github.com/JuliaCI/BenchmarkTools.jl")[`BenchmarkTools`] to measure the performance of your code, which could be installed by `] add BenchmarkTools` in a Julia REPL. It provides two macros `@btime` and `@benchmark`. They run the function for multiple times and record the time, while `@benchmark` provides more detailed information.
+```julia
+julia> @btime sum($(randn(1000)))
+  79.291 ns (0 allocations: 0 bytes)
+-1.1417722596480882
+```
+The "`$`" is the interpolation operator, it is used to interpolate a variable into an expression. In a benchmark, it can be used to exclude the time to initialize the variable.
+
+To find the bottleneck of your code, we need to use a profiler. Profilers are categorized into two types:
+- _Event based profiler_, e.g. triggered by the function call event.
+- _Statistical profiler_ (used by Julia), e.g. sample the _call stack_ of the running program every 1ms.
+
+Julia provides a statistical profiler in its standard library. Statistical profiler has less overhead, and profiles small functions more accurately.
+To use it, we first import the `Profile` module and initialize it (optional):
+
+```julia
+julia> using Profile
+
+julia> Profile.init(; delay=0.001)  # How often to sample the call stack
+```
+
+Here, we set the delay to 1ms (the same as the default value), which means the profiler will sample the call stack every 1ms.
+Then we can use the `@profile` macro to profile the code:
+
+```julia
+julia> @profile for _ = 1:10000 sum(randn(1000)) end
+```
+
+Since the running time of the code is short, we set the number of iterations to 10000 so that we can get enough snapshots.
+After profiling, we can print the profile results:
+
+```julia
+julia> Profile.print(; mincount=10)
+Overhead ╎ [+additional indent] Count File:Line; Function
+=========================================================
+  # ... omitted ...
+  ╎ 40 @Profile/src/Profile.jl:59; macro expansion
+  ╎  40 REPL[39]:1; macro expansion
+  ╎   38 @Random/src/normal.jl:278; randn
+  ╎    38 @Random/src/normal.jl:272; randn
+  ╎     11 @Base/boot.jl:596; Array
+  ╎    ╎ 11 @Base/boot.jl:578; Array
+11╎    ╎  11 @Base/boot.jl:516; GenericMemory
+  ╎     19 @Random/src/normal.jl:260; randn!(rng::Random.TaskLocalRNG, A::Vector{Float64})
+Total snapshots: 40. Utilization: 100% across all threads and tasks. Use the `groupby` kwarg to break down by thread and/or task.
+
+julia> Profile.clear()   # Clear the profile results
+```
+Since the profiling results are quite messy, we only print those with at least 10 snapshots to filter out the function calls accounting for less than 10ms of running time.
+The profiling results will not be cleared automatically, so we need to clear it manually. Otherwise, it will be accumulated.
+
 
 = Just-In-Time (JIT) Compilation
 
 Julia is a just-in-time compiled language. It means that the code is compiled to machine code at runtime, which is different from both the static compilation languages like C/C++ and the interpreted languages like Python.
 The more information you tell the compiler, the more efficient code it can generate.
-Unlike languages without type system, e.g. Python, in Julia, the _type_ of a variable is known to a compiler.
+Unlike languages without type system, e.g. Python, in Julia, the _type_ of a variable is known at the compile time.
 On the other side, the _value_ of a variable can only be determined at runtime, just like any other programming language.
 
 #figure(canvas({
@@ -60,9 +114,27 @@ On the other side, the _value_ of a variable can only be determined at runtime, 
 == Types
 
 Types play a crucial role in the JIT compilation of Julia, which tells the compiler the memory layouts of data.
-In Julia, a type is composed of two parts, the _type name_ and the _type parameters_. For example, `Complex{Float64}` is a type with type name `Complex` and parameter `Float64`. If a type has no parameters, the ${}$ is omitted. For example, `Int64` is a type with no parameters. Type parameters are a part of a type, without which a type can not be instantiated in memory.
+In Julia, a type is composed of two parts, the _type name_ and the _type parameters_. For example, the `Complex` type is defined as follows:
+
+```julia
+struct Complex{T<:Real} <: Number  # `<:` is the subtype operator
+    re::T
+    im::T
+end
+```
+- _type name_: `Complex`
+- _type parameters_: `T`
+- _type constraint_: `T <: Real`
+
+If a type has no parameters, the ${}$ is omitted. For example, `Int64` is a type with no parameters.
+The operator `<:` is the subtype operator, which means that `Complex` is a subtype of `Number`. *Only* _abstract types_ can be subtyped. To define a new abstract type, we can use the `abstract type` keyword:
+```julia
+abstract type Number end
+```
+
+Abstract types do not have fields, and can not be instantiated in memory. Only _concrete types_ can be instantiated in memory. Type parameters are crucial part of a concrete type, without which a type can not be instantiated in memory.
 For example, `Complex` can not be instantiated in memory. Although the compiler knows `Complex` has a real part and an imaginary part, but it does not know the specific bit size of the real and imaginary parts.
-The following example shows how to instantiate a `Complex{Float64}` type:
+The following example shows how to obtain the type of a value and the memory size of a value:
 ```julia
 julia> 1.0 + 2im
 1.0 + 2.0im
@@ -83,7 +155,7 @@ julia> isconcretetype(Complex)
 false
 ```
 
-Types like `Complex{Float64}` that can be instantiated in memory are *_concrete types_*. They can be further categorized into *_primitive types_* and *_composite types_*.
+*_concrete types_* can be further categorized into *_primitive types_* and *_composite types_*.
 Primitive types are those directly supported by the instruction set architecture. A standard list of primitive types is given below:
 ```julia
 primitive type Float16 <: AbstractFloat 16 end  # `<:` means subtype
@@ -105,23 +177,21 @@ primitive type Int128  <: Signed   128 end
 primitive type UInt128 <: Unsigned 128 end
 ```
 
-Composite types are those built from other types, e.g. `Complex{T}`:
+Although _abstract types_ can not be instantiated in memory, they can be used to organize the type system.
+Julia's type system is organized as a type tree. `Any` type is the root, which is the set of everything.
+Julia does not support multiple inheritance, so the type tree is a _tree_ rather than a _graph_.
+In case that one needs a type of both `A` and `B`, one can use the `Union` type:
 ```julia
-struct Complex{T<:Real} <: Number
-    re::T
-    im::T
-end
-```
-Here, `Complex{T<:Real}` is a composite type with type name `Complex` and type parameter `T`. The type parameter `T` is constrained to be a subtype of `Real`. The type `Complex` is a subtype of `Number`.
-Users can easily define their own composite types by using the `struct` keyword.
+julia> const FloatOrComplex = Union{AbstractFloat, Complex{<:AbstractFloat}}
+Union{Complex{Float16}, Complex{Float32}, Complex{Float64}}
 
-=== Abstract Types
-Users can define their own _abstract types_ with the `abstract type` keyword. e.g.
-```julia
-abstract type AbstractTropical{T<:Real} end
-```
+julia> 1.0 isa FloatOrComplex  # `isa` is the membership operator
+true
 
-However, the abstract types are only conceptual types and can not be instantiated in memory. They are used for specifying the operations that can be applied to the data. Most importantly, they can derive new types, which is not the case for the concrete types.
+julia> 1.0 + 2im isa FloatOrComplex
+true
+```
+However, the `Union` type can not be inherited. The multiple inheritance is usually not a good practice, and is completely forbidden in Julia.
 
 #figure(canvas({
   import draw: *
@@ -161,22 +231,6 @@ However, the abstract types are only conceptual types and can not be instantiate
   ]))
 }), caption: [Julia's type system, where black circles represent abstract types, and red circles represent concrete types.]) <fig:type-system>
 
-With abstract types, Julia's type system is organized as a type tree. `Any` type is the root, which is the set of everything.
-The `Number` type, a direct subtype of `Any`, serves as the foundation for Julia's entire number system:
-
-```
-Number
-├─ Complex{T<:Real}
-├─ Real
-│  ├─ AbstractFloat
-│  │  ├─ BigFloat
-│  │  ├─ Float16
-│  │  ├─ Float32
-│  │  └─ Float64
-│  ├─ AbstractIrrational
-...
-```
-
 As shown in @fig:type-system, the mathematical correspondence of types is as follows:
 - types are _sets_.
 - the _subtype_ relation `<:` is associated with the _set inclusion_ relation $⊆$.
@@ -186,8 +240,10 @@ As shown in @fig:type-system, the mathematical correspondence of types is as fol
 ```julia
 julia> Number <: Any
 true
+
 julia> Complex{Float64} <: Complex <: Number
 true
+
 julia> Complex{Float64} <: Union{Real, Complex}
 true
 
@@ -198,15 +254,9 @@ julia> subtypes(Number)
  Base.MultiplicativeInverses.MultiplicativeInverse
  Complex
  Real
+
 julia> supertype(Float64)
 AbstractFloat
-
-julia> 1.0 isa Float64  # 1.0 is an instance of Float64
-true
-julia> 1.0 isa Real
-true
-julia> 1.0 isa Union{Real, Complex}
-true
 ```
 
 == Understanding Julia's JIT
@@ -514,33 +564,32 @@ As a remark, when Julia compiler fails to infer the types, it will fall back to 
 
 == The Power of Multiple Dispatch
 Multiple dispatch is a fundamental feature of Julia that allows functions to be dynamically dispatched based on the runtime types of all their arguments. This is in contrast to single dispatch in object-oriented languages, where method selection is based only on the first argument (the object).
+This feature gives users a superior abstraction power. For example, to define a function named `foo` that takes $k$ arguments, with $m$ possible types for each argument, the number of methods is $m^k$. While for object-oriented languages, the number of methods is only $m$, since each class can have one `foo` method. The superiority will finally reflected on the number of lines of code - Julia code can be super concise.
 
 Let's explore this concept through a practical example:
 
 ```julia
 # Define an abstract type for animals
-abstract type AbstractAnimal{L} end
+abstract type AbstractAnimal end
 ```
-
-The type parameter `L` represents the number of legs. While we could store this as a field, making it a type parameter enables compile-time optimizations.
 
 Now, let's define some concrete animal types:
 
 ```julia
 # Define concrete types for different animals
-struct Dog <: AbstractAnimal{4}
+struct Dog <: AbstractAnimal
     color::String
 end
 
-struct Cat <: AbstractAnimal{4}
+struct Cat <: AbstractAnimal
     color::String
 end
 
-struct Cock <: AbstractAnimal{2}
+struct Cock <: AbstractAnimal
     gender::Bool
 end
 
-struct Human{FT <: Real} <: AbstractAnimal{2}
+struct Human{FT <: Real} <: AbstractAnimal
     height::FT
     function Human(height::T) where T <: Real
         if height <= 0 || height > 300
@@ -551,9 +600,8 @@ struct Human{FT <: Real} <: AbstractAnimal{2}
 end
 ```
 
-Notice how `Human` includes a custom constructor with validation. The `<:` operator indicates a subtype relationship, so `Dog <: AbstractAnimal{4}` means "Dog is a subtype of AbstractAnimal with 4 legs."
+Notice how `Human` includes a custom constructor with validation. The `<:` operator indicates a subtype relationship, so `Dog <: AbstractAnimal` means "Dog is a subtype of AbstractAnimal."
 
-=== Implementing Multiple Dispatch
 Let's implement a `fight` function to demonstrate multiple dispatch:
 
 ```julia
@@ -579,11 +627,9 @@ ERROR: MethodError: fight(::Human{Int64}, ::Human{Int64}) is ambiguous...
 The error occurs because two methods could apply: humans win against all animals, but also lose to humans. We can resolve this by adding a specific method for human-vs-human encounters:
 
 ```julia
-# Resolve ambiguity with a specific method
-fight(hum1::Human{T}, hum2::Human{T}) where T<:Real = 
+julia> fight(hum1::Human{T}, hum2::Human{T}) where T<:Real = 
     hum1.height > hum2.height ? "win" : "loss"
 
-# Now we can test various combinations
 julia> fight(Cock(true), Cat("red"))
 "draw"
 
@@ -597,12 +643,15 @@ julia> fight(Human(170), Human(180))
 "loss"
 ```
 
-=== Method Instances and Runtime Optimization
 Julia creates optimized method instances for each unique combination of argument types:
 
 ```julia
-using MethodAnalysis
-methodinstances(fight)
+julia> methodinstances(fight)
+4-element Vector{Core.MethodInstance}:
+ MethodInstance for fight(::Dog, ::Cat)
+ MethodInstance for fight(::Human{Int64}, ::Human{Int64})
+ MethodInstance for fight(::Human{Int64}, ::Cat)
+ MethodInstance for fight(::Cock, ::Cat)
 ```
 
 Each method instance represents a specialized version of the function, compiled for specific argument types. This compilation strategy allows Julia to achieve C-like performance while maintaining the flexibility of a dynamic language.
@@ -659,13 +708,12 @@ Julia's multiple dispatch approach offers several advantages:
 - New types can be added without modifying existing code
 - Type combinations have explicit, clear behavior
 
-=== Compile-Time Computation: Abusing the type system <sec:compile-time-computation>
+=== Discussion: Zero-cost computing - is that real? <sec:compile-time-computation>
 
-While Julia excels at runtime performance, its type system can also enable compile-time computation. Here's an example using the Fibonacci sequence:
+People like Julia's type system, which is extremely powerful. It is so powerful that it can even enable compile-time computation. Here's an example using the Fibonacci sequence:
 
 ```julia
-# Runtime implementation
-fib(n::Int) = n <= 2 ? 1 : fib(n-1) + fib(n-2)
+julia> fib(n::Int) = n <= 2 ? 1 : fib(n-1) + fib(n-2);
 
 julia> @btime fib(40)
   278.066 ms (0 allocations: 0 bytes)
@@ -675,11 +723,20 @@ julia> @btime fib(40)
 We can leverage Julia's type system to compute Fibonacci numbers at compile time:
 
 ```julia
-# Compile-time implementation using Val types
-fib(::Val{x}) where x = x <= 2 ? Val(1) : addup(fib(Val(x-1)), fib(Val(x-2)))
-addup(::Val{x}, ::Val{y}) where {x, y} = Val(x + y)
+julia> fib(::Val{x}) where x = x <= 2 ? Val(1) : addup(fib(Val(x-1)), fib(Val(x-2)));
+
+julia> addup(::Val{x}, ::Val{y}) where {x, y} = Val(x + y);
 
 julia> @btime fib(Val(40))
   0.792 ns (0 allocations: 0 bytes)
 Val{102334155}()
 ```
+Amazingly, the compile-time computation completes the computation in 0.792 ns in our benchmark.
+BUT, the compile-time computation is not free. It is still a trade-off between the runtime and the compile time. For example, here, the compiler generates $40$ method instances for the `fib` function
+```julia
+julia> methodinstances(fib) |> length  # `|>` is the pipe operator for single-argument function
+40
+```
+
+This is because the compiler needs to generate a method instance for each possible argument type, i.e. it creates a table!
+
