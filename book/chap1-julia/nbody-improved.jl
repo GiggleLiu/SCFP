@@ -13,7 +13,7 @@ const PAIRS = Tuple((i, j) for i=1:4 for j=i+1:5)
 struct Body
     x::NTuple{3,Float64}
     v::NTuple{3,Float64}
-    m
+    m::Float64
 end
 
 function init_sun(bodies)
@@ -140,5 +140,5 @@ push!(bodies, init_sun(bodies))
 # accounting for 10% of the total program runtime. Base.Ryu.writefixed(::Float64, ::Int)
 # should already be compiled into the default system image.
 println(Base.Ryu.writefixed(energy(bodies), 9))
-nbody!(bodies, 50000000)
+@time nbody!(bodies, 50000000)
 println(Base.Ryu.writefixed(energy(bodies), 9))

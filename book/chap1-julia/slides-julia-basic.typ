@@ -702,6 +702,36 @@ julia> fight(Human(170), Human(180))
 "loss"
 ```
 
+== Experiment: Zero-cost computing
+#timecounter(1)
+
+Here's an example computing the Fibonacci sequence:
+
+```julia
+# Runtime implementation
+fib(n::Int) = n <= 2 ? 1 : fib(n-1) + fib(n-2)
+
+julia> @btime fib(40)
+  278.066 ms (0 allocations: 0 bytes)
+102334155
+```
+
+== A completely static implementation
+We can leverage Julia's type system to compute Fibonacci numbers at zero cost!
+
+```julia
+# Compile-time implementation using Val types
+fib(::Val{x}) where x = x <= 2 ? Val(1) : addup(fib(Val(x-1)), fib(Val(x-2)))
+addup(::Val{x}, ::Val{y}) where {x, y} = Val(x + y)
+
+julia> @btime fib(Val(40))
+  0.792 ns (0 allocations: 0 bytes)
+Val{102334155}()
+```
+
+Q: What is happening here? Is it recommended to use this approach in practice?
+
+
 == Why object oriented programming is bad?
 #timecounter(1)
 
@@ -742,35 +772,6 @@ Imagine you have $m$ types in your type system, and you want to write a function
 Q: how many methods can you write in Julia/Python?
 
 Comment: Julia provides exponentially large method space, while for OOP languages, its linear. This explains why overloading "+" is so hard in OOP languages.
-
-== Experiment: Compile-Time Computation
-#timecounter(1)
-
-Here's an example computing the Fibonacci sequence:
-
-```julia
-# Runtime implementation
-fib(n::Int) = n <= 2 ? 1 : fib(n-1) + fib(n-2)
-
-julia> @btime fib(40)
-  278.066 ms (0 allocations: 0 bytes)
-102334155
-```
-
-== A completely static implementation
-We can leverage Julia's type system to compute Fibonacci numbers at zero cost!
-
-```julia
-# Compile-time implementation using Val types
-fib(::Val{x}) where x = x <= 2 ? Val(1) : addup(fib(Val(x-1)), fib(Val(x-2)))
-addup(::Val{x}, ::Val{y}) where {x, y} = Val(x + y)
-
-julia> @btime fib(Val(40))
-  0.792 ns (0 allocations: 0 bytes)
-Val{102334155}()
-```
-
-Q: What is happening here? Is it recommended to use this approach in practice?
 
 == Hands-on
 

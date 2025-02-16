@@ -675,7 +675,7 @@ Julia's multiple dispatch approach offers several advantages:
 - New types can be added without modifying existing code
 - Type combinations have explicit, clear behavior
 
-== Experiment 2: Zero-cost computing - is that real? <sec:compile-time-computation>
+== Experiment 2: Zero-cost computing?
 
 People like Julia's type system, which is extremely powerful. It is so powerful that it can even enable compile-time computation. Here's an example using the Fibonacci sequence:
 
@@ -706,4 +706,4 @@ julia> methodinstances(fib) |> length  # `|>` is the pipe operator for single-ar
 ```
 
 This is because the compiler needs to generate a method instance for each possible argument type, i.e. it creates a table!
-
+In practice, it is not recommended to move everything to compile-time since it may pollute the type system and cause type explosion.
