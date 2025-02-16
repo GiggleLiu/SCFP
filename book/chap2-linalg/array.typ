@@ -185,11 +185,11 @@ When accessing the matrix in the column-major order in Julia, the stride is 1, s
   let dx = 0.5
   let dy = 1.2
   let s(it) = text(11pt, it)
-  content((-2, dx/2), [Main Memory])
+  content((-2, dx/2), s[Main Memory])
   for i in range(20){
     rect((dx *i, 0), (dx * i + dx, dx), name: "m" + str(i), fill: if (2 < i and i < 8) { red } else { white })
   }
-  content((-2, dx/2 - dy), [Caches (L3, L2, L1)])
+  content((-2, dx/2 - dy), s[Caches (L3, L2, L1)])
   bezier("m4.north", "m5.north", (rel: (dx/2, 1)), mark: (end: "straight"), name: "s1")
   content((rel: (-2, 0.3), to: "s1.mid"), s[Small stride, high hit rate])
 
@@ -200,7 +200,7 @@ When accessing the matrix in the column-major order in Julia, the stride is 1, s
   }
   line("m5.south", "c2.north", mark: (end: "straight"), name: "l1")
   content((rel: (2.5, 0), to: "l1.mid"), s[High Latency, chunk-wise])
-  content((-2, dx/2 - 2*dy), [CPU Registers])
+  content((-2, dx/2 - 2*dy), s[CPU Registers])
   for i in range(1){
     rect((dx *i, -2*dy), (dx * i + dx, dx - 2*dy), name: "r" + str(i))
   }
@@ -288,4 +288,4 @@ scatter(vec(getindex.(mesh2, 1)), vec(getindex.(mesh2, 2)))  # scatter(x, y)
 ```
 Here, we use the `scatter` function from the #link("https://github.com/MakieOrg/Makie.jl")[`CairoMakie`] package to visualize the triangular lattice, which takes two vectors representing the $x$ and $y$ coordinates of the points as input.
 The `CairoMakie` package is the default data visualization method in the rest of the book.
-#image("images/triangle.svg", width: 400pt)
+#figure(image("images/triangle.svg", width: 60%))
