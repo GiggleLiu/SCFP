@@ -1,4 +1,6 @@
 #import "@preview/touying:0.4.2": *
+#import "@preview/algorithmic:0.1.0"
+#import algorithmic: algorithm
 #import "@preview/touying-simpl-hkustgz:0.1.0" as hkustgz-theme
 #import "@preview/cetz:0.2.2": *
 #import "../shared/characters.typ": ina, christina, murphy
@@ -145,6 +147,35 @@ struct Body
     m   # remove the type annotation
 end
 ```
+
+== The Hamiltonian Dynamics
+In the Hamiltonian dynamics simulation, we have the following equation of motion:
+$ m (partial^2 bold(x))/(partial t^2) = bold(f)(bold(x)). $
+
+Equivalently, by denoting $bold(v) = (partial bold(x))/(partial t)$, we have the first-order differential equations:
+$
+cases(m (partial bold(v))/(partial t) &= bold(f)(bold(x)),
+(partial bold(x))/(partial t) &= bold(v))
+$
+
+== The Verlet Algorithm
+It is a typical Hamiltonian dynamics, which can be solved numerically by the Verlet algorithm @Verlet1967. The algorithm is as follows:
+
+#algorithm({
+  import algorithmic: *
+  Function("Verlet", args: ([$bold(x)$], [$bold(v)$], [$bold(f)$], [$m$], [$d t$], [$n$]), {
+    Assign([$bold(v)$], [$bold(v) + (bold(f)(bold(x)))/m d t \/ 2$ #h(2em)#Ic([update velocity at time $d t \/ 2$])])
+    For(cond: [$i = 1 dots n$], {
+      Cmt[time step $t = i d t$]
+      Assign([$bold(x)$], [$bold(x) + bold(v) d t$ #h(2em)#Ic([update position at time $t$])])
+      Assign([$bold(v)$], [$bold(v) + (bold(f)(bold(x)))/m d t$ #h(2em)#Ic([update velocity at time $t + d t\/2$])])
+    })
+    Assign([$bold(v)$], [$bold(v) - (bold(f)(bold(x)))/m d t \/ 2$ #h(2em)#Ic([velocity at time $n d t$])])
+    Return[$bold(x)$, $bold(v)$]
+  })
+})
+
+The Verlet algorithm is a simple yet robust algorithm for solving the differential equation of motion. It is the most widely used algorithm in molecular dynamics simulation.
 
 == Why type matters?
 #timecounter(1)
@@ -843,4 +874,4 @@ At 144 nanoseconds, Python is:
 
 As a remark, when Julia compiler fails to infer the types, it will fall back to the dynamic dispatch mode. Then it also suffers from the problem of cache misses.
 
-
+#bibliography("refs.bib")

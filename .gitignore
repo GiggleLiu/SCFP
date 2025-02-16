@@ -3,3 +3,4 @@ Manifest.toml
 .DS_Store
 *.swp
 .vscode/
+*.pdf
