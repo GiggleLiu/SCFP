@@ -17,20 +17,7 @@
 
 == Sparse Matrices
 
-Matrices are often sparse. Consider the matrix that we used in the spring chain example, the stiffness matrix is tridiagonal and has only $3n-2$ nonzero elements.
-
-$
-mat(
-  -C, C, 0, dots.h, 0;
-  C, -2C, C, dots.h, 0;
-  0, C, -2C, dots.h, 0;
-  dots.v, dots.v, dots.v, dots.down, dots.v;
-  0, 0, 0, C, -C
-)
-$
-
-Storing such a matrix in a dense format requires $n^2$ elements, which is very memory inefficient since it has only $3n-2$ nonzero elements.
-
+Sparse matrices are ubiquitous in scientific computing. This section considers how to efficiently store and manipulate sparse matrices.
 == COOrdinate (COO) format
 
 The coordinate format means storing nonzero matrix elements into triples
@@ -42,23 +29,19 @@ $
   &(i_k, j_k, v_k)
 $
 
-To store the stiffness matrix in COO format, we only need to store $3n-2$ triples.
-
-To implement a COO matrix in Julia, we need to define a new data type and implement the #link("https://docs.julialang.org/en/v1/manual/interfaces/#man-interface-array")[`AbstractArray`] interface.
+To store a sparse matrix $A$ in COO format, we only need to store $"nnz"(A)$ triples, where $"nnz"(A)$ is the number of nonzero elements in $A$. Julia does not have a native COO data type, since it is not a efficient data structure for operations on sparse matrices. In the following, we implement a COO matrix from scratch by implementing the #link("https://docs.julialang.org/en/v1/manual/interfaces/#man-interface-array")[`AbstractArray`] interface:
 - `size`: return the size of the matrix
 - `getindex`: return the element at the given index
-
-Let the number of nonzero elements in a COO matrix $A$ be $op("nnz")(A)$. The indexing operation requires enumerating over all $op("nnz")(A)$ elements.
 
 ```julia
 using LinearAlgebra
 
 struct COOMatrix{Tv, Ti} <: AbstractArray{Tv, 2}   # Julia does not have a COO data type
-    m::Ti                   # number of rows
-    n::Ti                 # number of columns
+    m::Ti                # number of rows
+    n::Ti                # number of columns
     colval::Vector{Ti}   # column indices
     rowval::Vector{Ti}   # row indices
-    nzval::Vector{Tv}        # values
+    nzval::Vector{Tv}    # values
     function COOMatrix(m::Ti, n::Ti, colval::Vector{Ti}, rowval::Vector{Ti}, nzval::Vector{Tv}) where {Tv, Ti}
         @assert length(colval) == length(rowval) == length(nzval)
         new{Tv, Ti}(m, n, colval, rowval, nzval)
@@ -70,7 +53,7 @@ Base.size(coo::COOMatrix, i::Int) = getindex((coo.m, coo.n), i)
 # the number of non-zero elements
 nnz(coo::COOMatrix) = length(coo.nzval)
 
-# implement get index for CSC matrix, call with A[i, j]
+# implement get index for COO matrix, call with A[i, j]
 function Base.getindex(coo::COOMatrix{Tv}, i::Integer, j::Integer) where Tv
     @boundscheck checkbounds(coo, i, j)
     v = zero(Tv)
@@ -80,6 +63,22 @@ function Base.getindex(coo::COOMatrix{Tv}, i::Integer, j::Integer) where Tv
         end
     end
     return v
+end
+```
+
+The indexing of a COO matrix is slow.
+Unless we sort the nonzero elements and remove the duplicate indices, the indexing operation requires $O(op("nnz")(A))$ operations.
+
+With the required two interfaces implemented, we have a fallback implementation of many linear algebra operations for COO matrices, although it is not efficient. In the following, we implement a more efficient version of the matrix-vector and matrix-matrix multiplication for COO matrices.
+
+```julia
+function Base.:*(A::COOMatrix{T1}, x::AbstractVector{T2}) where {T1, T2}
+    T = promote_type(T1, T2)
+    y = zeros(T, size(A, 1))
+    for (i, j, v) in zip(A.rowval, A.colval, A.nzval)
+        y[i] += v * x[j]
+    end
+    return y
 end
 
 function Base.:*(A::COOMatrix{T1}, B::COOMatrix{T2}) where {T1, T2}
@@ -100,21 +99,69 @@ function Base.:*(A::COOMatrix{T1}, B::COOMatrix{T2}) where {T1, T2}
 end
 ```
 
+In the following, we use the COO format to store the stiffness matrix of a spring chain and test its performance.
+$
+mat(
+  -C, C, 0, dots.h, 0;
+  C, -2C, C, dots.h, 0;
+  0, C, -2C, dots.h, 0;
+  dots.v, dots.v, dots.v, dots.down, dots.v;
+  0, 0, 0, C, -C
+)
+$
+
+
 ```julia
-using Test
+using BenchmarkTools
 
-stiffmatrix = COOMatrix(3, 3, [1, 1, 2, 2, 2, 3, 3], [1, 2, 1, 2, 3, 2, 3], [-1.0, 1, 1, -2, 1, 1, -1])
-size(stiffmatrix)
-nnz(stiffmatrix)
+stiffmatrix(n::Int, C) = COOMatrix(n, n, [1:n-1; 1:n; 2:n], [2:n; 1:n; 1:n-1], [C*ones(n-1); -C ; -2C*ones(n-2); -C; C*ones(n-1)])
 
-dense_matrix = Matrix(stiffmatrix)
-@test stiffmatrix * stiffmatrix ≈ dense_matrix ^ 2
+matrix = stiffmatrix(10000, 1.0)
+x = randn(size(matrix, 2))
+@btime matrix * x         # 27.292 μs
+@btime matrix * matrix    # 800.915 ms
 ```
 
-Most operations on COO matrices are computational expensive. For example, multiplying two COO matrices requires $O(op("nnz")(A)^2)$ computing time.
-
-
 == Compressed Sparse Column (CSC) format
+
+#figure(canvas({
+  import draw: *
+  let dx = 0.8
+  let dy = 1.5
+  let s(it) = text(12pt, it)
+  let boxed(loc, text) = {
+    rect(loc.map(x => x - dx/2), loc.map(x=> x + dx/2), stroke: black)
+    content(loc, text)
+  }
+  let rowval = (2, 3, 1, 4, 3, 4)
+  let nzval = (1, 2, 3, 4, 5, 6)
+  let colptr = (1, 3, 5, 5, 7)
+
+  content((-2, dy), s[colptr])
+  for (i, v) in colptr.enumerate() {
+    let x = (v - 1.5) * dx
+    content((x, dy), s[#v], name: str(i))
+    line((x, dy - 0.3), (x, 0.5), mark: (end: "straight"))
+  }
+  content((dx/2, dy/2), s[$j=1$])
+  content((2.5 * dx, dy/2), s[$j=2$])
+  content((4.5 * dx, dy/2), s[$j=4$])
+
+  content((-2, 0), s[rowval])
+  for (i, v) in rowval.enumerate() {
+    boxed((i * dx, 0), s[#v])
+  }
+
+  content((-2, -dy), s[nzval])
+  for (i, v) in nzval.enumerate() {
+    boxed((i * dx, -dy), s[#v])
+  }
+
+  content((7, -0.5), text(16pt)[$mat(dot,3,dot, dot;1, dot, dot, dot;2, dot, dot, 5;dot, 4, dot,  6;dot, dot, dot, dot)$])
+}))
+
+The `m`, `n`, `rowval` and `nzval` have the same meaning as those in the COO format. `colptr` is an integer vector of size $n+1$, where `colptr[j]` is the index in `rowval` and `nzval` of the first nonzero element in the $j$-th column, and `colptr[j+1]` is the index of the first nonzero element in the $(j+1)$-th column. Hence the $j$-th column of the matrix is stored in `rowval[colptr[j]:colptr[j+1]-1]` and `nzval[colptr[j]:colptr[j+1]-1]`.
+
 
 A CSC format sparse matrix can be constructed with the `SparseArrays.sparse` function. However, here we will implement a simple CSC matrix from scratch.
 
@@ -178,6 +225,29 @@ function Base.getindex(A::CSCMatrix{T}, i::Int, j::Int) where T
     return zero(T)
 end
 
+# return the range of non-zero elements in the j-th column
+nzrange(A::CSCMatrix, j::Int) = A.colptr[j]:A.colptr[j+1]-1
+```
+
+The row indices and values of nonzero elements in the 3rd column can be obtained by
+```julia
+rows3 = csc_matrix.rowval[csc_matrix.colptr[3]:csc_matrix.colptr[4]-1]
+val3 = csc_matrix.nzval[csc_matrix.colptr[3]:csc_matrix.colptr[4]-1]
+csc_matrix.rowval[nzrange(csc_matrix, 3)] # or equivalently, we can use `nzrange`
+```
+
+```julia
+function Base.:*(A::CSCMatrix{T1}, x::AbstractVector{T2}) where {T1, T2}
+    T = promote_type(T1, T2)
+    y = zeros(T, size(A, 1))
+    for j in 1:size(A, 2)
+        for k in nzrange(A, j)
+            y[A.rowval[k]] += A.nzval[k] * x[j]
+        end
+    end
+    return y
+end
+
 function Base.:*(A::CSCMatrix{T1}, B::CSCMatrix{T2}) where {T1, T2}
     T = promote_type(T1, T2)
     @assert size(A, 2) == size(B, 1)
@@ -194,84 +264,15 @@ function Base.:*(A::CSCMatrix{T1}, B::CSCMatrix{T2}) where {T1, T2}
     end
     return CSCMatrix(COOMatrix(size(A, 1), size(B, 2), colval, rowval, nzval))
 end
-
-# return the range of non-zero elements in the j-th column
-nzrange(A::CSCMatrix, j::Int) = A.colptr[j]:A.colptr[j+1]-1
 ```
 
 ```julia
-coo_matrix = COOMatrix(5, 4, [1, 1, 2, 2, 4, 4], [2, 3, 1, 4, 3, 4], [1, 2, 3, 4, 5, 6])
-csc_matrix = CSCMatrix(coo_matrix)
+csc_matrix = CSCMatrix(matrix)
+@btime csc_matrix * x             # 37.042 μs
+@btime csc_matrix * csc_matrix    # 3.349 ms
 ```
-
-The `csc_matrix` has type `CSCMatrix`, which contains 5 fields
-
-```julia
-fieldnames(csc_matrix |> typeof)
-csc_matrix.m, csc_matrix.n
-csc_matrix.colptr
-csc_matrix.rowval
-csc_matrix.nzval
-```
-
-// #image("images/csc.png")
-
-#figure(canvas({
-  import draw: *
-  let dx = 0.8
-  let dy = 1.5
-  let s(it) = text(12pt, it)
-  let boxed(loc, text) = {
-    rect(loc.map(x => x - dx/2), loc.map(x=> x + dx/2), stroke: black)
-    content(loc, text)
-  }
-  let rowval = (2, 3, 1, 4, 3, 4)
-  let nzval = (1, 2, 3, 4, 5, 6)
-  let colptr = (1, 3, 5, 5, 7)
-
-  content((-2, dy), s[colptr])
-  for (i, v) in colptr.enumerate() {
-    let x = (v - 1.5) * dx
-    content((x, dy), s[#v], name: str(i))
-    line((x, dy - 0.3), (x, 0.5), mark: (end: "straight"))
-  }
-  content((dx/2, dy/2), s[$j=1$])
-  content((2.5 * dx, dy/2), s[$j=2$])
-  content((4.5 * dx, dy/2), s[$j=4$])
-
-  content((-2, 0), s[rowval])
-  for (i, v) in rowval.enumerate() {
-    boxed((i * dx, 0), s[#v])
-  }
-
-  content((-2, -dy), s[nzval])
-  for (i, v) in nzval.enumerate() {
-    boxed((i * dx, -dy), s[#v])
-  }
-
-  content((7, -0.5), text(16pt)[$mat(dot,3,dot, dot;1, dot, dot, dot;2, dot, dot, 5;dot, 4, dot,  6;dot, dot, dot, dot)$])
-}))
-
-The `m`, `n`, `rowval` and `nzval` have the same meaning as those in the COO format. `colptr` is an integer vector of size $n+1$, where `colptr[j]` is the index in `rowval` and `nzval` of the first nonzero element in the $j$-th column, and `colptr[j+1]` is the index of the first nonzero element in the $(j+1)$-th column. Hence the $j$-th column of the matrix is stored in `rowval[colptr[j]:colptr[j+1]-1]` and `nzval[colptr[j]:colptr[j+1]-1]`.
-
-The number of operations required to index an element in the $j$-th column of a CSC matrix is linear to the nonzero elements in the $j$-th column. To get an element from the 2nd row and 3rd column of a CSC matrix, we can use the following code
-```julia
-csc_matrix[2, 3]
-```
-
-The row indices and values of nonzero elements in the 3rd column can be obtained by
-```julia
-rows3 = csc_matrix.rowval[csc_matrix.colptr[3]:csc_matrix.colptr[4]-1]
-val3 = csc_matrix.nzval[csc_matrix.colptr[3]:csc_matrix.colptr[4]-1]
-csc_matrix.rowval[nzrange(csc_matrix, 3)] # or equivalently, we can use `nzrange`
-```
-
-Multiplying two CSC matrices is much faster than multiplying two COO matrices. The time complexity of multiplying two CSC matrices $A$ and $B$ is $O(op("nnz")(A)op("nnz")(B)/n)$.
-
-```julia
-csc_matrix2 = CSCMatrix(COOMatrix(coo_matrix.n, coo_matrix.m, coo_matrix.rowval, coo_matrix.colval, coo_matrix.nzval))  # transpose
-@test Matrix(csc_matrix) * Matrix(csc_matrix2) ≈ csc_matrix * csc_matrix2
-```
+While the matrix-vector multiplication has a similar performance as the COO matrix, the matrix-matrix multiplication is much faster than the COO matrix.
+This is because the time complexity of multiplying two CSC matrices $A$ and $B$ is $O(op("nnz")(A)op("nnz")(B)\/n)$, while the time complexity of multiplying two COO matrices is $O(op("nnz")(A)op("nnz")(B))$.
 
 == Dominant eigenvalue problem
 

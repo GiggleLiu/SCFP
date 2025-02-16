@@ -149,6 +149,7 @@ end
 ```
 
 == The Hamiltonian Dynamics
+#timecounter(2)
 In the Hamiltonian dynamics simulation, we have the following equation of motion:
 $ m (partial^2 bold(x))/(partial t^2) = bold(f)(bold(x)). $
 
@@ -159,6 +160,7 @@ cases(m (partial bold(v))/(partial t) &= bold(f)(bold(x)),
 $
 
 == The Verlet Algorithm
+#timecounter(3)
 It is a typical Hamiltonian dynamics, which can be solved numerically by the Verlet algorithm @Verlet1967. The algorithm is as follows:
 
 #algorithm({
