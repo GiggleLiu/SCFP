@@ -86,7 +86,7 @@ The profiling results will not be cleared automatically, so we need to clear it 
 
 = Just-In-Time (JIT) Compilation
 
-Julia is a just-in-time compiled language. It means that the code is compiled to machine code at runtime, which is different from both the static compilation languages like C/C++ and the interpreted languages like Python.
+Julia is a just-in-time compiled language. It means that the code is compiled to binary only when needed, which is different from both the static compilation languages like C/C++ and the interpreted languages like Python.
 The more information you tell the compiler, the more efficient code it can generate.
 Unlike languages without type system, e.g. Python, in Julia, the _type_ of a variable is known at the compile time.
 On the other side, the _value_ of a variable can only be determined at runtime, just like any other programming language.
@@ -108,7 +108,7 @@ On the other side, the _value_ of a variable can only be determined at runtime, 
   content((rel: (0, -1.5), to: "binary"), box(inset: 5pt, s[Output Values]), name: "binary-outputs")
   line("binary-outputs", "binary", mark: (start: "stealth"), stroke: 2pt)
 }),
-  caption: [Compiler make use of static information (types, constants, etc.) to generate efficient binary code. The input values are only available at runtime.]
+  caption: [A typical compiling pipeline. The compiler makes use of static information (types, constants, etc.) to generate efficient binary code. The input values are only available at runtime.]
 )
 
 == Types
@@ -132,8 +132,7 @@ The operator `<:` is the subtype operator, which means that `Complex` is a subty
 abstract type Number end
 ```
 
-Abstract types do not have fields, and can not be instantiated in memory. Only _concrete types_ can be instantiated in memory. Type parameters are crucial part of a concrete type, without which a type can not be instantiated in memory.
-For example, `Complex` can not be instantiated in memory. Although the compiler knows `Complex` has a real part and an imaginary part, but it does not know the specific bit size of the real and imaginary parts.
+Abstract types do not have fields, and can not be instantiated in memory. Only _concrete types_ can be instantiated in memory. A type is concrete only if it has all type parameters specified. For example, `Complex` it alone is not concrete. Although the compiler knows `Complex` has a real part and an imaginary part, but it does not know the specific bit size of the real and imaginary parts.
 The following example shows how to obtain the type of a value and the memory size of a value:
 ```julia
 julia> 1.0 + 2im
@@ -155,31 +154,11 @@ julia> isconcretetype(Complex)
 false
 ```
 
-*_concrete types_* can be further categorized into *_primitive types_* and *_composite types_*.
-Primitive types are those directly supported by the instruction set architecture. A standard list of primitive types is given below:
-```julia
-primitive type Float16 <: AbstractFloat 16 end  # `<:` means subtype
-primitive type Float32 <: AbstractFloat 32 end
-primitive type Float64 <: AbstractFloat 64 end
+*_Concrete types_* can be further categorized into *_primitive types_* and *_composite types_*.
+Primitive types are those directly supported by the instruction set architecture. A standard list of primitive types includes `Float16`, `Float32`, `Float64`, `Bool`, `Char`, `Int8`, `UInt8`, `Int16`, `UInt16`, `Int32`, `UInt32`, `Int64`, `UInt64`, `Int128`, and `UInt128`.
 
-primitive type Bool <: Integer 8 end
-primitive type Char <: AbstractChar 32 end
-
-primitive type Int8    <: Signed   8 end
-primitive type UInt8   <: Unsigned 8 end
-primitive type Int16   <: Signed   16 end
-primitive type UInt16  <: Unsigned 16 end
-primitive type Int32   <: Signed   32 end
-primitive type UInt32  <: Unsigned 32 end
-primitive type Int64   <: Signed   64 end
-primitive type UInt64  <: Unsigned 64 end
-primitive type Int128  <: Signed   128 end
-primitive type UInt128 <: Unsigned 128 end
-```
-
-Although _abstract types_ can not be instantiated in memory, they can be used to organize the type system.
-Julia's type system is organized as a type tree. `Any` type is the root, which is the set of everything.
-Julia does not support multiple inheritance, so the type tree is a _tree_ rather than a _graph_.
+_Abstract types_ can be used to organize the type system as a type tree. As shown in @fig:type-system, `Any` type is the root, which is the set of everything.
+Julia does not support multiple inheritance, so the type tree has a _tree_ topology rather than a _graph_ topology.
 In case that one needs a type of both `A` and `B`, one can use the `Union` type:
 ```julia
 julia> const FloatOrComplex = Union{AbstractFloat, Complex{<:AbstractFloat}}
@@ -191,11 +170,11 @@ true
 julia> 1.0 + 2im isa FloatOrComplex
 true
 ```
-However, the `Union` type can not be inherited. The multiple inheritance is usually not a good practice, and is completely forbidden in Julia.
+However, the `Union` type can not be inherited. Actually, the multiple inheritance is usually not a good practice, and is completely forbidden in Julia.
 
 #figure(canvas({
   import draw: *
-  let s(it) = text(12pt, it)
+  let s(it) = text(11pt, it)
   circle((0, 0), radius: (4, 3), name: "Any")
   content((-4.5, 0), s[Any])
   circle((0.5, 0), radius: (3.5, 2.5), name: "Number")
@@ -206,9 +185,9 @@ However, the `Union` type can not be inherited. The multiple inheritance is usua
   content((-1.1, -1), s[Real])
   circle((-1.1, 0.5), radius: (1.3, 1), name: "AbstractFloat")
   content((-1.1, 0.5), s[AbstractFloat])
-  circle((-0.7, 1), radius: 0.1, name: "Float32", stroke: red)
-  circle((-1.5, 1), radius: 0.1, name: "Float64", stroke: red)
-  circle((2, 0.5), radius: 0.1, name: "Complex{Float64}", stroke: red)
+  circle((-0.7, 1), radius: 0.1, name: "Float32", fill: red, stroke: red)
+  circle((-1.5, 1), radius: 0.1, name: "Float64", fill: red, stroke: red)
+  circle((2, 0.5), radius: 0.1, name: "Complex{Float64}", fill: red, stroke: red)
   content((-1, 3.5), box(inset: 5pt, s[Float32]), name: "label-Float32")
   line("label-Float32", "Float32", mark: (end: "straight"))
 
@@ -218,24 +197,12 @@ However, the `Union` type can not be inherited. The multiple inheritance is usua
   content((3, 3.5), box(inset: 5pt, s[Complex{Float64}]), name: "label-Complex{Float64}")
   line("label-Complex{Float64}", "Complex{Float64}", mark: (end: "straight"))
   content((7, 0), box(width: 150pt, s[
-    ```
-    Number <: Any
-    Complex <: Number
-    Real <: Number
-    AbstractFloat <: Real
-
-    Float32 <: AbstractFloat
-    Float64 <: AbstractFloat
-    Complex{Float64} <: Complex
-    ```
+  - types $arrow.r$ _sets_.
+  - `A <: B` $arrow.r$ $A ⊆ B$.
+  - `Union{A, B}` $arrow.r$ $A ∪ B$.
+  - `a isa A` $arrow.r$ $a ∈ A$.
   ]))
-}), caption: [Julia's type system, where black circles represent abstract types, and red circles represent concrete types.]) <fig:type-system>
-
-As shown in @fig:type-system, the mathematical correspondence of types is as follows:
-- types are _sets_.
-- the _subtype_ relation `<:` is associated with the _set inclusion_ relation $⊆$.
-- the union of two types `Union{T1, T2}` is the _set union_ relation $∪$.
-- the `isa` function is the _set membership_ relation $∈$.
+}), caption: [Julia's type system in set theory. The black circles represent abstract types, and red circles represent concrete types.]) <fig:type-system>
 
 ```julia
 julia> Number <: Any
@@ -288,7 +255,7 @@ We emphasized that we did not specify the variable type of `n` in the function d
 
 #figure(canvas({
   import draw: *
-  let s(it) = text(12pt, it)
+  let s(it) = text(11pt, it)
   content((-3, 0), box(inset: 3pt, s[Inputs]), name: "inputs")
   content((0, 0), s[#box(stroke: black, inset: 10pt, s[Call a function], radius: 4pt)], name: "call")
   content((6.5, 0), s[#box(stroke: black, inset: 10pt, s[Invoke], radius: 4pt)], name: "invoke")
@@ -417,8 +384,8 @@ BenchmarkTools.Trial: 10000 samples with 334 evaluations.
 ```
 === Step 2: Generates the LLVM IR
 
-With the typed intermediate representation (IR), the Julia compiler the generates the LLVM IR.
-LLVM is a set of compiler and toolchain technologies that can be used to develop a front end for any programming language and a back end for any instruction set architecture. LLVM is the backend of multiple languages, including Julia, Rust, Swift and Kotlin.
+With the typed intermediate representation (IR), the Julia compiler generates the LLVM IR.
+#link("https://llvm.org/")[LLVM] is a compiler infrastructure that can be used to compile programs to different instruction set architectures. It is the backend of multiple languages, including Julia, Rust, Swift and Kotlin.
 
 In Julia, one can use the `@code_llvm` macro to show the LLVM intermediate representation of a function.
 
@@ -522,7 +489,7 @@ This is because python's flexibility comes at a performance cost. Python's dynam
 #figure(canvas(length: 1cm, {
   import draw: *
   let dy = -0.7
-  let s(it) = text(12pt, it)
+  let s(it) = text(11pt, it)
   content((-0.5, 0.5), s[Stack])
   for j in range(5){
     rect((-2.2, dy * j), (2.4, (j+1) * dy), name: "t" + str(j))
@@ -656,7 +623,7 @@ julia> methodinstances(fight)
 
 Each method instance represents a specialized version of the function, compiled for specific argument types. This compilation strategy allows Julia to achieve C-like performance while maintaining the flexibility of a dynamic language.
 
-== Experiment: Extending the Number System
+== Experiment 1: Extending the Number System
 
 Let's compare how Julia and Python handle extending the number system. First, the Python approach:
 
@@ -708,7 +675,7 @@ Julia's multiple dispatch approach offers several advantages:
 - New types can be added without modifying existing code
 - Type combinations have explicit, clear behavior
 
-=== Discussion: Zero-cost computing - is that real? <sec:compile-time-computation>
+== Experiment 2: Zero-cost computing - is that real? <sec:compile-time-computation>
 
 People like Julia's type system, which is extremely powerful. It is so powerful that it can even enable compile-time computation. Here's an example using the Fibonacci sequence:
 
