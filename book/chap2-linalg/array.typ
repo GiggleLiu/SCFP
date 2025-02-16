@@ -163,8 +163,110 @@ end
 ```
 
 The column-major version is typically much faster due to better cache utilization.
+```julia
+julia> using BenchmarkTools
+
+julia> A = randn(3000, 3000);
+
+julia> @btime frobenius_norm($A);
+  44.408 ms (0 allocations: 0 bytes)
+
+julia> @btime frobenius_norm_colmajor($A);
+  10.235 ms (0 allocations: 0 bytes)
+```
+
+We can see by simply changing the order of the loop, the performance is improved by more than 2 times. This is because the memory access pattern is more cache-friendly.
+As shown in the figure @fig:memory-access, the cache is a small and fast memory that is located on or close to the CPU. `L3` cache is the largest and slowest, `L1` cache is the smallest and fastest. When the data is loaded from the main memory to the cache, the data is loaded in chunks.
+When CPU accesses the data, if the data is in the cache, it is called a cache hit, otherwise it is called a cache miss. The cache hit rate is a key factor that affects the performance of the program.
+When accessing the matrix in the column-major order in Julia, the stride is 1, so the cache hit rate is the highest.
+
+#figure(canvas({
+  import draw: *
+  let dx = 0.5
+  let dy = 1.2
+  let s(it) = text(11pt, it)
+  content((-2, dx/2), [Main Memory])
+  for i in range(20){
+    rect((dx *i, 0), (dx * i + dx, dx), name: "m" + str(i), fill: if (2 < i and i < 8) { red } else { white })
+  }
+  content((-2, dx/2 - dy), [Caches (L3, L2, L1)])
+  bezier("m4.north", "m5.north", (rel: (dx/2, 1)), mark: (end: "straight"), name: "s1")
+  content((rel: (-2, 0.3), to: "s1.mid"), s[Small stride, high hit rate])
+
+  bezier("m4.north", "m11.north", (rel: (3 * dx + dx/2, 2)), mark: (end: "straight"), name: "s2")
+  content((rel: (0, 0.3), to: "s2.mid"), s[Large stride, low hit rate])
+  for i in range(5){
+    rect((dx *i, -dy), (dx * i + dx, dx - dy), name: "c" + str(i))
+  }
+  line("m5.south", "c2.north", mark: (end: "straight"), name: "l1")
+  content((rel: (2.5, 0), to: "l1.mid"), s[High Latency, chunk-wise])
+  content((-2, dx/2 - 2*dy), [CPU Registers])
+  for i in range(1){
+    rect((dx *i, -2*dy), (dx * i + dx, dx - 2*dy), name: "r" + str(i))
+  }
+  line("c1.south", "r0.north", mark: (end: "straight"), name: "l2")
+  content((rel: (1.2, 0), to: "l2.mid"), s[Low Latency])
+}), caption: [Memory access patterns. The data reading from the main memory can have high latency. When accessing data in the memory, the data is automatically loaded into the caches, which have lower latency. The data in the caches are further loaded into the CPU registers, which have the lowest latency.]) <fig:memory-access>
 
 == BLAS and LAPACK
+
+BLAS and LAPACK are the backends of linear algebra operations in many languages, including Julia.
+- BLAS (Basic Linear Algebra Subprograms) is a collection of routines that perform basic vector and matrix operations, such as addition, subtraction, multiplication, and division.
+- LAPACK (Linear Algebra PACKage) is a library of routines for solving systems of linear equations, least squares problems, eigenvalue problems, and singular value problems. It is built on top of BLAS.
+
+In Julia, you can call BLAS and LAPACK routines directly by using the `LinearAlgebra.BLAS` and `LinearAlgebra.LAPACK` modules. For example, to compute the 2-norm of a vector at odd indices, you can use the following syntax:
+```julia
+julia> using LinearAlgebra
+
+julia> BLAS.nrm2(4, fill(1.0, 8), 2)  # number of elements is 4, stride is 2
+2.0
+```
+These low-level routines are not easy to use. Julia `LinearAlgebra` module provides a high-level interface to BLAS and LAPACK routines. For example, to compute the 2-norm of a vector, you can use `LinearAlgebra.norm` instead, to compute the matrix multiplication, you can use "`*`" operation instead.
+
+The matrix multiplication in BLAS can fully utilize the modern CPUs, which provides a golden standard for the measuring the performance of a computing device. The performance is usually measured by the number of *floating point operations per second* (FLOPS).
+The floating point operations include addition, subtraction, multiplication and division. The FLOPS of a computing device can be related to multiple factors, such as the clock frequency, the number of cores, the number of instructions per cycle, and the number of floating point units. The simplest way to measure the FLOPS is to benchmark the speed of matrix multiplication:
+
+```julia
+julia> @btime $A * $A
+  2.967 ms (3 allocations: 7.63 MiB)
+```
+
+Since the number of FLOPS in a $n times n times n$ matrix multiplication is $2n^3$ (half of the operations are additions), the FLOPS can be calculated as: $2 times 1000^3 / (2.967 times 10^(-3)) approx 674 "GFLOPS"$.
+
+Ideally, the performance of matrix multiplication in all programming languages (Julia, Python, C, Matlab, etc.) using the same BLAS library should be the same. If the matrix multiplication does not reach the expected performance, you can
+1. Check the vendor's BLAS library
+  ```julia
+  julia> using LinearAlgebra
+
+  julia> BLAS.get_config()
+  LinearAlgebra.BLAS.LBTConfig
+  Libraries: 
+  └ [ILP64] libopenblas64_.so
+  ```
+  Here, we use the `libopenblas64_.so` library, which is the OpenBLAS library. For Intel CPUs, using the MKL library can achieve better performance.
+
+2. Check if the multi-threading is enabled:
+  ```julia
+  julia> BLAS.get_num_threads()
+  16
+  ```
+  If the number of threads is not the maximum, you can set the number of threads manually:
+  ```julia
+  julia> BLAS.set_num_threads(32)
+  ```
+  A special reminder is the number of threads used by BLAS is not the same as the number of threads used by Julia. In Julia, you can use the following command to get the number of threads:
+  ```julia
+  julia> Base.Threads.nthreads()
+  1
+  ```
+  This may be different from `BLAS.get_num_threads()`.
+
+LAPACK is also a low-level library, e.g. to compute the singular value decomposition of a matrix, you can use `LAPACK.gesvd!` that takes 3 arguments. Alternatively, you can use `LinearAlgebra.svd` that takes 1 argument to make life easier.
+```julia
+julia> U, S, V = LAPACK.gesvd!('O', 'S', copy(A));
+
+julia> results = svd(A);
+```
 
 == Example: Triangular Lattice Generation
 
