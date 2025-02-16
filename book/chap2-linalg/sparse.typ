@@ -356,34 +356,26 @@ $ T = mat(
 
 Let $Q = [q_1 | q_2 | dots | q_n],$ and $op("span")({q_1, q_2, dots, q_k}) = cal(K)(A, q_1, k)$. We have $A q_k = beta_(k-1)q_(k-1) + alpha_k q_k + beta_k q_(k+1)$, or equivalently in the recursive style
 
-```math
-q_(k+1) = (A q_k - beta_(k-1)q_(k-1) - alpha_k q_k)/beta_k.
-```
+$ q_(k+1) = (A q_k - beta_(k-1)q_(k-1) - alpha_k q_k)/beta_k. $
 
 By multiplying $q_k^T$ on the left, we have
 
-```math
-alpha_k = q_k^T A q_k.
-```
+$ alpha_k = q_k^T A q_k. $
 
 Since $q_(k+1)$ is normalized, we have
 
-```math
-beta_k = norm(A q_k - beta_(k-1)q_(k-1) - alpha_k q_k)_2
-```
+$ beta_k = norm(A q_k - beta_(k-1)q_(k-1) - alpha_k q_k)_2 $
 
 If at any moment, $beta_k = 0$, the interation stops due to convergence of a subspace. We have the following reducible form
 
-```math
-T(beta_2 = 0) = mat(
+$ T(beta_2 = 0) = mat(
   alpha_1, beta_1, 0, dots, 0;
   beta_1, alpha_2, 0, dots, 0;
   delim: "|",
   0, 0, alpha_3, dots, 0;
-  vdots, vdots, vdots, dots.down, vdots;
+  dots.v, dots.v, dots.v, dots.down, dots.v;
   0, 0, 0, beta_(k-1), alpha_k
-)
-```
+) $
 
 === A Julia implementation
 
@@ -502,15 +494,17 @@ These techniques could be found in @Golub2013.
 
 If $A$ is not symmetric, then the orthogonal tridiagonalization $Q^T A Q = T$ does not exist in general. The Arnoldi approach involves the column by column generation of an orthogonal $Q$ such that $Q^T A Q = H$ is a Hessenberg matrix.
 
-```math
+
+$
 H = mat(
   h_(11), h_(12), h_(13), dots, h_(1k);
   h_(21), h_(22), h_(23), dots, h_(2k);
   0, h_(32), h_(33), dots, h_(3k);
-  vdots, vdots, vdots, dots.down, vdots;
-  0, 0, 0, dots, h_(kk)
+  dots.v, dots.v, dots.v, dots.down, dots.v;
+  0, 0, 0, dots, h_(k k)
 )
-```
+$
+
 
 That is, $h_(i j) = 0$ for $i>j+1$.
 
