@@ -1,15 +1,8 @@
+#import "../book.typ": book-page, cross-link, heading-reference
+#show: book-page.with(title: "Compressed Sensing")
 #import "@preview/cetz:0.1.2"
 
 = Compressed sensing
-
-#let code(content) = {
-  block(
-    fill: luma(250),
-    inset: 8pt,
-    radius: 4pt,
-    content
-  )
-}
 
 // Import statements would need to be handled differently in Typst
 // The Julia imports are kept as comments for reference
@@ -169,9 +162,9 @@ The compressed text has a minimum size of $S n$, where
 $ S = -sum_k p_k log p_k $
 It is reached when all non-leaf nodes in the tree are balanced, i.e. having the same weight for left and right children.
 
-#code(```julia
+```julia
 S_trafalgar = StatsBase.entropy([0.03, 0.07, 0.01, 0.1, 0.79], 2)
-```)
+```
 
 = Matrix Product State/Tensor Train
 
@@ -183,7 +176,7 @@ Reference: #link("https://www.pyrunner.com/weblog/B/index.html")[https://www.pyr
 
 == Example 1: Two sinusoids
 
-#code(```julia
+```julia
 import FFTW
 
 # sum of two sinusoids
@@ -201,11 +194,11 @@ plot(t, y; label="the original function")
 yt = FFTW.dct(y)
 
 plot(t, yt; label="the function in frequency domain")
-```)
+```
 
 Let us extract 10% samples from it.
 
-#code(```julia
+```julia
 m = 500
 
 # not allowing repeated indices
@@ -219,21 +212,21 @@ let
     plt = plot(t, y; label="the samples")
     scatter!(plt, t2, y2; label="the generated samples", markersize=2)
 end
-```)
+```
 
 If we plot it directly, it looks not so good
 
-#code(```julia
+```julia
 interp_linear = linear_interpolation(t2, y2; extrapolation_bc=Line())
 
 plot(t, interp_linear.(t))
-```)
+```
 
 Why? Because we haven't used a prior that it is sparse in the frequency domain.
 
-#code(```julia
+```julia
 plot(t, FFTW.dct(interp_linear.(t)))
-```)
+```
 
 Instead, we rephrase the problem as the following convex optimization problem
 $ 
@@ -241,7 +234,7 @@ $
 &s.t. A x = b
 $
 
-#code(```julia
+```julia
 model = Model(SCS.Optimizer)
 
 A = FFTW.idct(Matrix{Float64}(I, n, n), 1)[samples, :]
@@ -252,15 +245,15 @@ A = FFTW.idct(Matrix{Float64}(I, n, n), 1)[samples, :]
 @variable(model, norm1);
 
 @constraint model A * x .== y2;
-```)
+```
 
 We use $l_1$ norm because $l_0$ is very hard to optimize.
 
-#code(```julia
+```julia
 @constraint(model, [norm1; x] in MOI.NormOneCone(1 + length(x)));
 
 @objective(model, Min, norm1);
-```)
+```
 
 ```julia
 optimize!(model)
@@ -281,11 +274,11 @@ norm(FFTW.dct(interp_linear.(t)), 1)
 
 == Creating a Julia Package
 1. Go to the folder for package development,
-#code(```bash
+```bash
 cd path/to/julia/dev/folder
-```)
+```
 2. Type the following command
-#code(```julia
+```julia
 julia> using PkgTemplates
 
 julia> tpl = Template(; user="GiggleLiu", plugins=[
@@ -295,7 +288,7 @@ julia> tpl = Template(; user="GiggleLiu", plugins=[
     ], dir=pwd())
 
 julia> tpl("CompressedSensingTutorial")
-```)
+```
 
 #box(
   fill: luma(250),
@@ -306,21 +299,21 @@ julia> tpl("CompressedSensingTutorial")
 ]
 
 3. develop your project with, e.g., #link("https://www.julia-vscode.org/")[VSCode].
-#code(```bash
+```bash
 cd CompressedSensingTutorial
 
 code .
-```)
+```
 In the VSCode, please use your project environment as your julia project environment, check #link("https://www.julia-vscode.org/docs/dev/userguide/env/")[here].
 
 4. Please configure your project dependency by typing in the `pkg>` mode.
-#code(```julia
+```julia
 (CompressedSensingTutorial) pkg> add FFTW FiniteDifferences Images Optim ...
-```)
+```
 
 #link("https://github.com/timholy/Revise.jl")[https://github.com/timholy/Revise.jl]
 
-#code(```julia
+```julia
 source_img = Gray.(Images.load(joinpath(@__DIR__, "images/waterfall.jpeg")))
 
 img = Float64.(source_img);
@@ -334,7 +327,7 @@ Gray.(FFTW.dct(img))
 CT = mod.CompressedSensingTutorial
 
 Let us check the project!
-```)
+```
 
 ```julia
 pixels = CT.sample_image_pixels(img, 0.1)
@@ -447,18 +440,16 @@ Given $A in RR^(n times n)$ and $x, b in RR^n$. Please derive the backward rule 
 Choose one.
 ==== (a). Text compression
 Given a text to be compressed:
-#code(```
+```
 Compressed sensing (also known as compressive sensing, compressive sampling, or sparse sampling) is a signal processing technique for efficiently acquiring and reconstructing a signal, by finding solutions to underdetermined linear systems. This is based on the principle that, through optimization, the sparsity of a signal can be exploited to recover it from far fewer samples than required by the Nyquist-Shannon sampling theorem. There are two conditions under which recovery is possible. The first one is sparsity, which requires the signal to be sparse in some domain. The second one is incoherence, which is applied through the isometric property, which is sufficient for sparse signals.
-```)
+```
 Please
 1. Analyse the frequency of each char
 2. Create an optimal Huffman coding for each char
 3. Encode the text and count the length of total coding (not including the deliminators).
 
 ==== (b). Compressed Sensing
-Go through the video clip [Compressed Sensing: When It Works](https://youtu.be/hmBTACBGWJs)
-
-#link("https://www.youtube.com/embed/hmBTACBGWJs")[YouTube Video]
+Go through the video clip #link("https://youtu.be/hmBTACBGWJs")[Compressed Sensing: When It Works]
 
 Please summarize this video clip, and explain when does compressed sensing work and when not.
 
