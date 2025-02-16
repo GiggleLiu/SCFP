@@ -345,17 +345,8 @@ julia> x = rand(1:10, 1000);
 julia> typeof(badcode.(x))  # non-concrete element type
 Vector{Real} (alias for Array{Real, 1})
 
-julia> @benchmark badcode.($x)
-BenchmarkTools.Trial: 10000 samples with 8 evaluations.
- Range (min … max):  2.927 μs … 195.198 μs  ┊ GC (min … max):  0.00% … 96.52%
- Time  (median):     3.698 μs               ┊ GC (median):     0.00%
- Time  (mean ± σ):   4.257 μs ±   7.894 μs  ┊ GC (mean ± σ):  12.43% ±  6.54%
-
-                 ▁▅█▅▃▂                                        
-  ▁▃▅▇▇▇▅▃▂▂▂▃▄▆▇███████▇▇▅▄▄▃▃▃▃▃▃▂▂▃▂▂▂▂▁▂▂▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁ ▃
-  2.93 μs         Histogram: frequency by time        5.44 μs <
-
- Memory estimate: 26.72 KiB, allocs estimate: 696.
+julia> @btime badcode.($x);
+  7.091 μs (696 allocations: 26.53 KiB)
 ```
 
 In the above example, the "`.`" is the broadcasting operator, it applies the function to each element of the array. "`$`" is the interpolation operator, it is used to interpolate a variable into an expression. In a benchmark, it can be used to exclude the time to initialize the variable.
@@ -370,17 +361,8 @@ stable (generic function with 1 method)
 julia> typeof(stable.(x))   # concrete element type
 Vector{Float64} (alias for Array{Float64, 1})
 
-julia> @benchmark stable.($x)
-BenchmarkTools.Trial: 10000 samples with 334 evaluations.
- Range (min … max):  213.820 ns … 25.350 μs  ┊ GC (min … max):  0.00% … 98.02%
- Time  (median):     662.551 ns              ┊ GC (median):     0.00%
- Time  (mean ± σ):   947.978 ns ±  1.187 μs  ┊ GC (mean ± σ):  29.30% ± 21.05%
-
-  ▂▃▅██▇▅▄▃▂▁                                                  ▂
-  ████████████▇▅▅▄▄▁▁▁▁▁▁▁▁▁▁▁▁▁▃▅▆▇██████▇▇▇▆█▇▇▇▇▇▇▇▇▆▇▆▆▆▇▇ █
-  214 ns        Histogram: log(frequency) by time      6.32 μs <
-
- Memory estimate: 7.94 KiB, allocs estimate: 1.
+julia> @btime stable.($x);
+  500.644 ns (3 allocations: 7.88 KiB)
 ```
 === Step 2: Generates the LLVM IR
 
@@ -454,11 +436,8 @@ julia> using Libdl
 
 julia> c_factorial(x) = Libdl.@ccall "./demo.so".c_factorial(x::Csize_t)::Int
 
-julia> @benchmark c_factorial(5)
-BenchmarkTools.Trial: 10000 samples with 1000 evaluations.
- Range (min … max):  7.333 ns … 47.375 ns  ┊ GC (min … max): 0.00% … 0.00%
- Time  (median):     7.458 ns              ┊ GC (median):    0.00%
- Time  (mean ± σ):   7.764 ns ±  1.620 ns  ┊ GC (mean ± σ):  0.00% ± 0.00%
+julia> @btime c_factorial(5);
+  7.333 ns (0 allocations: 0 bytes)
 ```
 
 The C implementation takes about 7.3 nanoseconds—remarkably close to Julia's performance.

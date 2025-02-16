@@ -781,13 +781,9 @@ Comment: Julia provides exponentially large method space, while for OOP language
 
 == Experiment: Comparing with C and Python
 
-To demonstrate the difference between compiled languages, interpreted languages and JIT compiled languages,
-
 === Comparing with C
-To provide a fair comparison, let's benchmark against C, which is often considered the gold standard for performance. Julia's seamless C interoperability allows us to make accurate performance comparisons.
-
 First, let's write a C implementation:
-```c
+#align(left, text(14pt)[```c
 // demo.c
 #include <stddef.h>
 int c_factorial(size_t n) {
@@ -798,15 +794,18 @@ int c_factorial(size_t n) {
     return s;
 }
 ```
+])
 
+==
 Compile the C code to a shared library:
-```bash
+#box(text(14pt)[```bash
 gcc demo.c -fPIC -O3 -shared -o demo.so
 ```
+])
 
 Now we can call this C function from Julia using the `@ccall` macro:
 
-```julia
+#box(text(14pt)[```julia
 julia> using Libdl
 
 julia> c_factorial(x) = Libdl.@ccall "./demo.so".c_factorial(x::Csize_t)::Int
@@ -817,6 +816,7 @@ BenchmarkTools.Trial: 10000 samples with 1000 evaluations.
  Time  (median):     7.458 ns              ┊ GC (median):    0.00%
  Time  (mean ± σ):   7.764 ns ±  1.620 ns  ┊ GC (mean ± σ):  0.00% ± 0.00%
 ```
+])
 
 The C implementation takes about 7.3 nanoseconds—remarkably close to Julia's performance.
 
