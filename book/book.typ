@@ -16,9 +16,9 @@
     #chapter("chap1-julia/julia-basic.typ")[Julia Basic]
     #chapter("chap1-julia/julia-release.typ")[My First Package]
     = Matrices and tensors
-    #chapter("chap2-linalg/array.typ")[Arrays]
-    #chapter("chap2-linalg/fft.typ")[Fast Fourier Transform]
+    #chapter("chap2-linalg/array.typ")[Arrays operations]
     #chapter("chap2-linalg/linalg.typ")[Linear Algebra]
+    #chapter("chap2-linalg/sparse.typ")[Sparse Matrices and Graphs]
     #chapter("chap2-linalg/tensor-network.typ")[Tensor networks]
     = Mathematical optimization
     #chapter("chap3-optimization/linear_integer.typ")[Linear/Integer programming]
