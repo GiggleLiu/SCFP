@@ -69,17 +69,7 @@ Environment:
   JULIA_PKG_SERVER = http://cn-southeast.pkg.juliacn.com/ 
 ```
 
-
-
-== Step 2: Package Management
-Julia's package ecosystem provides powerful tools for scientific computing. The information about Julia packages is available at #link("https://juliahub.com/")[JuliaHub].
-A julia package can be installed in the package mode of the REPL:
-1. Enter package mode with `]`
-  #image("images/Packages.gif")
-2. Install packages with `add <package name>`. For more commands, just type `?` and press `Enter`.
-3. Exit package mode with the `backspace` key
-
-== Step 3: Install Revise (strongly recommended)
+== Step 2: Install Revise (strongly recommended)
 `Revise` is a package that greatly enhances the Julia development experience. It allows you to edit code and have it automatically loaded into the REPL without restarting the kernel.
 
 1. Install #link("https://github.com/timholy/Revise.jl")[Revise] in the REPL:
@@ -97,7 +87,7 @@ A julia package can be installed in the package mode of the REPL:
   ```
   The startup file executes automatically when you launch Julia, which automatically loads `Revise` for you.
 
-== Step 4: Setting up Editor: VSCode
+== Step 3: Setting up Editor: VSCode
 1. Download and install #link("https://code.visualstudio.com/download")[Visual Studio Code], or its variant #link("https://www.cursor.com/")[Cursor], both are refered as VSCode in the rest of the book.
 2. Launch VSCode and open the Extensions sidebar. Search for "julia" and install the official #link("https://github.com/julia-vscode/julia-vscode")[julia-vscode] extension
 3. To verify the installation, create a new file in VSCode with the `.jl` extension with the following content:
@@ -106,3 +96,12 @@ A julia package can be installed in the package mode of the REPL:
   ```
   To save the file, press `Ctrl+S` (or `Cmd+S` on macOS).
   To run the file, press `Shift+Enter`. If the installation is successful, you should see the output "Hello, world!" in the REPL pop up at the bottom of the VSCode window.
+
+#box(stroke: black, inset: (x: 7pt, y: 5pt), radius: 4pt, [
+*Tips: Connect to a remote server in VSCode*
+
+To connect to a remote server in VSCode, you can use the `Remote-SSH` extension.
+1. Open the extensions sidebar and search for "Remote-SSH", click on the "Install" button.
+2. Open the Command Palette (Ctrl+Shift+P or Cmd+Shift+P on macOS) and select "Remote-SSH: Connect to Host...".
+3. Enter the hostname or IP address of the remote server and press `Enter`. You will be prompted to enter the username and password of the remote server. Alternatively, you can configure the remote serve in the `.ssh/config` file first, then you will see the remote server in the list of SSH targets.
+])

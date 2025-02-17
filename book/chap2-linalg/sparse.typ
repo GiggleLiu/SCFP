@@ -274,6 +274,15 @@ csc_matrix = CSCMatrix(matrix)
 While the matrix-vector multiplication has a similar performance as the COO matrix, the matrix-matrix multiplication is much faster than the COO matrix.
 This is because the time complexity of multiplying two CSC matrices $A$ and $B$ is $O(op("nnz")(A)op("nnz")(B)\/n)$, while the time complexity of multiplying two COO matrices is $O(op("nnz")(A)op("nnz")(B))$.
 
+The implementation in `SparseArrays` is even more efficient.
+
+```julia
+using SparseArrays
+sp = sparse(matrix.rowval, matrix.colval, matrix.nzval, matrix.m, matrix.n)
+@btime sp * x     # 26.917 μs
+@btime sp * sp    # 255.208 μs
+```
+
 == Dominant eigenvalue problem
 
 Given a matrix $A in RR^(n times n)$, the dominant eigenvalue problem is to find the largest eigenvalue $lambda_1$ and its corresponding eigenvector $x_1$ such that
