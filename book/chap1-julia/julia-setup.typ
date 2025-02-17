@@ -98,9 +98,9 @@ Environment:
   To run the file, press `Shift+Enter`. If the installation is successful, you should see the output "Hello, world!" in the REPL pop up at the bottom of the VSCode window.
 
 #box(stroke: black, inset: (x: 7pt, y: 5pt), radius: 4pt, [
-*Tips: Connect to a remote server in VSCode*
+*Tips: Connect to a remote server (including WSL) in VSCode*
 
-To connect to a remote server in VSCode, you can use the `Remote-SSH` extension.
+To connect to a remote server or the Windows Subsystem for Linux (WSL) in VSCode, you can use the `Remote-SSH` extension.
 1. Open the extensions sidebar and search for "Remote-SSH", click on the "Install" button.
 2. Open the Command Palette (Ctrl+Shift+P or Cmd+Shift+P on macOS) and select "Remote-SSH: Connect to Host...".
 3. Enter the hostname or IP address of the remote server and press `Enter`. You will be prompted to enter the username and password of the remote server. Alternatively, you can configure the remote serve in the `.ssh/config` file first, then you will see the remote server in the list of SSH targets.
