@@ -430,6 +430,68 @@ A2 * B2 == C
 In this example, there are $m times k times n$ variables.
 For such a large number of variables, the integer programming solver can handle a problem of size $50 times 6 times 50$ in a few seconds.
 
+== Example 4: Code distance of linear codes
+The code distance calculation is a problem in coding theory. The code distance is defined as the minimum Hamming distance between any two codewords. For a linear code, the code distance can be reduced to the minimum weight of the non-zero codewords. The code distance problem is NP-complete. Finding the code distance is known to be NP-hard, and the associated decision problem is NP-complete@vardy1997intractability.
+
+Usually, we can define a linear code by its parity check matrix $H in bb(F)^(m times n)_2$, where $bb(F)_2$ is the finite field with two elements $(0+0 = 1+1 = 0,1+0 =0+1= 1,1*0=0*1=0*0 = 0,1*1 =1)$. The codewords are 
+$
+  C = {x in bb(F)^n_2 | H x = 0}
+$
+with addtion and multiplication defined in $bb(F)_2$. And the code distance is
+$
+  d = min_(0 eq.not x in C) w(x)
+$
+where $w(x)$ is the weight of $x$, i.e. the number of non-zero elements in $x$.
+Take the Hamming code as an example, the parity check matrix is
+$
+H = mat(0,0,0,1,1,1,1; 0,1,1,0,0,1,1; 1,0,1,0,1,0,1)
+$
+There are $16$ codewords in the Hamming code. And we can use it to encode $4$ bits into $7$ bits. The code distance of the Hamming code is $3$, since the minimum weight of the non-zero codewords is 
+$
+  w(mat(0,1,0,1,0,1,0)^T) = 3.
+$
+We can represent the code distance problem into an programming problem as:
+$
+  min quad & w(z)\
+"s.t." quad &H z = 0\
+&z eq.not 0\ 
+$
+To transfer the above problem into an integer programming problem, we can replace $z$ with $n$ binary variables $z_1,z_2 ... z_n$ and replace the $bb(F)_2$ algebra with modular arithmetic. The resulting integer programming problem is:
+$
+min quad &sum^n_(i = 1) z_i\
+"s.t." quad & sum^n_(j = 1)H_(i j) z_j = 2 * k_i\
+& sum^n_(i = 1) z_i >= 1\
+&z_j in {0,1}, k_i in bb(Z)
+$
+Here we treat $H_(i j)$ as integers in $bb(Z)$. The code is as follows:
+```julia
+using JuMP, HiGHS
+
+function code_distance(H::Matrix{Int}; verbose = false)
+    # H : m x n
+
+    m,n = size(H)
+    model = Model(HiGHS.Optimizer)
+    !verbose && set_silent(model)
+
+    @variable(model, 0 <= z[i = 1:n] <= 1, Int)
+    @variable(model, 0 <= k[i = 1:m], Int)
+    
+    for i in 1:m
+        @constraint(model, sum(z[j] for j in 1:n if H[i,j] == 1) == 2 * k[i])
+    end
+    @constraint(model, sum(z[j] for j in 1:n) >= 1)
+
+    @objective(model, Min, sum(z[j] for j in 1:n))
+    optimize!(model)
+    @assert is_solved_and_feasible(model) "The problem is infeasible!"
+    return  objective_value(model)
+end
+
+H = [0 0 0 1 1 1 1;0 1 1 0 0 1 1; 1 0 1 0 1 0 1]
+tropical_factorization(H) == 3
+```
+Here we double check the code distance of the Hamming code is indeed $3$.
 = Semidefinite Programming (SDP)
 _Semidefinite programming_ is a generalization of linear programming. It is also a convex optimization problem, hence it is easy to solve.
 
