@@ -395,23 +395,7 @@ The `.github/workflows` directory contains three important configuration files:
 
 == Register the package <sec:register-package>
 
-To make your package available to the Julia community:
-
-1. Ensure your package meets these requirements:
-   - All tests pass
-   - Documentation is complete
-   - Version compatibility is specified
-   - License is included
-
-2. Register with the General registry using Registrator.jl:
-   - Create a release on GitHub
-   - The Registrator bot will create a PR in JuliaRegistries/General
-   - Wait for review and merge
-
-3. After registration:
-   - TagBot will automatically create a GitHub release
-   - Your package will be available via Julia's package manager
-   - Users can install it with `] add MyFirstPackage`
+To make your package accessible to the Julia community with `] add MyFirstPackage`, you need to register it in the #link("https://github.com/JuliaRegistries/General", "General") registry. This can be done automataically with #link("https://github.com/JuliaRegistries/Registrator.jl", "Registrator.jl").
 
 == Case study: OMEinsum.jl
 
@@ -429,29 +413,68 @@ OMEinsum.jl provides a good example of package organization:
 └── test/             # Test suite
 ```
 
-Key features:
-- 89% test coverage
-- Comprehensive documentation
-- Automated CI/CD pipeline
-- Extension system for optional features
-
-The `Project.toml` shows advanced package management:
+The `Project.toml` shows the dependencies and version compatibility:
 
 ```toml
+name = "OMEinsum"
+uuid = "ebe7aa44-baf0-506c-a96f-8464559b3922"
+authors = ["Andreas Peter <andreas.peter.ch@gmail.com>"]
+version = "0.8.4"
+
+[deps]
+AbstractTrees = "1520ce14-60c1-5f80-bbc7-55ef81b5835c"
+BatchedRoutines = "a9ab73d0-e05c-5df1-8fde-d6a4645b8d8e"
+ChainRulesCore = "d360d2e6-b24c-11e9-a2a3-2a2ae2dbcce4"
+Combinatorics = "861a8166-3701-5b0c-9a16-15d98fcdc6aa"
+LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+MacroTools = "1914dd2f-81c6-5fcd-8719-6d5c9610ff09"
+OMEinsumContractionOrders = "6f22d1fd-8eed-4bb7-9776-e7d684900715"
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+TupleTools = "9d95972d-f1c8-5527-a6e0-b4b365fa01f6"
+
 [weakdeps]
+AMDGPU = "21141c5a-9bdb-4563-92ae-f87d6854732e"
 CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba"
+Enzyme = "7da242da-08ed-463a-9acd-ee780be4f1d9"
 
 [extensions]
+AMDGPUExt = "AMDGPU"
 CUDAExt = "CUDA"
+EnzymeExt = "Enzyme"
 
 [compat]
+AMDGPU = "0.8"
 AbstractTrees = "0.3, 0.4"
+BatchedRoutines = "0.2"
 CUDA = "4, 5"
+ChainRulesCore = "1"
+Combinatorics = "1.0"
+Enzyme = "0.13.16"
+MacroTools = "0.5"
+OMEinsumContractionOrders = "0.9"
+TupleTools = "1.2, 1.3"
 julia = "1"
+
+[extras]
+Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
+DoubleFloats = "497a8b3b-efae-58df-a0af-a86822472b78"
+ForwardDiff = "f6369f11-7733-5829-9624-2563aa707210"
+LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+LuxorGraphPlot = "1f49bdf2-22a7-4bc4-978b-948dc219fbbc"
+Polynomials = "f27b6e38-b328-58d1-80ce-0feddd5e7a45"
+ProgressMeter = "92933f4c-e287-5a05-a399-4b506db050ca"
+Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
+SymEngine = "123dc426-2d89-5057-bbad-38513e3affd8"
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+TropicalNumbers = "b3a74e9c-7526-4576-a4eb-79c0d4c32334"
+Zygote = "e88e6eb3-aa80-5325-afca-941959d7151f"
+
+[targets]
+test = ["Test", "CUDA", "Documenter", "Enzyme", "LinearAlgebra", "LuxorGraphPlot", "ProgressMeter", "SymEngine", "Random", "Zygote", "DoubleFloats", "TropicalNumbers", "ForwardDiff", "Polynomials"]
+
 ```
 
-* Excercises *
+* Quiz: *
 1. Is ChainRulesCore 1.2 compatible with OMEinsum?
-2. What should be done when ChainRulesCore 2.0 is released?
-3. How should bug fixes be released?
-4. What version changes are needed for API changes?
+2. If ChainRulesCore 2.0 is released, what should be done to keep OMEinsum compatible?
+3. If I fixed the bug in OMEinsum, how to release a new version? How is it different compared with when I first release the package?

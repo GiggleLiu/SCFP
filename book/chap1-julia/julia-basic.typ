@@ -1,5 +1,7 @@
 #import "../book.typ": book-page, cross-link
 #import "@preview/cetz:0.2.2": *
+#import "@preview/algorithmic:0.1.0"
+#import algorithmic: algorithm
 #show: book-page.with(title: "Julia Basic")
 
 = Julia REPL
@@ -689,3 +691,36 @@ julia> methodinstances(fib) |> length  # `|>` is the pipe operator for single-ar
 
 This is because the compiler needs to generate a method instance for each possible argument type, i.e. it creates a table!
 In practice, it is not recommended to move everything to compile-time since it may pollute the type system and cause type explosion.
+
+== Case study: Simulate Hamiltonian Dynamics
+In the Hamiltonian dynamics simulation, we have the following equation of motion:
+$ m (partial^2 bold(x))/(partial t^2) = bold(f)(bold(x)), $
+where $bold(x)$ is the position vector, $bold(f)$ is the force function, and $m$ is the mass. In a numeric integrator, we usually convert this second order differential equation to two first-order differential equations:
+$
+cases(m (partial bold(v))/(partial t) &= bold(f)(bold(x)),
+(partial bold(x))/(partial t) &= bold(v)),
+$
+where $bold(v)$ is the velocity vector.
+
+The Hamiltonian dynamics can be solved numerically by the Verlet algorithm @Verlet1967, also known as the leapfrog algorithm, which is a typical symplectic integrator with incredible numerical stability. The algorithm is as follows:
+
+#algorithm({
+  import algorithmic: *
+  Function("Verlet", args: ([$bold(x)$], [$bold(v)$], [$bold(f)$], [$m$], [$d t$], [$n$]), {
+    Assign([$bold(v)$], [$bold(v) + (bold(f)(bold(x)))/m d t \/ 2$ #h(2em)#Ic([update velocity at time $d t \/ 2$])])
+    For(cond: [$k = 1 dots n$], {
+      Assign([$bold(x)$], [$bold(x) + bold(v) d t$ #h(2em)#Ic([update position at time $t$])])
+      Assign([$bold(v)$], [$bold(v) + (bold(f)(bold(x)))/m d t$ #h(1em)#Ic([update velocity at time $t + d t\/2$])])
+    })
+    Assign([$bold(v)$], [$bold(v) - (bold(f)(bold(x)))/m d t \/ 2$ #h(2em)#Ic([velocity at time $n d t$])])
+    Return[$bold(x)$, $bold(v)$]
+  })
+})
+
+The algorithm starts with updating the velocity at half time step, then updates the position and velocity alternatively, and finally corrects the velocity at the end. Although it looks simple, it is the most widely used algorithm in molecular dynamics simulation.
+
+In the following, we consider the following example from #link("https://salsa.debian.org/benchmarksgame-team/benchmarksgame/")[The Computer Language Benchmarks Game].
+
+#raw(read("nbody-improved.jl"), lang: "julia")
+
+#bibliography("refs.bib")
