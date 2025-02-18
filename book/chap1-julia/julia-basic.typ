@@ -719,8 +719,30 @@ The Hamiltonian dynamics can be solved numerically by the Verlet algorithm @Verl
 
 The algorithm starts with updating the velocity at half time step, then updates the position and velocity alternatively, and finally corrects the velocity at the end. Although it looks simple, it is the most widely used algorithm in molecular dynamics simulation.
 
-In the following, we consider the following example from #link("https://salsa.debian.org/benchmarksgame-team/benchmarksgame/")[The Computer Language Benchmarks Game].
+In the following, we consider the following example from #link("https://salsa.debian.org/benchmarksgame-team/benchmarksgame/")[The Computer Language Benchmarks Game]. It is a simulation of the solar system with the Verlet algorithm.
 
-#raw(read("nbody-improved.jl"), lang: "julia")
+#raw(read("nbody.jl"), lang: "julia", block: true)
+
+With the following script, we can make a movie of the solar system:
+```julia
+using CairoMakie
+
+function make_movie(filename::String, states, color)
+    fig = Figure()
+    ax = Axis3(fig[1, 1]; limits=(-30, 30, -30, 30, -30, 30))
+    coos = Observable(getfield.(states[1], :x))    # position
+    endpoints = Observable(getfield.(states[1], :v)) # acceleration
+    scatter!(ax, coos; markersize = 10, color)
+    record(fig, filename, states; framerate = 24) do state
+        coos[] = getfield.(state, :x)
+        endpoints[] = getfield.(state, :v)
+    end
+    @info "Recording saved to file: $filename"
+end
+
+bodies = solar_system()
+states = [(simulate!(bodies, 50, 0.01); copy(bodies)) for _ in 1:100]
+make_movie("solar_system.mp4", states, :red)
+```
 
 #bibliography("refs.bib")
