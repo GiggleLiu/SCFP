@@ -69,8 +69,61 @@ The string before `pkg>` is the environment name, and the default value is the J
 *public repository*: https://github.com/under-Peter/OMEinsum.jl
 
 == The package registry
+#canvas({
+  import draw: *
+  let s(it) = text(18pt, it)
+  content((0, 0), box(stroke: black, inset: 10pt, radius: 4pt, align(center, s[General registry])), name: "General")
+  content((0, 5), box(stroke: black, inset: 10pt, radius: 4pt, align(center, s[Developers\  (Package)])), name: "Developer")
+  content((8, 0), box(stroke: black, inset: 10pt, radius: 4pt, s[User]), name: "User")
+  line("General", "Developer", mark: (start: "straight"), name: "reg")
+  content((rel:(2.1, 0), to: "reg.mid"), s[register\ version update])
+  line("Developer.east", "User", mark: (end: "straight"), name: "download")
+  line("General", "User", mark: (start: "straight", end: "straight"), name: "query")
+  content((rel:(0, -0.5), to: "query.mid"), s[`] add XYZ`])
+  content((rel:(1.8, 0), to: "download.mid"), s[download])
+  rect((-3, -1), (3, 6.5), stroke: (dash: "dashed"))
+  content((0, 7.5), image("images/github.png", width: 2em))
+})
 
 Registered to the #link("https://github.com/JuliaRegistries/General", "General") registry.
+
+== Memory access
+
+#canvas({
+  import draw: *
+  let s(it) = text(12pt, white, it)
+  let t(it) = text(12pt, black, it)
+  let cpu(loc, size, color: gray.darken(50%)) = {
+    let  r = 0.8
+    let space = 0.2
+    for i in range(4) {
+      line((loc.at(0) - r * size, loc.at(1) - (i - 1.5) * space * size), (loc.at(0) + r * size, loc.at(1) - (i - 1.5) * space * size), stroke: (paint: color, thickness: 2pt))
+      line((loc.at(0) - (i - 1.5) * space * size, loc.at(1) - r * size), (loc.at(0) - (i - 1.5) * space * size, loc.at(1) + r * size), stroke: (paint: color, thickness: 2pt))
+    }
+    rect((loc.at(0) - size / 2, loc.at(1) - size / 2), (loc.at(0) + size / 2, loc.at(1) + size / 2), stroke: color, fill: color, radius: 0.1 * size)
+    content(loc, s[CPU])
+  }
+  cpu((-1, 0), 1)
+  on-yz(x: 1, {
+    rect((-0.6, -0.7), (0.6, 0.7), stroke: none, fill: green.darken(50%))
+    content((0, 0), s[$mat(1; 1)$])
+  })
+  on-yz(x: 2, {
+    rect((-1, -1), (1, 1), stroke: none, fill: green.darken(50%))
+    content((0, 0), s[$mat(1;1; 2;2)$])
+  })
+  rect((1.8, -0.0), (2.2, 0.8), stroke: (dash: "dotted", paint: white))
+  on-yz(x: 3.5, {
+    rect((-1.5, -1.5), (1.5, 1.5), stroke: none, fill: green.darken(50%))
+    content((0, 0), s[$mat(1,3; 1,2; 2,-4; 2, 3)$])
+  })
+  rect((3, -0.8), (3.4, 0.8), stroke: (dash: "dotted", paint: white))
+  content((1, 1), t[$L_1$])
+  content((2, 1.5), t[$L_2$])
+  content((3.5, 2), t[$L_3$])
+  content((6, 0), t[$mat(1,3,1,-2; 1,2,0, 5; 2,-4,-2,1; 2,3,1,-2)$])
+  rect((4.9, -0.8), (5.9, 0.8), stroke: (dash: "dotted"))
+})
 
 == Package manager resolves the environment with the known registries.
 
@@ -628,6 +681,10 @@ $ tree . -L 1 -a
 ├── src
 └── test
 ```
+
+== Parallel computing
+
+== Visualization
 
 == Hands-on
 
