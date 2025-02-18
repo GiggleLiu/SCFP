@@ -1,5 +1,7 @@
 #import "@preview/cetz:0.2.2": canvas, draw, tree
 #import "@preview/ctheorems:1.1.3": *
+#import "@preview/algorithmic:0.1.0"
+#import algorithmic: algorithm
 #import "@preview/cetz:0.2.2": *
 #import "../book.typ": book-page
 
@@ -147,11 +149,11 @@ BenchmarkTools.Trial: 10000 samples with 996 evaluations.
  Memory estimate: 0 bytes, allocs estimate: 0.
 ```
 
-The computing time grows **linearly** as the number of variables that we want to differentiate. But does not grow significantly with the number of outputs.
+The computing time grows *linearly* as the number of variables that we want to differentiate. But does not grow significantly with the number of outputs.
 
 = Reverse mode AD
 
-On the other side, the back-propagation can differentiate **many inputs** with respect to a **single output** efficiently
+On the other side, the back-propagation can differentiate *many inputs* with respect to a *single output* efficiently
 
 $
 (partial y_(i+1))/(partial y_i) = (partial y_(i+1))/(partial y_i)
@@ -315,9 +317,185 @@ Mooncake.TestUtils.test_rule(Mooncake.Xoshiro(123), wrapped, (A, house); is_prim
 The second order gradient, Hessian, is also recognized as the Jacobian of the gradient. In practice, we can compute the Hessian by differentiating the gradient function with forward mode AD, which is also known as the forward-over-reverse mode AD.
 
 = Optimal checkpointing
-The main drawback of the reverse mode AD is the memory usage. The memory usage of the reverse mode AD is proportional to the number of intermediate variables, which scales linearly with the number of operations. The optimal checkpointing@Griewank2008 is a technique to reduce the memory usage of the reverse mode AD. It is a trade-off between the memory and the computational cost. The optimal checkpointing is a step towards solving the memory wall problem
+The fundamental challenge of reverse mode AD is how to access the intermediate states in the reversed order of the computation. In many cases, it can be resolved by caching all intermediate states, but this may cost too much memory. The optimal checkpointing@Griewank2008 is a technique to reduce the memory usage of the reverse mode AD. By only caching logarithmically many intermediate states, the computational overhead is only logarithmic in the number of operations.
 
-Given the binomial function $eta(tau, delta) = ((tau + delta)!)/(tau!delta!)$, show that the following statement is true.
-$ eta(tau,delta) = sum_(k=0)^delta eta(tau-1,k) $
+A _checkpoint_ is a snapshot of the computational state, which can be used to resume the computation. In the following, we consider a ordinary differential equation like program, in which case a checkpoint usually have a fixed size $S$, and the computating time is proportional to the number of steps $m$.
+
+As illustrated in @fig:fig-checkpointing (b), the time-optimal checkpointing is to cache every state, which is the default behavior in most reverse mode AD engines. As we commented, this is memory-inefficient. While as illustrated in @fig:fig-checkpointing (a), the space optimal checkpointing is to cache only the initial state, denoted as $s_0$. This costs a quadratic overhead in the number of steps, i.e. $T ~ O(m^2)$. What we want in practice is a balanced checkpointing scheme, which is illustrated in @fig:fig-checkpointing (c), where time-space tradeoff is considered.
+
+#figure(canvas({
+  import draw: *
+  let s(it) = text(11pt, it)
+  let dx = 0.5
+  let states(loc, seq, prefix) = {
+    for (i, s) in seq.enumerate(){
+      circle((i * dx + loc.at(0), loc.at(1)), radius: 0.1, fill: (if (s == 1) {black} else {white}), name: prefix + str(i))
+    }
+  }
+  states((0, 0), (1, 0, 0, 0, 0, 0), "s")
+  bezier("s0", "s1.north", (0.5 * dx, 0.8), mark: (end: "straight"))
+  bezier("s0", "s2.north", (0.5 * dx, 1.1), mark: (end: "straight"))
+  bezier("s0", "s3.north", (0.5 * dx, 1.4), mark: (end: "straight"))
+  bezier("s0", "s4.north", (0.5 * dx, 1.7), mark: (end: "straight"))
+  bezier("s0", "s5.north", (0.5 * dx, 2), mark: (end: "straight"))
+
+  content((1.25, -0.6), s[(a)])
+
+  set-origin((4, 0))
+  states((0, 0), (1, 1, 1, 1, 1, 0), "s")
+  bezier("s0", "s5.north", (0.5 * dx, 2), mark: (end: "straight"))
+  content((1.25, -0.6), s[(b)])
+
+  set-origin((4, 0))
+  states((0, 0), (1, 0, 0, 0, 1, 0), "s")
+  bezier("s0", "s1.north", (0.5 * dx, 0.8), mark: (end: "straight"))
+  bezier("s0", "s2.north", (0.5 * dx, 1.1), mark: (end: "straight"))
+  bezier("s0", "s3.north", (0.5 * dx, 1.4), mark: (end: "straight"))
+  bezier("s4", "s5.north", (4.5 * dx, 0.8), mark: (end: "straight"))
+  for i in range(6){
+    content((i * dx, -0.2), text(8pt)[$s_#i$])
+  }
+  content((1.25, -0.6), s[(c)])
+}),
+caption: [Checkpointing schemes: (a) space optimal, (b) time optimal and (c) balanced. The black and white circles represent the cached states and not cached states, respectively.]
+) <fig:fig-checkpointing>
+
+The optimal checkpointing even considers checkpointing for multiple passes. For example, in @fig:fig-checkpointing (c), after using $s_4$ to obtain $overline(s)_4$, the state $s_4$ can be removed from the cache since it is not used again. Then, in the next pass, during the computation of $s_3$, we can create a new checkpoint, e.g. the state $s_1$ can be cached. This does not increase the total memory usage, since we dropped state $s_4$ in the previous pass. The optimal strategy for the multiple-pass checkpointing is also known as the _Treeverse algorithm_@Griewank1992.
+#figure(canvas({
+  import draw: *
+  let s(it) = text(11pt, it)
+  let dx = 0.5
+  let states(loc, seq, prefix) = {
+    for (i, s) in seq.enumerate(){
+      circle((i * dx + loc.at(0), loc.at(1)), radius: 0.1, fill: (if (s == 1) {black} else {if (s == 0) {white} else {gray.lighten(20%)}}), name: prefix + str(i))
+    }
+  }
+  states((0, 0), (1, 1, 0, 0, 2, 0), "s")
+  content((0.5, -0.7), text(11pt)[new], name: "new")
+  line("new", "s1.south", mark: (end: "straight"))
+  content((2, -0.2), text(11pt, red)[$times$])
+  bezier("s1", "s2.north", (1.5 * dx, 0.8), mark: (end: "straight"))
+  bezier("s0", "s3.north", (0.5 * dx, 1.4), mark: (end: "straight"))
+  bezier("s4.north", "s5.north", (4.5 * dx, 0.8), mark: (end: "straight"))
+  circle((2.25, 0), radius: 0.55, stroke: (dash: "dashed"))
+  content((4, 0.5), text(11pt)[previous pass])
+})
+)
+
+We consider the following question: Let $delta$ be the maximum number of checkpoints allowed in memory (not including the initial state), $tau$ be the number of passes, what is the maximum number of steps in the program?
+Let us denote the maximum number of steps in the program given by the Treeverse algorithm as $eta(tau, delta)$. Then we have the following recurrence relation:
+$ eta(tau,delta) = sum_(k=0)^delta eta(tau-1,k). $ <eq:treeverse-recurrence>
+This is based on the following observations:
+- In the next sweep, the number of sweeps allowed is decreased by 1, explaining $tau - 1$ on the right side.
+- The current sweep devides the program into $delta + 1$ sectors with $delta$ checkpoints. In the next sweep, the number of allowed checkpoints for the $k$-th sector is $delta - k$, which is consistent with number of checkpoints behind the $k$-th sector.
+
+
+Then we ask, what is the function that satisfies the recurrence relation in @eq:treeverse-recurrence?
+The answer is the binomial function $ eta(tau, delta) = ((tau + delta)!)/(tau!delta!). $
+
+#figure(
+  canvas({
+    import draw: *
+    content((), [TODO: Treeverse Example.])
+  }),
+  caption: [(a) The Treeverse algorithm ($tau=3$, $delta=3$) and (b) Bennett's algorithm ($k=2$, $n=4$) solutions to the pebble game, the $x$ direction is the grid layout and the $y$ direction is the number of steps. Here, a black circle with white fill represents a pebble returned to the free pool in current step, a black circle with black fill represents the pebble added to the board in current step, and a gray circle represents pebbles left on the board. In (a), red grids are painted grids. In (b), the grid with a flag sign is the goal.]
+)
+
+#algorithm({
+  import algorithmic: *
+  Function("Treeverse", args: ([$S$], [$overline(s_phi.alt)$], [$delta$], [$tau$], [$beta$], [$sigma$], [$phi.alt$]), {
+    If(cond: [$sigma > beta$], {
+      Assign([$delta$], [$delta - 1$])
+      Assign([$s$], [$S[beta] quad$ #Ic([Load initial state $s_beta$])])
+      For(cond: [$j = beta, beta+1, dots, sigma-1$], {
+        Assign([$s_(j+1)$], [$f_j(s_j) quad$ #Ic([Compute $s_sigma$])])
+      })
+      Assign([$S[sigma]$], [$s_sigma$])
+    })
+    Cmt[Recursively call Treeverse with optimal split point $kappa$ (binomial distribution)]
+    While(cond: [$tau > 0$ and $kappa = "mid"(delta, tau, sigma, phi.alt) < phi.alt$], {
+      Assign([$overline(s_kappa)$], [treeverse($S$, $overline(s_phi.alt)$, $delta$, $tau$, $sigma$, $kappa$, $phi.alt$)])
+      Assign([$tau$], [$tau - 1$])
+      Assign([$phi.alt$], [$kappa$])
+    })
+    Assign([$overline(s_sigma)$], [$overline(f_sigma)(overline(s_(sigma+1)), s_sigma) quad$ #Ic([Use existing $s_sigma$ and $overline(s_phi.alt)$ to return gradient])])
+    
+    If(cond: [$sigma > beta$], {
+      State[remove($S[sigma]$)  $quad$ #Ic([Remove $s_sigma$ from cached state set])]
+    })
+    Return[$overline(s_sigma)$]
+  })
+
+  Function("mid", args: ([$delta$], [$tau$], [$sigma$], [$phi.alt$]), {
+    Cmt[Select the binomial distribution split point]
+    Assign([$kappa$], [$ceil((delta sigma + tau phi.alt)/(tau+delta))$])
+    If(cond: [$kappa >= phi.alt$ and $delta > 0$], {
+      Assign([$kappa$], [max($sigma+1$, $phi.alt-1$)])
+    })
+    Return[$kappa$]
+  })
+})
+
+== Applications of Automatic Differentiation in Physical Simulations
+
+This chapter contains two case studies: one is solving the derivatives of the Lorenz system with fewer parameters using forward automatic differentiation and the adjoint state method, and the other is solving the derivatives of a seismology simulation with many steps and huge memory consumption using backward differentiation based on the optimal checkpoint algorithm and reversible computing.
+
+== Solving the Lorenz Equations
+The Lorenz system@Lorenz1963 is a classic model for studying chaos, describing dynamics defined in three-dimensional space
+$ 
+(D x)/(D t) &= sigma(y - x),\
+(D y)/(D t) &= x(rho -z) - y,\
+(D z)/(D t) &= x y - beta z.
+$
+where $sigma$, $rho$, and $beta$ are three control parameters. The time evolution curve of this system is shown in Figure 2 (b). When $rho>1$, the system has two attractors@Hirsch2012, but only when $rho < sigma (sigma + beta + 3)/(sigma - beta - 1)$ will the particles stably orbit around one of the attractors as shown by the orange curve in Figure (b). At this time, the system is relatively stable and exhibits less sensitivity to initial values. The derivatives of the final position coordinates with respect to the control parameters and initial coordinates reflect the sensitivity of the final state to the control parameters and initial positions, to some extent indicating the occurrence of chaos in the system.
+
+In numerical simulations, we use the 4th-order Runge-Kutta method for time integration to obtain the final position, with the initial position fixed at $(x_0,y_0,z_0) = (1, 0, 0)$, the control parameter $beta=8/3$, the integration time interval $[0,T=30]$, and the integration step size $3 times 10^(-3)$.
+
+Since this process contains only 6 parameters, including the three coordinates of the initial position $(x_0, y_0, z_0)$ and the three control parameters $(sigma, rho,beta)$, using the forward automatic differentiation tool ForwardDiff@Revels2016 for differentiation has a great advantage over backward automatic differentiation. We plot the average absolute value of the derivatives with respect to the initial $rho$ and $sigma$ in Figure 2. It can be seen that only below the theoretical prediction black line will there be smaller derivatives, indicating that the system dynamics under stable attractor parameters indeed have low dependence on initial values.
+
+== Differentiation of the Wave Propagation Equation
+Consider the propagation of the wave function $u(x_1, x_2, t)$ in a non-uniform two-dimensional medium governed by the following equation
+$ 
+cases(
+  (partial^2 u)/(partial t^2) - nabla dot(c^2 nabla u) = f & t>0,
+  u = u_0 & t=0,
+  (partial u)/(partial t) = v_0 & t=0
+)
+$
+where $c$ is the wave propagation speed in the medium. The Perfectly Matched Layer (PML)@Berenger1994@Roden2000@Martin2008 is an accurate and reliable method for simulating wave motion in a medium. To simulate this dynamics in a finite size, the PML method introduces an absorbing layer to prevent boundary reflection effects. By introducing auxiliary fields and discretizing space and time, the above equation can be transformed into the following numerical computation process
+$
+cases(
+  u^(n+1)_(i,j) approx &(Delta t^2)/(1+(zeta_(1i)+zeta_(2j))Delta t/2) (
+    (2-zeta_(1i)zeta_(2j))u_(i,j)^n - (1-(zeta_(1i)+zeta_(2j))Delta t/2)/(Delta t^2)u^(n-1)_(i,j) + c_(i,j)^2(u_(i+1,j)^n-2u_(i,j)^n+u_(i-1,j)^n)/(Delta x^2)\ 
+    &+ c_(i,j)^2(u_(i,j+1)^n-2u_(i,j)^n+u_(i,j-1)^n)/(Delta y^2)
+    + ((phi.alt_x)_(i+1,j)-(phi.alt_x)_(i-1,j))/(2Delta x) + ((phi.alt_y)_(i,j+1)-(phi.alt_y)_(i,j-1))/(2Delta y) ),
+  (phi.alt_x)_(i,j)^(n+1) &= (1-Delta t zeta_(1i))(phi.alt_x)_(i,j)^n + Delta t c_(i,j)^2 (zeta_(1i)-zeta_(2j))(u_(i+1,j)-u_(i-1,j))/(2Delta x),
+  (phi.alt_y)_(i,j)^(n+1) &= (1-Delta t zeta_(2j))(phi.alt_y)_(i,j)^n + Delta t c_(i,j)^2 (zeta_(2j)-zeta_(1i))(u_(i,j+1)-u_(i,j-1))/(2Delta y)
+)
+$
+
+The first term here is an approximation because it ignores the contribution of the spatial gradient term of the medium propagation speed $c$ in the original equation. $zeta_1$ and $zeta_2$ are the attenuation coefficients in the $x$ and $y$ directions, respectively, and $phi.alt_x$ and $phi.alt_y$ are the $x$ and $y$ components of the introduced auxiliary fields, respectively. $Delta x$, $Delta y$, and $Delta t$ are the spatial and temporal discretization parameters, respectively. The detailed derivation of this equation can be found in the literature@Grote2010.
+
+Automatic differentiation of PML simulations has important applications in seismology@Zhu2021, and it has long been recognized that checkpoint schemes can be used in seismic wave simulations@Symes2007 to greatly reduce the memory requirements for backtracking intermediate states.
+
+#figure(canvas({}),
+  caption: [The time and space overhead of applying the Bennett algorithm and the Treeverse algorithm to the differentiation of the PML solving process. The numbers marked in the figure are the ratios of the actual forward running steps to the original simulation steps ($10^4$). The total time on the vertical axis is the sum of the forward computation and backpropagation time, and the value on the horizontal axis represents the number of checkpoints or the maximum number of states in reversible computing. In the Bennett algorithm, the number of backward steps is the same as the number of forward steps, while in the Treeverse algorithm, the number of backpropagation steps is fixed at $10^4$.]
+)
+
+In numerical simulations, we simulated the PML equation on a $1000 times 1000$ two-dimensional grid using double-precision floating-point numbers, with each state storing 4 matrices $s_n = {u^(n-1), u^n, phi.alt_x^n, phi.alt_y^n}$, occupying 32MB of storage space.
+
+Although forward automatic differentiation can differentiate this program with only a constant multiple of space overhead, the linear increase in time complexity due to the $10^6$ parameters of the propagation speed $c$ is unacceptable. At the same time, if backward automatic differentiation is performed on this program without any memory optimization, integrating $10^4$ steps requires at least 320G of storage space, far exceeding the storage capacity of ordinary GPUs.
+
+At this point, we need to use the Bennett algorithm and the Treeverse algorithm described in the appendix to save the cache for backward automatic differentiation. Figure 5 shows the relationship between the actual program's time and space on the GPU using these two time-space tradeoff schemes, with the computing device being an Nvidia Tesla V100.
+
+In the pure reversible computing implementation of the Bennett algorithm, the gradient computation part increases with the number of forward computation steps, and the additional overhead is almost consistent with the theoretical model.
+
+The Bennett algorithm is the optimal time-space tradeoff strategy in the sense of reversible computing, but it is not optimal for ordinary hardware.
+
+The Treeverse+NiLang scheme refers to using reversible computing to handle the differentiation of single-step operations, while using the Treeverse algorithm to handle the differentiation between steps. Here, as the number of checkpoints decreases, the reduction in computation time is not significant. This is because the increased computation time is for forward computation, and here the single-step backward gradient computation time is more than twenty times that of the forward time, so even with only 5 checkpoints, the additional time increase is less than one time.
+
+The reason why the single-step gradient computation is much slower than the forward computation is that when using NiLang to differentiate parallel GPU kernel functions, it is necessary to avoid shared variable reads to prevent the program from simultaneously updating the gradient of the same memory block in parallel during backward computation, which brings a lot of performance loss. In contrast, on a single-threaded CPU, the time difference between forward and backward single-step operations is within four times.
+
+In addition, although the Treeverse algorithm can achieve efficient time and space tradeoff, it cannot be directly used to differentiate GPU kernel functions due to the need for global stack management in system memory. Reversible computing is very suitable for differentiating such nonlinear and somewhat reversible programs, which is why we choose to use reversible computing to differentiate single-step operations to avoid the trouble of manually differentiating GPU kernel functions.
 
 #bibliography("refs.bib")
