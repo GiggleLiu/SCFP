@@ -10,20 +10,23 @@ It offers four specialized modes:
 1. *Julian Mode*: The default mode for executing Julia code.
 
 2. *Shell Mode*: Provide a shell interface. Enter this mode by pressing `;` in Julian mode:
-```julia
+  ```julia
 shell> date
 Sun Nov  6 10:50:21 PM CST 2022
 ```
 
 3. *Package Mode*: Provide a package interface. Enter this mode by pressing `]` in Julian mode:
-```julia
+  ```julia
 (@v1.8) pkg> st
 Status `~/.julia/environments/v1.8/Project.toml`
   [295af30f] Revise v3.4.0
 ```
+  #image("images/Packages.gif")
+  To install packages, just type `add <package name>`. For more commands, just type `?` and press `Enter`.
+  The information about Julia packages is available at #link("https://juliahub.com/")[JuliaHub].
 
 4. *Help Mode*: Provide a help interface. Enter this mode by pressing `?` in Julian mode:
-```julia
+  ```julia
 help> sum
 ... docstring for sum ...
 ```
