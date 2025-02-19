@@ -111,10 +111,13 @@ Type `Backspace` to return to the normal mode. Type `Ctrl-C` to cancel the curre
 ```julia
 julia> using BenchmarkTools
 
-julia> @btime step_velocity!($bodies, 0.01)  # `$` is used to interpolate the value
-  7.875 μs (216 allocations: 8.06 KiB)
+julia> @time make(5)
+  0.000011 seconds (31 allocations: 992 bytes)
 
-julia> @benchmark step_velocity!($bodies, 0.01)  # for more detailed information
+julia> @btime make(5)      # run multiple times to get the minimum time
+  172.735 ns (31 allocations: 992 bytes)
+
+julia> @benchmark make(5)  # for more detailed information
 ```
 
 Note: `@btime` and `@benchmark` are macros - code for generating code. Use `@macroexpand` to check the generated code.
@@ -127,7 +130,7 @@ julia> using Profile
 
 julia> Profile.init(; delay=0.001)  # How often to sample the call stack
 
-julia> @profile for i=1:500000 step_velocity!($bodies, 0.01) end
+julia> @profile perf_binary_trees(21)
 
 julia> Profile.print(; mincount=10)  # Print the profile results
 
@@ -569,58 +572,34 @@ typeof(y)
 // === Examples of composite types
 // - The `Complex{T <: Real}` type.
 
-== Example: Tropical Numbers
-#timecounter(4)
-In the following, we show how to customize a special number system, called _semirings_ (rings without "`-`" operation).
+= Just in time compilation (compile by need)
+== JIT happens when the function is first called
+#timecounter(1)
 
-https://github.com/TensorBFS/TropicalNumbers.jl
+#figure(scale(150%, text(10pt, canvas({
+  import draw: *
+  content((-3, 0), box(inset: 3pt)[Inputs], name: "inputs")
+  content((0, 0), [#box(stroke: black, inset: 10pt, [Call a function], radius: 4pt)], name: "call")
+  content((6.5, 0), [#box(stroke: black, inset: 10pt, [Invoke], radius: 4pt)], name: "invoke")
+  content((3.5, -2), [#box(stroke: black, inset: 10pt, [JIT Compilation], radius: 4pt)], name: "inference")
+  line("inputs", "call.west", mark: (end: "straight"))
+  line("call.south", (rel: (0, -1.5)), "inference.west", mark: (end: "straight"))
+  line("inference.east", (rel: (0, -2), to: "invoke"), "invoke.south", mark: (end: "straight"))
+  line("call.east", "invoke.west", mark: (end: "straight"))
+  content((8.8, 0), box(inset: 3pt)[Outputs], name: "outputs")
+  line("invoke.east", "outputs", mark: (end: "straight"))
+  content((3.5, 0.5), text(green.darken(20%))[Has method instance])
+  content((-2, -1.5), text(red.darken(20%))[No method instance])
 
-A Topical algebra can be described as a tuple $(R, plus.circle, times.circle, bb(0), bb(1))$, where $R$ is the set, $plus.circle$ and $times.circle$ are the operations and $bb(0)$ and $bb(1)$ are their identity element, respectively. In this package, the following tropical algebras are implemented:
-- `TropicalAndOr`: $({T, F}, or, and, F, T)$;
-- `Tropical` (`TropicalMaxPlus`): $(bb(R), max, +, -infinity, 0)$;
-- `TropicalMinPlus`: $(bb(R), min, +, infinity, 0)$;
-- `TropicalMaxMul`: $(bb(R^+), max, *, 0, 1)$.
+  content((3.25, -1.1), [slow])
+  content((6.5, 0.9), [fast])
+
+  content((3.5, -3.0), [Typed IR $arrow.double.r$ LLVM IR $arrow.double.r$ Binary Code])
+})))) <fig:jit>
 
 
-== Example: Tropical Numbers
-#timecounter(3)
-#align(left, text(14pt)[```julia
-abstract type AbstractSemiring <: Number end
 
-struct Tropical{T <: Real} <: AbstractSemiring
-    n::T
-    Tropical{T}(x) where T = new{T}(T(x))
-    function Tropical(x::T) where T <: Real
-        new{T}(x)  # constructor
-    end
-    function Tropical{T}(x::Tropical{T}) where T <: Real
-        x
-    end
-    function Tropical{T1}(x::Tropical{T2}) where {T1 <: Real, T2 <: Real}
-        new{T1}(T2(x.n))
-    end
-end
-```])
-
-== Overloading arithemetics operations
-#timecounter(2)
-`Base` is the module of the built-in functions. e.g. `Base.:*` is the multiplication operator.
-`Base.zero` is the zero element of the type.
-
-```julia
-# we use ":" to avoid ambiguity
-Base.:*(a::Tropical, b::Tropical) = Tropical(a.n + b.n)
-Base.:+(a::Tropical, b::Tropical) = Tropical(max(a.n, b.n))
-
-# `Type{Tropical{T}}` is the type of the Tropical{T} type.
-Base.zero(::Type{Tropical{T}}) where T = typemin(Tropical{T})
-Base.zero(::Tropical{T}) where T = zero(Tropical{T})
-
-Base.one(::Type{Tropical{T}}) where T = Tropical(zero(T))
-Base.one(::Tropical{T}) where T = one(Tropical{T})
-```
-
-== Understanding Julia's JIT
+== Understanding Julia's JIT compilation
 #timecounter(2)
 The following is a factorial function:
 
@@ -685,31 +664,6 @@ end
 ```
 
 
-== JIT happens when the function is first called
-#timecounter(1)
-
-#figure(scale(150%, text(10pt, canvas({
-  import draw: *
-  content((-3, 0), box(inset: 3pt)[Inputs], name: "inputs")
-  content((0, 0), [#box(stroke: black, inset: 10pt, [Call a function], radius: 4pt)], name: "call")
-  content((6.5, 0), [#box(stroke: black, inset: 10pt, [Invoke], radius: 4pt)], name: "invoke")
-  content((3.5, -2), [#box(stroke: black, inset: 10pt, [JIT Compilation], radius: 4pt)], name: "inference")
-  line("inputs", "call.west", mark: (end: "straight"))
-  line("call.south", (rel: (0, -1.5)), "inference.west", mark: (end: "straight"))
-  line("inference.east", (rel: (0, -2), to: "invoke"), "invoke.south", mark: (end: "straight"))
-  line("call.east", "invoke.west", mark: (end: "straight"))
-  content((8.8, 0), box(inset: 3pt)[Outputs], name: "outputs")
-  line("invoke.east", "outputs", mark: (end: "straight"))
-  content((3.5, 0.5), text(green.darken(20%))[Has method instance])
-  content((-2, -1.5), text(red.darken(20%))[No method instance])
-
-  content((3.25, -1.1), [slow])
-  content((6.5, 0.9), [fast])
-
-  content((3.5, -3.0), [Typed IR $arrow.double.r$ LLVM IR $arrow.double.r$ Binary Code])
-})))) <fig:jit>
-
-
 // == Step 1: Infer the types
 // Given a input type combination, can we infer the types of all variables in the function? It depends.
 // If all the types are inferred, the function is called _type stable_.
@@ -768,7 +722,7 @@ The LLVM IR is then compiled to binary code by the LLVM compiler. The binary cod
 julia> @code_native jlfactorial(10)
 ```
 
-== Experiment: analyze the method instances
+== Analyze the method instances
 #timecounter(2)
 
 The method instance is then stored in the method table, and can be analyzed by the `MethodAnalysis` package.
@@ -785,6 +739,37 @@ julia> jlfactorial(UInt32(5))
 julia> methodinstances(jlfactorial)
 ??
 ```
+
+== Experiment: Zero-cost computing
+#timecounter(1)
+
+Here's an example computing the Fibonacci sequence:
+
+```julia
+# Runtime implementation
+fib(n::Int) = n <= 2 ? 1 : fib(n-1) + fib(n-2)
+
+julia> @btime fib(40)
+  278.066 ms (0 allocations: 0 bytes)
+102334155
+```
+
+== A completely static implementation
+We can leverage Julia's type system to compute Fibonacci numbers at zero cost!
+
+```julia
+# Compile-time implementation using Val types
+fib(::Val{x}) where x = x <= 2 ? Val(1) : addup(fib(Val(x-1)), fib(Val(x-2)))
+addup(::Val{x}, ::Val{y}) where {x, y} = Val(x + y)
+
+julia> @btime fib(Val(40))
+  0.792 ns (0 allocations: 0 bytes)
+Val{102334155}()
+```
+
+Q: What is happening here? Is it recommended to use this approach in practice?
+
+
 
 = Multiple Dispatch
 == The Power of Multiple Dispatch
@@ -873,36 +858,6 @@ julia> fight(Human(170), Human(180))
 "loss"
 ```
 
-== Experiment: Zero-cost computing
-#timecounter(1)
-
-Here's an example computing the Fibonacci sequence:
-
-```julia
-# Runtime implementation
-fib(n::Int) = n <= 2 ? 1 : fib(n-1) + fib(n-2)
-
-julia> @btime fib(40)
-  278.066 ms (0 allocations: 0 bytes)
-102334155
-```
-
-== A completely static implementation
-We can leverage Julia's type system to compute Fibonacci numbers at zero cost!
-
-```julia
-# Compile-time implementation using Val types
-fib(::Val{x}) where x = x <= 2 ? Val(1) : addup(fib(Val(x-1)), fib(Val(x-2)))
-addup(::Val{x}, ::Val{y}) where {x, y} = Val(x + y)
-
-julia> @btime fib(Val(40))
-  0.792 ns (0 allocations: 0 bytes)
-Val{102334155}()
-```
-
-Q: What is happening here? Is it recommended to use this approach in practice?
-
-
 == Why object oriented programming is bad?
 #timecounter(1)
 
@@ -949,6 +904,58 @@ Comment: Julia provides exponentially large method space, while for OOP language
 1. Clone the repo: https://github.com/TensorBFS/TropicalNumbers.jl to your local machine.
 2. Run the tests in your VSCode/Cursor.
 3. After that, you can try to complete the second homework.
+
+== Tutorial: Tropical Numbers
+#timecounter(4)
+In the following, we show how to customize a special number system, called _semirings_ (rings without "`-`" operation).
+
+https://github.com/TensorBFS/TropicalNumbers.jl
+
+A Topical algebra can be described as a tuple $(R, plus.circle, times.circle, bb(0), bb(1))$, where $R$ is the set, $plus.circle$ and $times.circle$ are the operations and $bb(0)$ and $bb(1)$ are their identity element, respectively. In this package, the following tropical algebras are implemented:
+- `TropicalAndOr`: $({T, F}, or, and, F, T)$;
+- `Tropical` (`TropicalMaxPlus`): $(bb(R), max, +, -infinity, 0)$;
+- `TropicalMinPlus`: $(bb(R), min, +, infinity, 0)$;
+- `TropicalMaxMul`: $(bb(R^+), max, *, 0, 1)$.
+
+
+== Example: Tropical Numbers
+#timecounter(3)
+#align(left, text(14pt)[```julia
+abstract type AbstractSemiring <: Number end
+
+struct Tropical{T <: Real} <: AbstractSemiring
+    n::T
+    Tropical{T}(x) where T = new{T}(T(x))
+    function Tropical(x::T) where T <: Real
+        new{T}(x)  # constructor
+    end
+    function Tropical{T}(x::Tropical{T}) where T <: Real
+        x
+    end
+    function Tropical{T1}(x::Tropical{T2}) where {T1 <: Real, T2 <: Real}
+        new{T1}(T2(x.n))
+    end
+end
+```])
+
+== Overloading arithemetics operations
+#timecounter(2)
+`Base` is the module of the built-in functions. e.g. `Base.:*` is the multiplication operator.
+`Base.zero` is the zero element of the type.
+
+```julia
+# we use ":" to avoid ambiguity
+Base.:*(a::Tropical, b::Tropical) = Tropical(a.n + b.n)
+Base.:+(a::Tropical, b::Tropical) = Tropical(max(a.n, b.n))
+
+# `Type{Tropical{T}}` is the type of the Tropical{T} type.
+Base.zero(::Type{Tropical{T}}) where T = typemin(Tropical{T})
+Base.zero(::Tropical{T}) where T = zero(Tropical{T})
+
+Base.one(::Type{Tropical{T}}) where T = Tropical(zero(T))
+Base.one(::Tropical{T}) where T = one(Tropical{T})
+```
+
 
 == Experiment: Comparing with C and Python
 

@@ -125,6 +125,9 @@ Registered to the #link("https://github.com/JuliaRegistries/General", "General")
   rect((4.9, -0.8), (5.9, 0.8), stroke: (dash: "dotted"))
 })
 
+- A typical CPU clock cycle is: 0.3 ns.
+- A typical memory access latency is: 50 ns, i.e. $~100$ times slower!
+
 == Package manager resolves the environment with the known registries.
 
 Package manager resolves the environment with the known registries.
