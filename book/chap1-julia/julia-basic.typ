@@ -409,7 +409,7 @@ julia> methodinstances(jlfactorial)
  MethodInstance for jlfactorial(::UInt32)
 ```
 
-== Experiment: Comparing with C and Python
+== Experiment 1: Comparing with C and Python
 
 To demonstrate the difference between compiled languages, interpreted languages and JIT compiled languages,
 
@@ -510,6 +510,41 @@ caption: "Dynamic typing causes cache misses"
 )
 
 As a remark, when Julia compiler fails to infer the types, it will fall back to the dynamic dispatch mode. Then it also suffers from the problem of cache misses.
+
+== Experiment 2: Zero-cost computing?
+
+Julia's JIT compiler is so powerful that it can even enable compile-time computation. Here's an example using the Fibonacci sequence:
+
+```julia
+julia> fib(n::Int) = n <= 2 ? 1 : fib(n-1) + fib(n-2);
+
+julia> @btime fib(40)
+  278.066 ms (0 allocations: 0 bytes)
+102334155
+```
+
+We can leverage Julia's type system to compute Fibonacci numbers at compile time:
+
+```julia
+julia> fib(::Val{x}) where x = x <= 2 ? Val(1) : addup(fib(Val(x-1)), fib(Val(x-2)));
+
+julia> addup(::Val{x}, ::Val{y}) where {x, y} = Val(x + y);
+
+julia> @btime fib(Val(40))
+  0.792 ns (0 allocations: 0 bytes)
+Val{102334155}()
+```
+Amazingly, the compile-time computation completes the computation in 0.792 ns in our benchmark.
+BUT, the compile-time computation is not free. It is still a trade-off between the runtime and the compile time. For example, here, the compiler generates $40$ method instances for the `fib` function
+```julia
+julia> methodinstances(fib) |> length  # `|>` is the pipe operator for single-argument function
+40
+```
+
+This is because the compiler needs to generate a method instance for each possible argument type, i.e. it creates a table!
+In practice, it is not recommended to move everything to compile-time since it may pollute the type system and cause type explosion.
+
+
 
 = Multiple Dispatch
 
@@ -659,39 +694,6 @@ Julia's multiple dispatch approach offers several advantages:
 - New types can be added without modifying existing code
 - Type combinations have explicit, clear behavior
 
-== Experiment 2: Zero-cost computing?
-
-People like Julia's type system, which is extremely powerful. It is so powerful that it can even enable compile-time computation. Here's an example using the Fibonacci sequence:
-
-```julia
-julia> fib(n::Int) = n <= 2 ? 1 : fib(n-1) + fib(n-2);
-
-julia> @btime fib(40)
-  278.066 ms (0 allocations: 0 bytes)
-102334155
-```
-
-We can leverage Julia's type system to compute Fibonacci numbers at compile time:
-
-```julia
-julia> fib(::Val{x}) where x = x <= 2 ? Val(1) : addup(fib(Val(x-1)), fib(Val(x-2)));
-
-julia> addup(::Val{x}, ::Val{y}) where {x, y} = Val(x + y);
-
-julia> @btime fib(Val(40))
-  0.792 ns (0 allocations: 0 bytes)
-Val{102334155}()
-```
-Amazingly, the compile-time computation completes the computation in 0.792 ns in our benchmark.
-BUT, the compile-time computation is not free. It is still a trade-off between the runtime and the compile time. For example, here, the compiler generates $40$ method instances for the `fib` function
-```julia
-julia> methodinstances(fib) |> length  # `|>` is the pipe operator for single-argument function
-40
-```
-
-This is because the compiler needs to generate a method instance for each possible argument type, i.e. it creates a table!
-In practice, it is not recommended to move everything to compile-time since it may pollute the type system and cause type explosion.
-
 == Case study: Simulate Hamiltonian Dynamics
 In the Hamiltonian dynamics simulation, we have the following equation of motion:
 $ m (partial^2 bold(x))/(partial t^2) = bold(f)(bold(x)), $
@@ -721,9 +723,128 @@ The algorithm starts with updating the velocity at half time step, then updates 
 
 In the following, we consider the following example from #link("https://salsa.debian.org/benchmarksgame-team/benchmarksgame/")[The Computer Language Benchmarks Game]. It is a simulation of the solar system with the Verlet algorithm.
 
-#raw(read("nbody.jl"), lang: "julia", block: true)
+// #raw(read("nbody.jl"), lang: "julia", block: true)
+We first define a type `Body` for representing a body in the solar system.
 
-With the following script, we can make a movie of the solar system:
+```julia
+struct Body{T <: Real}
+    x::NTuple{3,T}  # position
+    v::NTuple{3,T}  # velocity
+    m::T            # mass
+end
+```
+
+- `struct`: define a composite type
+- "`::`": type declaration
+- "`<:`": subtype
+- "`NTuple{3,T}`": a tuple of 3 elements of type `T`, tuples are immutable and faster.
+- "`T`": the type parameter name
+
+Then we define a function to simulate the solar system for $n$ timesteps with a timestep of $d t$. The function implements the Verlet algorithm.
+
+```julia
+function simulate!(bodies::Vector{Body{T}}, n::Int, dt::T) where T
+    # Advance velocities by half a timestep
+    step_velocity!(bodies, dt/2)
+    # Advance positions and velocities by one timestep
+    for _ = 1:n
+        step_position!(bodies, dt)
+        step_velocity!(bodies, dt)
+    end
+    # Advance velocities backwards by half a timestep
+    step_velocity!(bodies, -dt/2)
+end
+```
+
+- "`!`": it is part of function name, it is a convention for _in-place operations_. In-place operations modify the input argument directly.
+- "`Vector{Body{T}}`": a vector of `Body{T}` type, vectors are _mutable_.
+- "`where T`": infer the type parameter `T` from the argument.
+
+
+The above simulation code relies on the following two functions to advance velocities and positions of all bodies in the system by one timestep of $d t$.
+
+```julia
+function step_velocity!(bodies::Vector{Body{T}}, dt::T) where T
+    # Calculate the force on each body due to the other bodies in the system.
+    @inbounds for i in 1:lastindex(bodies)-1, j in i+1:lastindex(bodies)
+        Δx = bodies[i].x .- bodies[j].x 
+        distance = sum(abs2, Δx)
+        mag = dt * inv(sqrt(distance))^3   # `^` is power operator
+        bodies[i] = Body(bodies[i].x, bodies[i].v .- Δx .* (mag * bodies[j].m), bodies[i].m)
+        bodies[j] = Body(bodies[j].x, bodies[j].v .+ Δx .* (mag * bodies[i].m), bodies[j].m)
+    end
+end
+
+function step_position!(bodies::Vector{Body{T}}, dt::T) where T
+    @inbounds for i in eachindex(bodies)
+        bi = bodies[i]
+        bodies[i] = Body(bi.x .+ bi.v .* dt, bi.v, bi.m)
+    end
+end
+
+```
+
+- "`bodies[i].x`": access the `x` field of the `i`-th element of `bodies`.
+- "`.`": broadcast operator, apply the operation element-wise.
+- "`sum(abs2, Δx)`": apply `abs2` to each element of `Δx`, and then sum the results.
+- "`@inbounds`": a macro, skip the bounds check for the loop.
+
+We also define a function to calculate the total energy of the system.
+
+```julia
+function energy(bodies::Vector{Body{T}}) where T
+    e = zero(T)
+    # Kinetic energy of bodies
+    @inbounds for b in bodies
+        e += T(0.5) * b.m * sum(abs2, b.v)
+    end
+    
+    # Potential energy between body i and body j
+    @inbounds for i in 1:lastindex(bodies)-1, j in i+1:lastindex(bodies)
+        Δx = bodies[i].x .- bodies[j].x
+        e -= bodies[i].m * bodies[j].m / sqrt(sum(abs2, Δx))
+    end
+    return e
+end
+```
+- `zero(T)`: return a zero value of type `T`.
+- `T(0.5)`: convert the value `0.5` to type `T`.
+
+The following function initializes the solar system, where only 5 bodies are considered. We use function instead of global variables here, since global variables are not type stable and may cause performance issues.
+
+```julia
+function solar_system()
+    SOLAR_MASS = 4 * π^2
+    DAYS_PER_YEAR = 365.24
+    jupiter = Body((4.841e+0, -1.160e+0, -1.036e-1),
+        ( 1.660e-3, 7.699e-3, -6.905e-5) .* DAYS_PER_YEAR,
+        9.547e-4 * SOLAR_MASS)
+    saturn = Body((8.343e+0, 4.125e+0, -4.035e-1),
+        (-2.767e-3, 4.998e-3, 2.304e-5) .* DAYS_PER_YEAR,
+        2.858e-4 * SOLAR_MASS)
+    uranus = Body((1.289e+1, -1.511e+1, -2.23e-1),
+        ( 2.96e-3, 2.378e-3, -2.96e-5) .* DAYS_PER_YEAR,
+        4.36e-5 * SOLAR_MASS)
+    neptune = Body((1.537e+1, -2.591e+1, 1.792e-1),
+        ( 2.680e-3, 1.628e-3, -9.515e-5) .* DAYS_PER_YEAR,
+        5.151e-5 * SOLAR_MASS)
+    sun = Body((0.0, 0.0, 0.0),
+        (-1.061e-6, -8.966e-6, 6.553e-8) .* DAYS_PER_YEAR,
+        SOLAR_MASS)
+    return [jupiter, saturn, uranus, neptune, sun]
+end
+
+bodies = solar_system()
+@info "Initial energy: $(energy(bodies))"
+@time simulate!(bodies, 50000000, 0.01);
+@info "Final energy: $(energy(bodies))"
+```
+- `@info`: print the message and the value of the variable. similar functions/macros are `print`, `println`, `display`, `show`, `@warn`, `@error`, `@debug`, `@show`, etc.
+- `$`: interpolate the value of the variable.
+- `@time`: time the execution of the code.
+
+
+With #link("https://github.com/JuliaPlots/Makie.jl")[`CairoMakie`] package, we can make a movie of the solar system:
 ```julia
 using CairoMakie
 

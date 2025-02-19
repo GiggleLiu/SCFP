@@ -768,8 +768,8 @@ Val{102334155}()
 ```
 
 Q: What is happening here? Is it recommended to use this approach in practice?
-
-
+- `@edit Val(3)`: switch to the source code of `Val` function
+- `fieldnames(Val)`: show the fields of `Val`
 
 = Multiple Dispatch
 == The Power of Multiple Dispatch
@@ -1021,4 +1021,5 @@ At 144 nanoseconds, Python is:
 
 As a remark, when Julia compiler fails to infer the types, it will fall back to the dynamic dispatch mode. Then it also suffers from the problem of cache misses.
 
+==
 #bibliography("refs.bib")
