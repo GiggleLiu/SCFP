@@ -489,7 +489,7 @@ function code_distance(H::Matrix{Int}; verbose = false)
 end
 
 H = [0 0 0 1 1 1 1;0 1 1 0 0 1 1; 1 0 1 0 1 0 1]
-tropical_factorization(H) == 3
+code_distance(H) == 3
 ```
 Here we double check the code distance of the Hamming code is indeed $3$.
 = Semidefinite Programming (SDP)
