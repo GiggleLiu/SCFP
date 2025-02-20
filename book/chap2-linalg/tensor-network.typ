@@ -229,9 +229,77 @@ $
 ])
 
 
+=== Exercise: Representing trace operation
+
+Let $A, B$ and $C$ be three square matrices with the same size. Represent the trace operation $tr(A B C)$ with a tensor network diagram.
+
+*Solution*
+#figure(canvas({
+  import draw: *
+  tensor((1, 1), "A", "A")
+  tensor((3, 1), "B", "B")
+  tensor((5, 1), "C", "C")
+  labeledge("A", "B", "j")
+  labeledge("B", "C", "k")
+  bezier("A.north", "C.north", (1, 3), (5, 3), name:"line")
+  content("line.mid", "i", align: center, fill:white, frame:"rect", padding:0.1, stroke: none)
+}))
+
+The corresponding einsum notation is `ij,jk,ki->`. From this diagram, we can see the trace permutation rule: $tr(A B C) = tr(C A B) = tr(B C A)$.
+
 == Hidden Markov model
 
-(introduce tropical tensor formalism)
+A Hidden Markov Model (HMM) is a statistical model that describes a Markov process with unobserved (hidden) states. The model consists of:
+
+- A sequence of hidden states $z_t$ following a Markov chain with transition probability $P(z_(t+1)|z_t)$
+- A sequence of observations $x_t$ that depend only on the current hidden state through emission probability $P(x_t|z_t)$
+
+The joint probability of a sequence of $T+1$ hidden states and $T$ observations can be written as:
+
+$
+P(bold(z), bold(x)) = P(z_0) product_(t=1)^T P(z_(t)|z_(t-1))P(x_t|z_t).
+$
+Note that the conditional probability $P(z_(t)|z_(t-1))$ can be represented as a tensor with two indices. The joint probability $P(bold(z), bold(x))$ can be represented as a tensor network diagram:
+
+#figure(canvas({
+  import draw: *
+  let s(it) = text(11pt, it)
+  
+  // Draw transition matrices
+  let dx = 2.0
+  for i in range(5){
+    tensor((dx*i, 0), "A" + str(i), []) 
+  }
+  for i in range(4){
+    line("A" + str(i), "A" + str(i+1), name: "line" + str(i))
+    content("line" + str(i) + ".mid", box(inset: 3pt, fill: white, s[$z_#(i+1)$]), name: "z" + str(i))
+    tensor((rel: (0, -1)), "B" + str(i), [])
+    line("z" + str(i), "B" + str(i))
+    line("B" + str(i), (rel: (0, -0.8)))
+    content((rel: (0, -0.2)), s[$x_#(i+1)$])
+  }
+  line("A0", (rel: (-1, 0)))
+  content((rel: (-0.3, 0)), s[$z_0$])
+}))
+
+This is the decoding problem of HMM: Given a sequence of observations $bold(x) = (x_1, x_2, ..., x_T)$, how to find the most likely sequence of hidden states $bold(z)$? The equivalent mathematical formulation is:
+$
+  arg max_(bold(z)) P(z_0) product_(t=1)^T P(z_(t)|z_(t-1))P(overshell(x)_t|z_t),
+$ <eq:decoding>
+where $overshell(x)_t$ denotes an observed variable $x_t$ with a fixed value. It is equivalent to contracting the following tensor network:
+$
+  cases(Lambda = {z_0, z_1, dots, z_T},
+  cal(T) = {P(z_0), P(z_1|z_0), dots, P(z_T|z_(T-1)), P(overshell(x)_1|z_1), P(overshell(x)_2|z_2), dots, P(overshell(x)_T|z_T)},
+  V_0 = emptyset
+  )
+$ <eq:decoding-tensor>
+Since the observations $x_1, x_2, dots, x_T$ are fixed and not involved in the contraction, $P(overshell(x)_t|z_t)$ is a vector indexed by $z_t$ rather than a matrix.
+To solve @eq:decoding, we first convert @eq:decoding-tensor into a tropical tensor network $(Lambda, {log(t) | t in cal(T)}, V_0)$, where $log(t)$ is obtained by taking the logarithm of each element in $t$. Then the contraction of this tropical tensor network is equivalent to
+$
+  arg max_(bold(z)) sum_(bold(z)) L(z_0) + sum_(t=1)^T L(z_t|z_(t-1)) + sum_(t=1)^T L(overshell(x)_t|z_t).
+$
+Since this tensor network has a chain structure, its contraction is computationally efficient.
+This algorithm is equivalent to the Viterbi algorithm.
 
 == Spin-glass and tensor networks
 
@@ -262,25 +330,6 @@ The kronecker product of two matrices $A_(i j)$ and $B_(k l)$, i.e. $A_(i j) tim
   set-origin((2, 0))
   content((0, 1), `ij,kl->ijkl`)
 }), x:25pt)
-
-The operation $tr(A B C)$ can be diagrammatically represented as
-
-#pad(canvas({
-  import draw: *
-  tensor((1, 1), "A", "A")
-  tensor((3, 1), "B", "B")
-  tensor((5, 1), "C", "C")
-  labeledge("A", "B", "j")
-  labeledge("B", "C", "k")
-  bezier("A.north", "C.north", (1, 3), (5, 3), name:"line")
-  content("line.mid", "i", align: center, fill:white, frame:"rect", padding:0.1, stroke: none)
-  set-origin((7.5, 0))
-  content((0, 1.5), $arrow$)
-  set-origin((3, 0))
-  content((0, 1.5), `ij,jk,ki->`)
-}), x:25pt)
-
-From the diagram, we can see the trace permutation rule: $tr(A B C) = tr(C A B) = tr(B C A)$ directly.
 
 = Quantum state
 
