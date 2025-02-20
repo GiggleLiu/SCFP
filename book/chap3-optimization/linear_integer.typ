@@ -430,7 +430,7 @@ A2 * B2 == C
 In this example, there are $m times k times n$ variables.
 For such a large number of variables, the integer programming solver can handle a problem of size $50 times 6 times 50$ in a few seconds.
 
-== Example 4: Code distance of linear codes
+== Example 4.1: Code distance of linear codes
 In classical error correction theory, information are encoded into codewords. The _code distance_ is the minimum Hamming distance between any two codewords. For a linear code, the code distance equals to the minimum weight of the non-zero codewords. Deciding whether the code distance is at least $d$ is known to be in complexity class NP-complete@vardy1997intractability, which is unlikely to be solvable in time polynomial in the input size.
 
 A linear code can be defined by a parity check matrix $H in bb(F)^(m times n)_2$, where $bb(F)_2$ is the finite field with two elements $(0+0 = 1+1 = 0,1+0 =0+1= 1,1 times 0=0 times 1=0 times 0 = 0,1 times 1 =1)$. The codewords are 
@@ -462,7 +462,7 @@ $
 min quad &sum^n_(i = 1) z_i\
 "s.t." quad & sum^n_(j = 1)H_(i j) z_j = 2 k_i quad triangle.small.r "equivalent to " H z = 0 "in" bb(F)^n_2\
 & sum^n_(i = 1) z_i >= 1\
-&z_j in {0,1}, k_i in bb(Z), H_(i j) in bb(Z)
+&z_j in {0,1}, k_i in bb(Z)
 $
 
 The Julia implementation is as follows:
@@ -470,8 +470,6 @@ The Julia implementation is as follows:
 using JuMP, HiGHS
 
 function code_distance(H::Matrix{Int}; verbose = false)
-    # H : m x n
-
     m,n = size(H)
     model = Model(HiGHS.Optimizer)
     !verbose && set_silent(model)
@@ -494,6 +492,111 @@ H = [0 0 0 1 1 1 1;0 1 1 0 0 1 1; 1 0 1 0 1 0 1]
 code_distance(H) == 3
 ```
 Here we verify that the code distance of the Hamming code is indeed $3$.
+
+== Example 4.2: Code distance of CSS quantum codes
+A CSS quantum code is quantum error correction code composed of $X$ stabilizers and $Z$ stabilizers that are characterized by two parity check matrices $H_x$ and $H_z$ respectively@calderbank1996good@steane1996multiple. The code distance of a CSS quantum code is the minimum of the code distance of the two classical codes defined by $H_x$ and $H_z$.
+$
+  d = min(d_x, d_z),
+$
+where $d_z$ is defined as
+$
+  d_z = min_( z in C_z \ exists overline(Z)_i , overline(Z)_i z eq.not 0) w(z),
+$
+
+where $C_z$ is the code space defined by $H_z$, $overline(Z)_i$ is the $i$-th logical $Z$ operator, and $w(z)$ is the weight of $z$, i.e. the number of non-zero elements in $z$.
+$d_x$ is defined similarly.
+Here, the constraint
+- $z in C_z$: $z$ satisfies all constraints specified by $Z$ stabilizers, i.e. no Pauli-$X$ error happens.
+- $overline(Z)_i z eq.not 0$: the logical $Z$ at $i$-th position does not commute with $z$, i.e. the logical state changes and the $overline(Z)_i$ operator value is changed. This constraint is the only difference compared to the classical code distance problem.
+// Compare to the classical code distance problem, the only difference is that we add a constraint $overline(Z)_i z eq.not 0$. Since the quantum logical $|overline(00000) angle.r$ is a superposition state, and we need to find a non-zero state $z$ not only in the code space but also in another logical space, like $|overline(01101) angle.r$. And logical $X$ and $Z$ operators are anti-commutative, we have at least one $overline(Z)_i z eq.not 0$.
+
+The above problem can be converted into an integer programming problem as follows@landahl2011fault@bravyi2024high:
+$
+min quad &sum^n_(i = 1) z_i\
+"s.t." quad & sum^n_(j = 1)H_(i j) z_j = 2 k_i quad triangle.small.r "equivalent to " H z = 0 "in" bb(F)^n_2\
+& sum^n_(j = 1) (overline(Z)_i)_j z_j = 2 l_j + r_j quad triangle.small.r "equivalent to " overline(Z)_i z = r_i "in" bb(F)^n_2\
+& sum^k_(i = 1) r_i >= 1\
+&z_j, r_j in {0,1}, k_i,l_j in bb(Z)
+$
+
+In the following, we use the Steane code as an example. The Steane code is constructed using two Hamming code for protecting against both $X$ and $Z$ errors. Here we verify that the code distance of the Steane code is indeed $3$ with JuMP:
+```julia
+using JuMP, HiGHS
+
+function code_distance(Hz::Matrix{Int},lz::Matrix{Int}; verbose = false)
+    m, n = size(Hz)
+    num_lz = size(lz, 1)
+    model = Model(HiGHS.Optimizer)
+    !verbose && set_silent(model)
+
+    @variable(model, 0 <= z[i = 1:n] <= 1, Int)
+    @variable(model, 0 <= k[i = 1:m], Int)
+    @variable(model, 0 <= l[i = 1:num_lz], Int)
+    @variable(model, 0 <= r[i = 1:num_lz] <= 1, Int)
+    
+    for i in 1:m
+        @constraint(model, sum(z[j] for j in 1:n if Hz[i,j] == 1) == 2 * k[i])
+    end
+
+    for i in 1:num_lz
+        @constraint(model, sum(z[j] for j in 1:n if lz[i,j] == 1) == 2*l[i] + r[i])
+    end
+    @constraint(model, sum(r[i] for i in 1:num_lz) >= 1)
+
+    @objective(model, Min, sum(z[j] for j in 1:n))
+    optimize!(model)
+    @assert is_solved_and_feasible(model) "The problem is infeasible!"
+    return  objective_value(model)
+end
+
+using TensorQEC:logical_oprator,SteaneCode,CSSTannerGraph
+
+tanner = CSSTannerGraph(SteaneCode())
+lx,lz = logical_oprator(tanner)
+dz = code_distance(Int.(tanner.stgz.H), Int.(lz))
+dx = code_distance(Int.(tanner.stgx.H), Int.(lx))
+min(dz,dx) == 3
+```
+
+== Example 4.3: Decoding for linear codes
+The decoding problem for linear codes is to find the most likely error pattern given the syndrome, where the syndrome is obtained from the stabilizer measurements. For a linear code defined by the parity check matrix $H$, the error pattern $e$ is related to the syndrome $s$ by $s = H e$.
+The decoding problem is to find the error pattern $e$ that is most likely to occur for any given syndrome $s$.
+Under the assumption that the most likely error pattern has the minimum weight, it can be formulated as an integer programming problem as follows@landahl2011fault:
+$
+min quad &sum^n_(i = 1) e_i\
+"s.t." quad & sum^n_(j = 1)H_(i j) e_j = 2 k_i + s_i quad triangle.small.r "equivalent to " H e = s "in" bb(F)^n_2\
+&e_j in {0,1}, k_i in bb(Z)
+$
+In the following, we use the Hamming code as an example to show how to decode the error pattern with JuMP:
+
+```julia
+using JuMP, HiGHS
+using TensorQEC: Mod2
+
+function ip_decode(H::Matrix{Int}, sydrome::Vector{Mod2}; verbose::Bool = false)
+    m,n = size(H)
+    model = Model(HiGHS.Optimizer)
+    !verbose && set_silent(model)
+
+    @variable(model, 0 <= z[i = 1:n] <= 1, Int)
+    @variable(model, 0 <= k[i = 1:m], Int)
+    
+    for i in 1:m
+        @constraint(model, sum(z[j] for j in 1:n if H[i,j] == 1) == 2 * k[i] + (sydrome[i].x ? 1 : 0))
+    end
+
+    @objective(model, Min, sum(z[j] for j in 1:n))
+    optimize!(model)
+    @assert is_solved_and_feasible(model) "The problem is infeasible!"
+    return Mod2.(value.(z) .> 0.5)
+end
+
+H = Mod2[0 0 0 1 1 1 1; 0 1 1 0 0 1 1; 1 0 1 0 1 0 1]
+error_bits = Mod2[1, 0, 0, 0, 0, 0, 0]  # Some random error pattern
+syd = H * error_bits
+
+ip_decode(Int.(H),syd) == error_bits
+```
 
 = Semidefinite Programming (SDP)
 _Semidefinite programming_ is a generalization of linear programming. It is also a convex optimization problem, hence it is easy to solve.
