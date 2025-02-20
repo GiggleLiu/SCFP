@@ -39,10 +39,31 @@
 
 #outline-slide()
 
-= Create a Julia package
-== What is a Julia package?
+== Script or package?
+- When to write a script? Never.
+- When to write a "package"? Always.
+  - Easy to reproduce results (dependency management)
+  - Easy to share and install (can be installed by others)
+  - Easy to test (automated testing to ensure the correctness)
+  - Easy to document
+  - Easy to distribute
+  - ...
 
-Julia package management is important, regardless of whether you are a package developer or not.
+= The structure of a Julia package
+== Case study: OMEinsum.jl
+
+Develop TropicalNumbers.jl
+
+```julia-repl
+(@v1.10) pkg> dev TropicalNumbers
+```
+
+Then you will see a new folder named `TropicalNumbers` in the `~/.julia/dev` folder.
+
+Use VSCode to open the folder.
+
+== What is in a Julia package?
+
 
 - Source code
 - Unit tests
@@ -53,20 +74,6 @@ Julia package management is important, regardless of whether you are a package d
 - README
 - ...
 
-== Case study: OMEinsum.jl
-
-To install OMEinsum
-
-Type `]` in a Julia REPL to enter the package mode (powered by *package manager*).
-
-```julia-repl
-(@v1.10) pkg> add OMEinsum
-```
-The string before `pkg>` is the environment name, and the default value is the Julia version name, which is also known as the *global environment*.
-
-== GitHub based package management
-
-*public repository*: https://github.com/under-Peter/OMEinsum.jl
 
 == The package registry
 #canvas({

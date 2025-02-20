@@ -249,7 +249,7 @@ The corresponding einsum notation is `ij,jk,ki->`. From this diagram, we can see
 
 == Hidden Markov model
 
-A Hidden Markov Model (HMM) is a statistical model that describes a Markov process with unobserved (hidden) states. The model consists of:
+A Hidden Markov Model (HMM)@Bishop2006 is a simple probabilistic graphical model that describes a Markov process with unobserved (hidden) states. The model consists of:
 
 - A sequence of hidden states $z_t$ following a Markov chain with transition probability $P(z_(t+1)|z_t)$
 - A sequence of observations $x_t$ that depend only on the current hidden state through emission probability $P(x_t|z_t)$
@@ -280,7 +280,9 @@ Note that the conditional probability $P(z_(t)|z_(t-1))$ can be represented as a
   }
   line("A0", (rel: (-1, 0)))
   content((rel: (-0.3, 0)), s[$z_0$])
-}))
+}),
+caption: [The tensor network representation of a Hidden Markov Model (HMM) with observed variables $x_1, x_2, dots, x_T$ and hidden states $z_0, z_1, dots, z_T$. The circles are conditional probabilities $P(z_t|z_(t-1))$ and $P(x_t|z_t)$.]
+)
 
 This is the decoding problem of HMM: Given a sequence of observations $bold(x) = (x_1, x_2, ..., x_T)$, how to find the most likely sequence of hidden states $bold(z)$? The equivalent mathematical formulation is:
 $
@@ -293,11 +295,12 @@ $
   V_0 = emptyset
   )
 $ <eq:decoding-tensor>
-Since the observations $x_1, x_2, dots, x_T$ are fixed and not involved in the contraction, $P(overshell(x)_t|z_t)$ is a vector indexed by $z_t$ rather than a matrix.
+Since $overshell(x)_1, overshell(x)_2, dots, overshell(x)_T$ are fixed and not involved in the contraction, $P(overshell(x)_t|z_t)$ is a vector indexed by $z_t$ rather than a matrix.
 To solve @eq:decoding, we first convert @eq:decoding-tensor into a tropical tensor network $(Lambda, {log(t) | t in cal(T)}, V_0)$, where $log(t)$ is obtained by taking the logarithm of each element in $t$. Then the contraction of this tropical tensor network is equivalent to
 $
-  arg max_(bold(z)) sum_(bold(z)) L(z_0) + sum_(t=1)^T L(z_t|z_(t-1)) + sum_(t=1)^T L(overshell(x)_t|z_t).
+  arg max_(bold(z)) sum_(bold(z)) log P(z_0) + sum_(t=1)^T log P(z_t|z_(t-1)) + sum_(t=1)^T log P(overshell(x)_t|z_t),
 $
+which solves the decoding problem.
 Since this tensor network has a chain structure, its contraction is computationally efficient.
 This algorithm is equivalent to the Viterbi algorithm.
 
@@ -374,234 +377,3 @@ Only one singular value is non-zero, so the state is not entangled.
 Task 1: Representing a quantum state with tensor networks
 1. How to represent the product state $|0 angle.r times.circle |0 angle.r$ with tensor network diagram?
 2. How to represent the GHZ state $ frac(|0 0 1 angle.r + |1 1 1 angle.r, sqrt(2))$ with tensor network diagram?
-
-= Quantum State and Matrix product state (MPS)
-
-== Definition
-
-Tensor network is an efficient data structure for reducing the storage cost of a high dimensional data@Cichocki2014, which is widely used in quantum many-body physics. The matrix product state (MPS) is a special form of tensor network, which is used to represent a quantum state in one-dimensional lattice systems. The MPS is defined as
-$
-| psi angle.r = sum_(i_1, i_2, ..., i_n) tr(A_1^(i_1) A_2^(i_2) ... A_n^(i_n)) |i_1 i_2 ... i_n angle.r
-$
-where $A_k^(i_k)$ is a rank-3 tensor, and $i_k$ is the physical index. The bond dimension $chi$ is the number of non-zero elements in the diagonal of the singular value matrix $S$.
-
-#figure(pad(canvas({
-  import draw: *
-  for (i, name) in ((1, "A1"), (2, "A2"), (3, "A3"), (4, "A4")) {
-    tensor((2*i, 1), name, [$A_#i$])
-    line(name, (2*i, 2))
-    content((2*i, 2.3), $i_#i$)
-  }
-  for (i, j) in (("A1", "A2"), ("A2", "A3"), ("A3", "A4")) {
-      line(i, j, stroke: 3pt)
-  }
-  content((2.3, 1.8), $d$)
-  content((3, 1.4), $chi$)
-}), x:20pt),
-caption: [A matrix product state (MPS) with virtual bond dimension $chi$ (thick lines) and physical bond dimension $d$.]
-)
-
-Task 2: Data compression with matrix product states
-
-What is the data compression ratio of a $n$-site matrix product state with bond dimension $chi$ and local dimension $d$?
-
-== Operations
-=== Convert a quantum state to a tensor network
-
-A quantum state can be represented as a hypercubic tensor. For example, a 4 qubits state can be diagrammatically represented as
-#pad(canvas({
-  import draw: *
-  tensor((0, 0), "A", [$A$])
-  line("A", (rel: (1.2, 0)))
-  line("A", (rel: (-1.2, 0)))
-  line("A", (rel: (0, 1.2)))
-  line("A", (rel: (0, -1.2)))
-  set-origin((2, 0))
-  content((0, 0), "=")
-  set-origin((2, 0))
-
-  tensor((0, 0), "B", [$A_1$])
-  tensor((2, 0), "C", [$A_(2-4)$])
-  line("B", (rel: (1.2, 0)))
-  line("B", "C", stroke: 3pt)
-  line("C", (rel: (1.2, 0)))
-  line("C", (rel: (0, -1.2)))
-  line("B", (rel: (0, 1.2)))
-  line("C", (rel: (0, 1.2)))
- 
-  set-origin((-2, -3))
-  content((0, 0), "=")
-  set-origin((0, -1))
-  for (i, name) in ((1, "A1"), (2, "A2"), (3, "A3"), (4, "A4")) {
-    tensor((2*i, 1), name, [$A_#i$])
-    line(name, (2*i, 2))
-  }
-  for (i, j) in (("A1", "A2"), ("A2", "A3"), ("A3", "A4")) {
-      line(i, j, stroke: 3pt)
-  }
-}), x:20pt)
-
-=== Convert a MPS to a canonical form
-
-A matrix is isometric if its conjugate transpose is its inverse, i.e. $U^dagger U = I$. For tensors, isometry can be defined in different ways. A tensor $A$ in the MPS is left canonical if the following equation holds
-
-#pad(canvas({
-  import draw: *
-  tensor((0, -1), "A", [$L$])
-  tensor((0, 1), "B", [$L^*$])
-  line("A", "B")
-  line("A", (rel: (1.2, 0)))
-  line("B", (rel: (1.2, 0)))
-  bezier("A.west", "B.west", (-1.5, -1), (-1.5, 1), name:"line")
-  set-origin((1.2, 0))
-  content((), "=")
-  set-origin((3, 0))
-  bezier((0, -1), (0, 1), (-1, -1), (-1, 1), name:"line")
-}), x:20pt)
-
-right canonical if
-
-#pad(canvas({
-  import draw: *
-  tensor((0, -1), "A", [$R$])
-  tensor((0, 1), "B", [$R^*$])
-  line("A", "B")
-  line("A", (rel: (-1.2, 0)))
-  line("B", (rel: (-1.2, 0)))
-  bezier("A.east", "B.east", (1.5, -1), (1.5, 1), name:"line")
-  set-origin((1.2, 0))
-  content((), "=")
-  set-origin((2.5, 0))
-  bezier((0, -1), (0, 1), (1, -1), (1, 1), name:"line")
-}), x:20pt)
-
-An MPS can be converted to a canonical form by applying the singular value decomposition to each tensor. The left canonical form is obtained by applying the SVD to each tensor from the left to the right, and the right canonical form is obtained by applying the SVD from the right to the left.
-
-=== Inner product and optimal contraction order
-
-#pad(canvas({
-  import draw: *
-  for (i, name) in ((1, "A1"), (2, "A2"), (3, "A3"), (4, "A4")) {
-    tensor((2*i, 3), name+"*", [$A_#i^*$])
-    tensor((2*i, 1), name, [$A_#i$])
-    line(name, name+"*")
-  }
-  for (i, j) in (("A1", "A2"), ("A2", "A3"), ("A3", "A4")) {
-      line(i+"*", j+"*", stroke: 3pt)
-      line(i, j, stroke: 3pt)
-  }
-}), x:20pt)
-
-The contraction order can be represented as a contraction tree, where the leaves are the tensors and the internal nodes are the contractions. The goal of contraction order optimization is to minimize the computational cost, including the time complexity, the memory usage and the read/write operations. Multiple algorithms@Kalachev2021@Gray2021 to find optimal contraction orders could be found in #link("https://arrogantgao.github.io/blogs/contractionorder/")[this blog post].
-
-One of the optimal (in space) contraciton order for the inner product of the two states is
-
-#pad(canvas({
-  import draw: *
-  tree.tree(
-    ([], ([], ([], ([], [$A_1$], [$A_1^*$]), [$A_2$]), [$A_2^*$]), ([], ([], ([], [$A_4$], [$A_4^*$]), [$A_3$]), [$A_3^*$])),
-    draw-node: (node, ..) => {
-      tensor((), "", [#node.content])
-    },
-    grow: 1.5,
-    spread: 1.5
-  )
-}), x:20pt)
-
-Optimal contraction order of a glued tree tensor network
-
-1. What is the time complexity, memory usage and read/write operations of the above contraction order?
-2. Given a tree tensor network, what is the optimal contraction order to compute the inner product of the two states? The inner product of a tree tensor network is diagrammatically represented as
-#pad(canvas({
-import draw: *
-tensor((3, 5), "B1*", [$B_1^*$])
-  tensor((3, -1), "B1", [$B_1$])
-  tensor((7, 5), "B2*", [$B_2^*$])
-  tensor((7, -1), "B2", [$B_2$])
-  tensor((5, 7), "C1*", [$C_1^*$])
-  tensor((5, -3), "C1", [$C_1$])
-  for (i, name) in ((1, "A1"), (2, "A2"), (3, "A3"), (4, "A4")) {
-    tensor((2*i, 3), name+"*", [$A_#i^*$])
-    tensor((2*i, 1), name, [$A_#i$])
-    line(name, name+"*")
-  }
-  line("A1*", "B1*", stroke: 3pt)
-  line("A1", "B1", stroke: 3pt)
-  line("A2*", "B1*", stroke: 3pt)
-  line("A2", "B1", stroke: 3pt)
-  line("A4*", "B2*", stroke: 3pt)
-  line("A4", "B2", stroke: 3pt)
-  line("A3*", "B2*", stroke: 3pt)
-  line("A3", "B2", stroke: 3pt)
-  line("B1*", "C1*", stroke: 3pt)
-  line("B1", "C1", stroke: 3pt)
-  line("B2*", "C1*", stroke: 3pt)
-  line("B2", "C1", stroke: 3pt)
-}), x:20pt)
-
-Tensor transformation
-
-How to make a transform between the following two tensor networks? i.e. given $A$, $B$ and $C$ on the left, find $X$, $Y$ and $Z$ on the right, and vise versa. (credit: Huan-Hai Zhou)
-#pad(canvas({
-import draw: *
-tensor((0, 0), "A", [$A$])
-  tensor((-1, -calc.sqrt(3)), "B", [$B$])
-  tensor((1, -calc.sqrt(3)), "C", [$C$])
-  line("A", "B")
-  line("A", "C")
-  line("B", "C")
-  line("A", (rel: (0, 1.3)))
-  line("B", (rel: (-1.3*calc.cos(calc.pi/6), -1.3*calc.sin(calc.pi/6))))
-  line("C", (rel: (1.3*calc.cos(calc.pi/6), -1.3*calc.sin(calc.pi/6))))
-
-  set-origin((1.5, -0.5))
-  content((), sym.arrow.l.r.double)
-  set-origin((4.5, 0.5))
-
-  tensor((0, 0), "A", [$X$])
-  tensor((-1, -calc.sqrt(3)), "B", [$Y$])
-  tensor((1, -calc.sqrt(3)), "C", [$Z$])
-  let center = (0, -2/calc.sqrt(3))
-  line("A", center)
-  line("B", center)
-  line("C", center)
-  line("A", (rel: (0, 1.3)))
-  line("B", (rel: (-1.3*calc.cos(calc.pi/6), -1.3*calc.sin(calc.pi/6))))
-  line("C", (rel: (1.3*calc.cos(calc.pi/6), -1.3*calc.sin(calc.pi/6))))
-  }), x:30pt)
-
-
-== Born machine
-
-The partition function $Z$ is defined as the following tensor network
-#align(center, canvas({
-  import draw: *
-  let n = 5
-  for i in range(n){
-    tensor((i*1.5, 0), "A'_" + str(i), [$A'_#i$])
-    tensor((i*1.5, -1.5), "A_" + str(i), [$A_#i$])
-  }
-  for i in range(n){
-    line("A'_" + str(i), "A_" + str(i), name: "line_" + str(i))
-    content((rel: (-0.3, 0), to: "line_" + str(i) + ".mid"), [$x_#(i+1)$], align: center, fill:white, frame:"rect", padding:0.1, stroke: none)
-  }
-  for i in range(n - 1){
-    line("A_" + str(i), "A_" + str(i+1))
-    line("A'_" + str(i), "A'_" + str(i+1))
-  }
-}))
-
-We use the log-likelihood as the loss function
-$
-cal(L)=-1/m sum_(bold(x) in "data") ln P(bold(x))
-$
-where $P(bold(x))$ is the probability of the data $bold(x)$ given the model. It is defined as $p(x)\/Z$, where $p(x) = psi^*(x) psi(x)$ is the unnormalized probability of the data $bold(x)$ and $Z$ is the partition function.
-
-The gradient of the loss function is
-$
-nabla cal(L)=-2/m sum_(bold(x) in "data") (nabla psi(bold(x)))/psi(bold(x)) + (nabla Z)/Z
-$
-
-#pagebreak()
-
-#bibliography("refs.bib")
