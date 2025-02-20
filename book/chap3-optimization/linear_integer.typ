@@ -496,7 +496,7 @@ code_distance(H) == 3
 Here we verify that the code distance of the Hamming code is indeed $3$.
 
 == Example 4.2: Code distance of CSS quantum codes
-A CSS quantum code is quantum error correction code composed of $X$ stabilizers and $Z$ stabilizers that are characterized by two parity check matrices $H_x$ and $H_z$ respectively. #jinguo([cite]) The code distance of a CSS quantum code is the minimum of the code distance of the two classical codes defined by $H_x$ and $H_z$.
+A CSS quantum code is quantum error correction code composed of $X$ stabilizers and $Z$ stabilizers that are characterized by two parity check matrices $H_x$ and $H_z$ respectively@calderbank1996good@steane1996multiple. The code distance of a CSS quantum code is the minimum of the code distance of the two classical codes defined by $H_x$ and $H_z$.
 $
   d = min(d_x, d_z),
 $
@@ -512,12 +512,12 @@ Here, the constraint
 - $overline(Z)_i z eq.not 0$: the logical $Z$ at $i$-th position does not commute with $z$, i.e. the logical state changes and the $overline(Z)_i$ operator value is changed. This constraint is the only difference compared to the classical code distance problem.
 // Compare to the classical code distance problem, the only difference is that we add a constraint $overline(Z)_i z eq.not 0$. Since the quantum logical $|overline(00000) angle.r$ is a superposition state, and we need to find a non-zero state $z$ not only in the code space but also in another logical space, like $|overline(01101) angle.r$. And logical $X$ and $Z$ operators are anti-commutative, we have at least one $overline(Z)_i z eq.not 0$.
 
-The above problem can be converted into an integer programming problem as follows:
+The above problem can be converted into an integer programming problem as follows@landahl2011fault@bravyi2024high:
 $
 min quad &sum^n_(i = 1) z_i\
 "s.t." quad & sum^n_(j = 1)H_(i j) z_j = 2 k_i quad triangle.small.r "equivalent to " H z = 0 "in" bb(F)^n_2\
 & sum^n_(j = 1) (overline(Z)_i)_j z_j = 2 l_j + r_j quad triangle.small.r "equivalent to " overline(Z)_i z = r_i "in" bb(F)^n_2\
-& sum^n_(i = 1) r_i >= 1\
+& sum^k_(i = 1) r_i >= 1\
 &z_j, r_j in {0,1}, k_i,l_j in bb(Z)
 $
 
