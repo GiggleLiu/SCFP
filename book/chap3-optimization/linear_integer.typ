@@ -470,8 +470,6 @@ The Julia implementation is as follows:
 using JuMP, HiGHS
 
 function code_distance(H::Matrix{Int}; verbose = false)
-    # H : m x n
-
     m,n = size(H)
     model = Model(HiGHS.Optimizer)
     !verbose && set_silent(model)
