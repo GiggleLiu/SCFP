@@ -430,7 +430,7 @@ A2 * B2 == C
 In this example, there are $m times k times n$ variables.
 For such a large number of variables, the integer programming solver can handle a problem of size $50 times 6 times 50$ in a few seconds.
 
-== Example 4: Code distance of linear codes
+== Example 4.1: Code distance of linear codes
 In classical error correction theory, information are encoded into codewords. The _code distance_ is the minimum Hamming distance between any two codewords. For a linear code, the code distance equals to the minimum weight of the non-zero codewords. Deciding whether the code distance is at least $d$ is known to be in complexity class NP-complete@vardy1997intractability, which is unlikely to be solvable in time polynomial in the input size.
 
 A linear code can be defined by a parity check matrix $H in bb(F)^(m times n)_2$, where $bb(F)_2$ is the finite field with two elements $(0+0 = 1+1 = 0,1+0 =0+1= 1,1 times 0=0 times 1=0 times 0 = 0,1 times 1 =1)$. The codewords are 
@@ -495,34 +495,38 @@ code_distance(H) == 3
 ```
 Here we verify that the code distance of the Hamming code is indeed $3$.
 
-== Example: Code distance of CSS quantum codes
-A CSS quantum code is usually defined by two parity check matrices $H_x$ and $H_z$. The code distance of a CSS quantum code is the minimum of the code distance of the two classical codes defined by $H_x$ and $H_z$.
+== Example 4.2: Code distance of CSS quantum codes
+A CSS quantum code is quantum error correction code composed of $X$ stabilizers and $Z$ stabilizers that are characterized by two parity check matrices $H_x$ and $H_z$ respectively. #jinguo([cite]) The code distance of a CSS quantum code is the minimum of the code distance of the two classical codes defined by $H_x$ and $H_z$.
 $
-  d = min(d_x, d_z)
+  d = min(d_x, d_z),
 $
-$d_x$ and $d_z$ are similar. Here we consider $d_z$ first
+where $d_z$ is defined as
 $
-  d_z = min_( z in C_z \ exists overline(Z_i) , overline(Z_i)*z eq.not 0)
+  d_z = min_( z in C_z \ exists overline(Z)_i , overline(Z)_i z eq.not 0) w(z),
 $
-Compare to the classical code distance problem, the only difference is that we add a constraint $overline(Z_i)*z eq.not 0$. Since the quantum logical $|overline(00 .... 0) angle.r$ is a superposition state, and we need to find a non-zero state $z$ not only in the code space but also in another logical space, like $|overline(01101) angle.r$. And logical $X$ and $Z$ operators are anti-commutative, we have at least one $overline(Z_i)*z eq.not 0$.
 
-It can be converted into an integer programming problem as follows:
+where $C_z$ is the code space defined by $H_z$, $overline(Z)_i$ is the $i$-th logical $Z$ operator, and $w(z)$ is the weight of $z$, i.e. the number of non-zero elements in $z$.
+$d_x$ is defined similarly.
+Here, the constraint
+- $z in C_z$: $z$ satisfies all constraints specified by $Z$ stabilizers, i.e. no Pauli-$X$ error happens.
+- $overline(Z)_i z eq.not 0$: the logical $Z$ at $i$-th position does not commute with $z$, i.e. the logical state changes and the $overline(Z)_i$ operator value is changed. This constraint is the only difference compared to the classical code distance problem.
+// Compare to the classical code distance problem, the only difference is that we add a constraint $overline(Z)_i z eq.not 0$. Since the quantum logical $|overline(00000) angle.r$ is a superposition state, and we need to find a non-zero state $z$ not only in the code space but also in another logical space, like $|overline(01101) angle.r$. And logical $X$ and $Z$ operators are anti-commutative, we have at least one $overline(Z)_i z eq.not 0$.
+
+The above problem can be converted into an integer programming problem as follows:
 $
 min quad &sum^n_(i = 1) z_i\
 "s.t." quad & sum^n_(j = 1)H_(i j) z_j = 2 k_i quad triangle.small.r "equivalent to " H z = 0 "in" bb(F)^n_2\
-& sum^n_(j = 1) overline(Z_i)_j z_j = 2 l_j + r_j quad triangle.small.r "equivalent to " overline(Z_i) z = r_i "in" bb(F)^n_2\
+& sum^n_(j = 1) (overline(Z)_i)_j z_j = 2 l_j + r_j quad triangle.small.r "equivalent to " overline(Z)_i z = r_i "in" bb(F)^n_2\
 & sum^n_(i = 1) r_i >= 1\
 &z_j, r_j in {0,1}, k_i,l_j in bb(Z)
 $
 
-The Julia implementation is as follows:
+In the following, we use the Steane code as an example. The Steane code is constructed using two Hamming code for protecting against both $X$ and $Z$ errors. Here we verify that the code distance of the Steane code is indeed $3$ with JuMP:
 ```julia
 using JuMP, HiGHS
 
 function code_distance(Hz::Matrix{Int},lz::Matrix{Int}; verbose = false)
-    # H : m x n
-
-    m,n = size(Hz)
+    m, n = size(Hz)
     num_lz = size(lz, 1)
     model = Model(HiGHS.Optimizer)
     !verbose && set_silent(model)
@@ -555,7 +559,6 @@ dz = code_distance(Int.(tanner.stgz.H), Int.(lz))
 dx = code_distance(Int.(tanner.stgx.H), Int.(lx))
 min(dz,dx) == 3
 ```
-Steane code is constructed using two Hamming code for protecting against both $X$ and $Z$ errors. Here we verify that the code distance of the Steane code is indeed $3$.
 = Semidefinite Programming (SDP)
 _Semidefinite programming_ is a generalization of linear programming. It is also a convex optimization problem, hence it is easy to solve.
 
