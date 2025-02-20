@@ -557,6 +557,44 @@ dz = code_distance(Int.(tanner.stgz.H), Int.(lz))
 dx = code_distance(Int.(tanner.stgx.H), Int.(lx))
 min(dz,dx) == 3
 ```
+
+== Example 4.3: Decoding for linear codes
+The decoding problem for linear codes is to find the shortest error pattern given the syndrome. The syndrome is the result of measuring the stabilizers. The linear code is defined by the parity check matrix $H$. Suppose the error pattern is $e$, then the syndrome is $s = H e$. We only know the syndrome $s$ and need to find the shortest error pattern $e$. The decoding problem can be formulated as an integer programming problem as follows@landahl2011fault:
+$
+min quad &sum^n_(i = 1) e_i\
+"s.t." quad & sum^n_(j = 1)H_(i j) e_j = 2 k_i + s_i quad triangle.small.r "equivalent to " H e = s "in" bb(F)^n_2\
+&e_j in {0,1}, k_i in bb(Z)
+$
+In the following, we use the Hamming code as an example. Here we mannuly generate an error pattern and compute the syndrome. Then we use the syndrome to decode the error pattern with JuMP:
+
+```julia
+using JuMP, HiGHS,TensorQEC
+
+function ip_decode(H::Matrix{Int}, sydrome::Vector{Mod2}; verbose::Bool = false)
+    m,n = size(H)
+    model = Model(HiGHS.Optimizer)
+    !verbose && set_silent(model)
+
+    @variable(model, 0 <= z[i = 1:n] <= 1, Int)
+    @variable(model, 0 <= k[i = 1:m], Int)
+    
+    for i in 1:m
+        @constraint(model, sum(z[j] for j in 1:n if H[i,j] == 1) == 2 * k[i] + (sydrome[i].x ? 1 : 0))
+    end
+
+    @objective(model, Min, sum(z[j] for j in 1:n))
+    optimize!(model)
+    @assert is_solved_and_feasible(model) "The problem is infeasible!"
+    return Mod2.(value.(z) .> 0.5)
+end
+
+H = Mod2[0 0 0 1 1 1 1;0 1 1 0 0 1 1; 1 0 1 0 1 0 1]
+error_qubits = Mod2[1,0,0,0,0,0,0]
+syd = H*error_qubits
+
+ip_decode(Int.(H),syd) == error_qubits
+```
+
 = Semidefinite Programming (SDP)
 _Semidefinite programming_ is a generalization of linear programming. It is also a convex optimization problem, hence it is easy to solve.
 
