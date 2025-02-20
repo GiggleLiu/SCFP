@@ -559,13 +559,15 @@ min(dz,dx) == 3
 ```
 
 == Example 4.3: Decoding for linear codes
-The decoding problem for linear codes is to find the shortest error pattern given the syndrome. The syndrome is the result of measuring the stabilizers. The linear code is defined by the parity check matrix $H$. Suppose the error pattern is $e$, then the syndrome is $s = H e$. We only know the syndrome $s$ and need to find the shortest error pattern $e$. The decoding problem can be formulated as an integer programming problem as follows@landahl2011fault:
+The decoding problem for linear codes is to find the most likely error pattern given the syndrome, where the syndrome is obtained from the stabilizer measurements. For a linear code defined by the parity check matrix $H$, the error pattern $e$ is related to the syndrome $s$ by $s = H e$.
+The decoding problem is to find the error pattern $e$ that is most likely to occur for any given syndrome $s$.
+Under the assumption that the most likely error pattern has the minimum weight, it can be formulated as an integer programming problem as follows@landahl2011fault:
 $
 min quad &sum^n_(i = 1) e_i\
 "s.t." quad & sum^n_(j = 1)H_(i j) e_j = 2 k_i + s_i quad triangle.small.r "equivalent to " H e = s "in" bb(F)^n_2\
 &e_j in {0,1}, k_i in bb(Z)
 $
-In the following, we use the Hamming code as an example. Here we mannuly generate an error pattern and compute the syndrome. Then we use the syndrome to decode the error pattern with JuMP:
+In the following, we use the Hamming code as an example to show how to decode the error pattern with JuMP:
 
 ```julia
 using JuMP, HiGHS
@@ -589,9 +591,9 @@ function ip_decode(H::Matrix{Int}, sydrome::Vector{Mod2}; verbose::Bool = false)
     return Mod2.(value.(z) .> 0.5)
 end
 
-H = Mod2[0 0 0 1 1 1 1;0 1 1 0 0 1 1; 1 0 1 0 1 0 1]
-error_bits = Mod2[1,0,0,0,0,0,0]
-syd = H*error_bits
+H = Mod2[0 0 0 1 1 1 1; 0 1 1 0 0 1 1; 1 0 1 0 1 0 1]
+error_bits = Mod2[1, 0, 0, 0, 0, 0, 0]  # Some random error pattern
+syd = H * error_bits
 
 ip_decode(Int.(H),syd) == error_bits
 ```
