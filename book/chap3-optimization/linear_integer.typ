@@ -568,7 +568,8 @@ $
 In the following, we use the Hamming code as an example. Here we mannuly generate an error pattern and compute the syndrome. Then we use the syndrome to decode the error pattern with JuMP:
 
 ```julia
-using JuMP, HiGHS,TensorQEC
+using JuMP, HiGHS
+using TensorQEC: Mod2
 
 function ip_decode(H::Matrix{Int}, sydrome::Vector{Mod2}; verbose::Bool = false)
     m,n = size(H)
@@ -589,10 +590,10 @@ function ip_decode(H::Matrix{Int}, sydrome::Vector{Mod2}; verbose::Bool = false)
 end
 
 H = Mod2[0 0 0 1 1 1 1;0 1 1 0 0 1 1; 1 0 1 0 1 0 1]
-error_qubits = Mod2[1,0,0,0,0,0,0]
-syd = H*error_qubits
+error_bits = Mod2[1,0,0,0,0,0,0]
+syd = H*error_bits
 
-ip_decode(Int.(H),syd) == error_qubits
+ip_decode(Int.(H),syd) == error_bits
 ```
 
 = Semidefinite Programming (SDP)
