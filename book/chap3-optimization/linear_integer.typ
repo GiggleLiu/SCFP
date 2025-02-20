@@ -14,7 +14,7 @@
 #let jinguo(c) = text(red)[[JG: #c]]
 
 #align(center, [= Mathematical Optimization\
-_Jin-Guo Liu_])
+_Jin-Guo Liu and Zhong-Yi Ni_])
 
 = Linear Programming (LP)
 _Linear Programming_ deals with the problem of optimizing a *linear objective function* subject to *linear equality and inequality constraints* on *real* variables. It is a convex optimization problem, hence it is easy to solve. A linear programming problem of $n$ variables is formulated as the following _canonical form_:
@@ -430,6 +430,71 @@ A2 * B2 == C
 In this example, there are $m times k times n$ variables.
 For such a large number of variables, the integer programming solver can handle a problem of size $50 times 6 times 50$ in a few seconds.
 
+== Example 4: Code distance of linear codes
+In classical error correction theory, information are encoded into codewords. The _code distance_ is the minimum Hamming distance between any two codewords. For a linear code, the code distance equals to the minimum weight of the non-zero codewords. Deciding whether the code distance is at least $d$ is known to be in complexity class NP-complete@vardy1997intractability, which is unlikely to be solvable in time polynomial in the input size.
+
+A linear code can be defined by a parity check matrix $H in bb(F)^(m times n)_2$, where $bb(F)_2$ is the finite field with two elements $(0+0 = 1+1 = 0,1+0 =0+1= 1,1 times 0=0 times 1=0 times 0 = 0,1 times 1 =1)$. The codewords are 
+$
+  C = {x in bb(F)^n_2 | H x = 0},
+$
+and the code distance is
+$
+  d = min_(0 eq.not x in C) w(x)
+$
+where $w(x)$ is the weight of $x$, i.e. the number of non-zero elements in $x$.
+Take the Hamming code as an example, the parity check matrix is
+$
+H = mat(0,0,0,1,1,1,1; 0,1,1,0,0,1,1; 1,0,1,0,1,0,1).
+$
+It has $16$ codewords, which can encode $4$ bits into $7$ bits.
+The code distance of the Hamming code is $3$, since the minimum weight of the non-zero codewords is 
+$
+  w(mat(0,1,0,1,0,1,0)^T) = 3.
+$
+To find the code distance of a linear code, we can formulate it as:
+$
+  min quad & w(z)\
+"s.t." quad &H z = 0\
+&z eq.not 0\ 
+$
+It can be converted into an integer programming problem as follows:
+$
+min quad &sum^n_(i = 1) z_i\
+"s.t." quad & sum^n_(j = 1)H_(i j) z_j = 2 k_i quad triangle.small.r "equivalent to " H z = 0 "in" bb(F)^n_2\
+& sum^n_(i = 1) z_i >= 1\
+&z_j in {0,1}, k_i in bb(Z), H_(i j) in bb(Z)
+$
+
+The Julia implementation is as follows:
+```julia
+using JuMP, HiGHS
+
+function code_distance(H::Matrix{Int}; verbose = false)
+    # H : m x n
+
+    m,n = size(H)
+    model = Model(HiGHS.Optimizer)
+    !verbose && set_silent(model)
+
+    @variable(model, 0 <= z[i = 1:n] <= 1, Int)
+    @variable(model, 0 <= k[i = 1:m], Int)
+    
+    for i in 1:m
+        @constraint(model, sum(z[j] for j in 1:n if H[i,j] == 1) == 2 * k[i])
+    end
+    @constraint(model, sum(z[j] for j in 1:n) >= 1)
+
+    @objective(model, Min, sum(z[j] for j in 1:n))
+    optimize!(model)
+    @assert is_solved_and_feasible(model) "The problem is infeasible!"
+    return  objective_value(model)
+end
+
+H = [0 0 0 1 1 1 1;0 1 1 0 0 1 1; 1 0 1 0 1 0 1]
+code_distance(H) == 3
+```
+Here we verify that the code distance of the Hamming code is indeed $3$.
+
 = Semidefinite Programming (SDP)
 _Semidefinite programming_ is a generalization of linear programming. It is also a convex optimization problem, hence it is easy to solve.
 
@@ -450,7 +515,7 @@ $
 Here $A_1,...,A_k$ and $b_1,...,b_k$ are input constraints. It is very common to have: $f(X) = tr(C X)$ for some $C$. I.e. to have our objective be a linear function in $X$. Let us vectorize $X$ as $x in bb(R)^(n^2)$ and compare the above problem with the LP in @eq:linear-programming, the only difference is that $X$ is constrained to be PSD instead of requiring every element of $X$ to be non-negative.
 SDP is more general than LP because a linear programming problem can be viewed as a special case of semidefinite programming problem where $X$ is a diagonal matrix.
 
-== Example 4: Spin-glass ground state problem
+== Example 5: Spin-glass ground state problem
 Let us consider obtaining an approximate solution to the spin-glass ground state problem.
 The tightest known approximation ratio for the maximum cut problem (a special case of the spin-glass ground state problem) is 0.878,
 which is achieved by using semidefinite programming @Goemans1995.
