@@ -462,7 +462,7 @@ $
 min quad &sum^n_(i = 1) z_i\
 "s.t." quad & sum^n_(j = 1)H_(i j) z_j = 2 k_i quad triangle.small.r "equivalent to " H z = 0 "in" bb(F)^n_2\
 & sum^n_(i = 1) z_i >= 1\
-&z_j in {0,1}, k_i in bb(Z), H_(i j) in bb(Z)
+&z_j in {0,1}, k_i in bb(Z)
 $
 
 The Julia implementation is as follows:
@@ -495,6 +495,67 @@ code_distance(H) == 3
 ```
 Here we verify that the code distance of the Hamming code is indeed $3$.
 
+== Example: Code distance of CSS quantum codes
+A CSS quantum code is usually defined by two parity check matrices $H_x$ and $H_z$. The code distance of a CSS quantum code is the minimum of the code distance of the two classical codes defined by $H_x$ and $H_z$.
+$
+  d = min(d_x, d_z)
+$
+$d_x$ and $d_z$ are similar. Here we consider $d_z$ first
+$
+  d_z = min_( z in C_z \ exists overline(Z_i) , overline(Z_i)*z eq.not 0)
+$
+Compare to the classical code distance problem, the only difference is that we add a constraint $overline(Z_i)*z eq.not 0$. Since the quantum logical $|overline(00 .... 0) angle.r$ is a superposition state, and we need to find a non-zero state $z$ not only in the code space but also in another logical space, like $|overline(01101) angle.r$. And logical $X$ and $Z$ operators are anti-commutative, we have at least one $overline(Z_i)*z eq.not 0$.
+
+It can be converted into an integer programming problem as follows:
+$
+min quad &sum^n_(i = 1) z_i\
+"s.t." quad & sum^n_(j = 1)H_(i j) z_j = 2 k_i quad triangle.small.r "equivalent to " H z = 0 "in" bb(F)^n_2\
+& sum^n_(j = 1) overline(Z_i)_j z_j = 2 l_j + r_j quad triangle.small.r "equivalent to " overline(Z_i) z = r_i "in" bb(F)^n_2\
+& sum^n_(i = 1) r_i >= 1\
+&z_j, r_j in {0,1}, k_i,l_j in bb(Z)
+$
+
+The Julia implementation is as follows:
+```julia
+using JuMP, HiGHS
+
+function code_distance(Hz::Matrix{Int},lz::Matrix{Int}; verbose = false)
+    # H : m x n
+
+    m,n = size(Hz)
+    num_lz = size(lz, 1)
+    model = Model(HiGHS.Optimizer)
+    !verbose && set_silent(model)
+
+    @variable(model, 0 <= z[i = 1:n] <= 1, Int)
+    @variable(model, 0 <= k[i = 1:m], Int)
+    @variable(model, 0 <= l[i = 1:num_lz], Int)
+    @variable(model, 0 <= r[i = 1:num_lz] <= 1, Int)
+    
+    for i in 1:m
+        @constraint(model, sum(z[j] for j in 1:n if Hz[i,j] == 1) == 2 * k[i])
+    end
+
+    for i in 1:num_lz
+        @constraint(model, sum(z[j] for j in 1:n if lz[i,j] == 1) == 2*l[i] + r[i])
+    end
+    @constraint(model, sum(r[i] for i in 1:num_lz) >= 1)
+
+    @objective(model, Min, sum(z[j] for j in 1:n))
+    optimize!(model)
+    @assert is_solved_and_feasible(model) "The problem is infeasible!"
+    return  objective_value(model)
+end
+
+using TensorQEC:logical_oprator,SteaneCode,CSSTannerGraph
+
+tanner = CSSTannerGraph(SteaneCode())
+lx,lz = logical_oprator(tanner)
+dz = code_distance(Int.(tanner.stgz.H), Int.(lz))
+dx = code_distance(Int.(tanner.stgx.H), Int.(lx))
+min(dz,dx) == 3
+```
+Steane code is constructed using two Hamming code for protecting against both $X$ and $Z$ errors. Here we verify that the code distance of the Steane code is indeed $3$.
 = Semidefinite Programming (SDP)
 _Semidefinite programming_ is a generalization of linear programming. It is also a convex optimization problem, hence it is easy to solve.
 
