@@ -334,48 +334,4 @@ The kronecker product of two matrices $A_(i j)$ and $B_(k l)$, i.e. $A_(i j) tim
   content((0, 1), `ij,kl->ijkl`)
 }), x:25pt)
 
-= Quantum state
-
-Single qubit states can be represented as a column vector, e.g.
-
-$
-|0 angle.r = mat( 1; 0 )\
-|1 angle.r = mat( 0; 1 )
-$
-
-A multi-qubit state can be represented as a superposition of tensor product of single qubit states, e.g.
-$
-| psi angle.r &= sum_(i_1, i_2, ..., i_n) c_(i_1 i_2 ... i_n) |i_1 angle.r times.circle |i_2 angle.r times.circle ... times.circle |i_n angle.r \
-&= sum_(i_1, i_2, ..., i_n) c_(i_1 i_2 ... i_n) |i_1 i_2 ... i_n angle.r
-$
-
-
-== Schmidt decomposition of a bi-partite state
-
-Schmidt decomposition of a bi-partite state $| psi angle.r_(A B)$ is a decomposition of the state into a sum of product states, which is unique up to a global phase.
-$
-| psi_(A B) angle.r = sum_i lambda_i |i angle.r_A times.circle |i angle.r_B
-$
-where $lambda_i$ are non-negative real numbers and $sum_i lambda_i^2 = 1$.
-It is easy to verify that the Schmidt coefficients $lambda_i$ correspond to the non-zero elements on the diagonal of $S$.
-
-The Schmidt decomposition can be obtained by the singular value decomposition of the state matrix $A$.
-Given a uniform state $| psi angle.r_(A B) = frac(1, 2) (|0 0 angle.r + |01 angle.r + |10 angle.r + |11 angle.r)$, the state matrix $A$ is
-
-//In the $| psi angle.r_("uniform")$ example, the state matrix $A$ is
-$
-A = frac(1, 2) mat(1, 1; 1, 1)
-$
-Its singular value decomposition is
-$
-A = frac(1, sqrt(2)) mat(1, 1; 1, -1) mat(1, 0; 0, 0) frac(1, sqrt(2)) mat(1, 1; 1, -1)^dagger
-$
-Only one singular value is non-zero, so the state is not entangled.
-
-== Quantum state and tensor network
-
-Task 1: Representing a quantum state with tensor networks
-1. How to represent the product state $|0 angle.r times.circle |0 angle.r$ with tensor network diagram?
-2. How to represent the GHZ state $ frac(|0 0 1 angle.r + |1 1 1 angle.r, sqrt(2))$ with tensor network diagram?
-
 #bibliography("refs.bib")

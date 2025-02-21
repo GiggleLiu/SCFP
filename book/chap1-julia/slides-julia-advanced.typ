@@ -55,9 +55,37 @@
   - #text(red)[High-performance computing]
   - #text(red)[Arrays and some useful functionals]
 
-= Package development
+= Package structure
+
+== Correctness - from programming to software engineering
+#timecounter(2)
+
+- Spent enourmous time debugging?
+- Can not reproduce previous results?
+
+=== Modern software engineering
+
+#figure(canvas({
+  import draw: *
+  let s(it) = text(16pt, it)
+  content((0, 0), box(stroke: black, inset: 10pt, s[Code + Unit Test]), name: "code")
+  content((7, 0), box(stroke: black, inset: 10pt, s[GitHub]), name: "github")
+  content((14, 0), box(stroke: black, inset: 10pt, s[CI/CD]), name: "cicd")
+  line("code", "github", mark: (end: "straight"), name: "upload")
+  content((rel: (0, -0.5), to: "upload.mid"), s[Upload])
+
+  line("github", "cicd", mark: (end: "straight"), name: "trigger")
+  content((rel: (0, -0.5), to: "trigger.mid"), s[Trigger])
+  bezier("cicd.east", "cicd.north", (rel: (1.0, 1.0)), (rel: (-1.0, 1.0)), mark: (end: "straight"))
+  content((rel: (2, 2), to: "cicd"), s[Create an empty virtual machine\ and run the tests])
+}))
+
+- _Unit test_: a collection of inputs and expected outputs for a function. It is used to verify the correctness of functions.
+- _CI/CD_: Continuous Integration/Continuous Deployment, which is an automation process that runs the unit tests, documentation building, and deployment.
+- _Virtual machine_: implemented with the containerization technology.
 
 == Script or package?
+#timecounter(1)
 - When to write a script? Never.
 - When to write a "package"? Always.
   - Simple to use, little overhead
@@ -68,6 +96,7 @@
   - ...
 
 == Case study: TropicalNumbers.jl
+#timecounter(2)
 
 - Install `TropicalNumbers.jl` in developer mode
   ```julia
@@ -82,6 +111,7 @@
   ```
 
 == The file structure of the package
+#timecounter(2)
 
 #box(text(16pt)[```bash
 $ tree . -a    # installing `tree` required
@@ -99,9 +129,72 @@ $ tree . -a    # installing `tree` required
 └── test              # Test code
 ```
 ])
-Note: To install `tree`, use `brew install tree` on macOS or `sudo apt install tree` on Ubuntu/WSL.
+Note: To install `tree` command, use `brew install tree` on macOS or `sudo apt install tree` on Ubuntu/WSL.
+
+== Package content
+#timecounter(2)
+- `src`: the folder that contains the source code of the package.
+  - `src/TropicalNumbers.jl`: the main source code of the package. It contains a module named `TropicalNumbers`. It includes multiple other files with the `include` statement.
+    #box(text(16pt)[```julia
+    module TropicalNumbers
+      using Package-1, Package-2, ...  # import other packages
+      export API-1, API-2...           # export the API
+      include("file-1.jl")             # include other files
+      include("file-2.jl")            
+      ...
+    end
+    ```
+    ])
+- `test`: the folder that contains the test code of the package
+  - contains the main test file `runtests.jl`, which includes multiple test files.
+- `docs`: the folder that contains the documentation of the package. (not covered in this course)
+
+== Unit Tests
+#timecounter(1)
+- Unit Tests is a software testing method, which consists of:
+  - a collection of inputs and expected outputs for a function.
+  - "unit" means the test is for the smallest unit of the code, which is different from the _system tests_ that test the whole system.
+
+- Test passing: the function is working as expected (assertion is true), i.e. no feature breaks. Otherwise, the test will fail.
+- Test coverage: the percentage of the code that is covered by tests, i.e. the higher the coverage, the more *robust* the code is.
+
+==
+#timecounter(1)
+
+#box(text(13pt)[```julia
+julia> @testset "tropical max plus" begin
+           @test Tropical(3) * Tropical(4) == Tropical(7)  # pass
+           @test Tropical(3) * Tropical(4) == Tropical(4)  # fail
+       end
+tropical max plus: Test Failed at REPL[2]:3
+  Expression: Tropical(3) * Tropical(4) == Tropical(4)
+   Evaluated: 7ₜ == 4ₜ
+
+Stacktrace:
+ [1] macro expansion
+   @ ~/.julia/juliaup/julia-1.11.3+0.aarch64.apple.darwin14/share/julia/stdlib/v1.11/Test/src/Test.jl:679 [inlined]
+ [2] macro expansion
+   @ REPL[2]:3 [inlined]
+ [3] macro expansion
+   @ ~/.julia/juliaup/julia-1.11.3+0.aarch64.apple.darwin14/share/julia/stdlib/v1.11/Test/src/Test.jl:1704 [inlined]
+ [4] top-level scope
+   @ REPL[2]:2
+Test Summary:     | Pass  Fail  Total  Time
+tropical max plus |    1     1      2  0.0s
+ERROR: Some tests did not pass: 1 passed, 1 failed, 0 errored, 0 broken.
+```
+])
+
+==
+#timecounter(1)
+
+#image("images/tropicalpackage.png")
+
+- The CI of TropicalNumbers pass, meaning all tests pass. CI resolves the issue that a developer may not have a fresh machine to run the tests.
+- The code coverage of TropicalNumbers is 86%, meaning 86% of the code is covered by tests.
 
 == Git related files
+#timecounter(1)
 - `.git` and `.gitignore`: the files that are used by Git. The `.gitingore` file contains the files that should be ignored by Git. By default, the `.gitignore` file contains the following lines:
   ```gitignore
   *.jl.*.cov
@@ -112,9 +205,10 @@ Note: To install `tree`, use `brew install tree` on macOS or `sudo apt install t
   /dev/            # the `dev` folder
   ```
 
-- `.github`: the folder that contains the GitHub Actions configuration files.
+- `.github`: the folder that contains the GitHub Actions (a CI/CD system) configuration files.
 
 == Package meta-information
+#timecounter(1)
 - `LICENSE`: the file that contains the license of the package.
   - #link("https://en.wikipedia.org/wiki/MIT_License", "MIT"): a permissive free software license, featured with a short and simple permissive license with conditions only requiring preservation of copyright and license notices.
   - #link("https://en.wikipedia.org/wiki/Apache_License", "Apache2"): a permissive free software license, featured with a contributor license agreement and a patent grant.
@@ -123,7 +217,48 @@ Note: To install `tree`, use `brew install tree` on macOS or `sudo apt install t
 - `README.md`: the manual that shows up in the GitHub repository of the package, which contains the description of the package.
 - `Project.toml`: the file that contains the metadata of the package, including the name, UUID, version, dependencies and compatibility of the package. Package manager resolves the environment with the known registries and generates the `Manifest.toml` file.
 
-==
+== Project.toml
+#timecounter(1)
+
+#box(text(16pt)[```bash
+$ cat Project.toml
+name = "TropicalNumbers"
+uuid = "b3a74e9c-7526-4576-a4eb-79c0d4c32334"  # unique identifier of the package
+authors = ["GiggleLiu"]
+version = "0.6.2"  # version of the package
+
+[compat]
+julia = "1"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
+
+[targets]
+test = ["Test", "Documenter"]
+```
+])
+
+== Compatibility
+#timecounter(2)
+
+- Format: "`major.minor.patch`", major version "0" means the package is not very stable.
+
+#box(text(16pt)[```toml
+[compat]
+AMDGPU = "0.8"  # matches `0.8.0`, `0.8.1`, `0.8.2`, but not `0.9.0` or `0.7.0`.
+CUDA = "4, 5"   # matches `4.0.0`, `4.1.0`, `4.2.0`, `5.0.0`, but not `3.0.0` or `6.0.0`.
+ChainRulesCore = "1.2.1"  # matches `1.2.1`, `1.3.1`, but not `1.2.0` or `2.0.0`.
+julia = "1"
+```
+])
+
+- The *first nonzero number* must exactly match.
+- The *rest nonzero numbers* specifies the lower bound.
+- Multiple versions are separated by "`,`".
+
+== Resolving dependencies
+#timecounter(2)
 ```bash
 $ julia --project   # open the package environment
 ```
@@ -132,9 +267,26 @@ Press `]` to enter the package mode and then type
 (TropicalNumbers) pkg> instantiate
 ```
 to see the `Manifest.toml` file. The `Manifest.toml` file is generated by the package manager when the package is installed. It contains the exact versions of all the packages that are compatible with each other.
+```bash
+$ cat  Manifest.toml
+```
+
+== The global package environment
+```bash
+$ cat ~/.julia/environments/v1.11/Project.toml
+[deps]
+BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
+MethodAnalysis = "85b6ec6f-f7df-4429-9514-a64bcd9ee824"
+OMEinsum = "ebe7aa44-baf0-506c-a96f-8464559b3922"
+...
+```
+
+Note: it is not recommended to install all packages in the global environment. It may cause _version conflicts_.
+
 
 ==
-#canvas({
+#timecounter(1)
+#figure(canvas({
   import draw: *
   let s(it) = text(18pt, it)
   content((0, 0), box(stroke: black, inset: 10pt, radius: 4pt, align(center, s[Registry])), name: "General")
@@ -151,30 +303,13 @@ to see the `Manifest.toml` file. The `Manifest.toml` file is generated by the pa
   content((0, 7.5), image("images/github.png", width: 2em))
   bezier("User.east", "User.north", (rel: (1.0, 1.0)), (rel: (-1.0, 1.0)), mark: (end: "straight"))
   content((rel: (4.0, 1.5), to: "User"), s[2. Resolve versions])
-})
+}))
 
-== Package content
-- `docs`: the folder that contains the documentation of the package. It has its own `Project.toml` and `Manifest.toml` files, which are used to manage the documentation environment. The `make.jl` file is used to build the documentation and the `src` folder contains the source code of the documentation.
-- `src`: the folder that contains the source code of the package.
-- `test`: the folder that contains the test code of the package, which contains the main test file `runtests.jl`.
-
-
-== What is inside a Julia package?
-
-- Source code
-- Unit tests
-- Dependencies specification
-- CI/CD
-- Documentation
-- License
-- README
-- ...
-
-
-== Package manager resolves the environment with the known registries.
+== Package registries
+#timecounter(1)
 
 Package manager resolves the environment with the known registries.
-```julia-repl
+```julia
 (@v1.10) pkg> registry status
 Registry Status 
  [23338594] General (https://github.com/JuliaRegistries/General.git)
@@ -182,73 +317,13 @@ Registry Status
 - Multiple registries can be used
 - `General` is the only one that accessible by all Julia users.
 
-== The global package environment
-```bash
-(base) ➜  .julia cat ~/.julia/environments/v1.10/Project.toml
-[deps]
-BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
-MethodAnalysis = "85b6ec6f-f7df-4429-9514-a64bcd9ee824"
-OMEinsum = "ebe7aa44-baf0-506c-a96f-8464559b3922"
-...
-```
-
-- Packages are identified by UUIDs.
-
-== The file storing *resolved dependencies*:
-```bash
-cat ~/.julia/environments/v1.10/Manifest.toml
-```
-
-== Quiz
-
-Suppose I have `OMEinsum` installed in the global environment, and now I want to experiment with `Yao`. What if they have conflicting dependencies? e.g.
-- The latest OMEinsum depends on `A` at version `2` and `B` at version `3`
-- `A` at version `2` depends on `C` at version `5`.
-- The latest `Yao` depends on `C` at version `4`.
-
-What can I do?
-
-== Install OMEinsum in a local environment
-
-A *local environment* (recommended) can be specified in any folder, which provides a more isolated environment.
-
-```bash
-$ mkdir localenv
-$ cd localenv
-$ julia --project=.
-```
-
-Alternatively, environments can be switched in the pkg mode with
-```julia-repl
-pkg> activate dir-name
-
-pkg> activate    # the global environment
-
-pkg> activate --temp # a temperary environment
-```
-
-== The resolved versions
-```julia-repl
-(localenv) pkg> add OMEinsum
-
-shell> ls
-Manifest.toml   Project.toml
-
-shell> cat Project.toml
-[deps]
-OMEinsum = "ebe7aa44-baf0-506c-a96f-8464559b3922"
-
-shell> cat Manifest.toml
-...
-```
-
+= Create a package
 == Steps to create a package
 
 1. Create a package
 2. Specify the dependency
 3. Develop the package
-4. Open-source the package
-5. Register the package
+4. Upload the package to GitHub
 
 == 1. Create a package
 
@@ -258,78 +333,25 @@ We use #link("https://github.com/JuliaCI/PkgTemplates.jl", "PkgTemplates.jl"). O
 julia> using PkgTemplates
 
 julia> tpl = Template(;
-    user="GiggleLiu",
+    user="GiggleLiu",  # My GitHub username
     authors="GiggleLiu",
-    julia=v"1.10",
+    julia=v"1",
     plugins=[
-        License(; name="MIT"),
-        Git(; ssh=true),
-        GitHubActions(; x86=true),
-        Codecov(),
-        Documenter{GitHubActions}(),
+        License(; name="MIT"),  # Use MIT license
+        Git(; ssh=true),        # Use SSH protocol for Git rather than HTTPS
+        GitHubActions(; x86=false),   # Use GitHub Actions for CI, do not setup x86 machine for testing
+        Codecov(),                    # Use Codecov for code coverage
+        Documenter{GitHubActions}(),  # Use Documenter for documentation
     ],
 )
 ```
 ])
 
-== Unit Tests
-- Unit Tests is a software testing method, which consists of:
-  - a collection of inputs and expected outputs for a function.
-  - *assertion* that the function returns the expected output for a given input.
-
-- Test passing: the function is working as expected (assertion is true), i.e. no feature breaks.
-- Test passing: the function is working as expected (assertion is true), i.e. no feature breaks.
-- Test coverage: the percentage of the code that is covered by tests, i.e. the higher the coverage, the more *robust* the code is.
-
-== What if I do not have three machines?
-
-- CI/CD (for Continuous Integration/Continuous Deployment) is an *automation process* that runs the unit tests, documentation building, and deployment.
-
-- Workflow: code updated > CI/CD tasks created > virtual machines initialized on CI machines > virtual machines run tests > tests pass and status updated
-
-== How to write tests?
-
-```julia
-    user="GiggleLiu",
-```
-where the username `"GiggleLiu"` should be replaced with your GitHub username.
-Many plugins are used in the above example:
-
-```julia
-        License(; name="MIT"),
-```
-- `License`: to choose a license for the package. Here we use the MIT license, which is a permissive free software license.
-
-== Git
-
-```julia
-        Git(; ssh=true),
-```
-
-- `Git`: to initialize a Git repository for the package. Here we use the SSH protocol for Git for convenience. Using #link("https://docs.github.com/en/authentication/securing-your-account-with-two-factor-authentication-2fa/configuring-two-factor-authentication", "two-factor authentication (2FA)") can make your GitHub account more secure.
-
-== GitHub Actions
-
-```julia
-        GitHubActions(; x86=true),
-```
-- `GitHubActions`: to enable continuous integration (CI) with #link("https://docs.github.com/en/actions", "GitHub Actions").
-
-== Codecov
-
-```julia
-        Codecov(),
-```
-
+== Comments on the plugins
+- `Git(; ssh=true)`: Use SSH protocol for Git rather than HTTPS. Using HTTPS with #link("https://docs.github.com/en/authentication/securing-your-account-with-two-factor-authentication-2fa/configuring-two-factor-authentication", "two-factor authentication (2FA)") for `Git` is more secure.
+- `GitHubActions(; x86=false)`: Enable continuous integration (CI) with #link("https://docs.github.com/en/actions", "GitHub Actions").
 - `Codecov`: to enable code coverage tracking with #link("https://about.codecov.io/", "Codecov"). It is a tool that helps you to measure the test coverage of your code. A package with high test coverage is more reliable.
-
-== Documenter
-
-```julia
-        Documenter{GitHubActions}(),
-```
-
-- `Documenter`: to enable documentation building and deployment with #link("https://documenter.juliadocs.org/stable/", "Documenter.jl") and #link("https://pages.github.com/", "GitHub pages").
+- `Documenter`: to enable documentation building and deployment with #link("https://documenter.juliadocs.org/stable/", "Documenter.jl") and #link("https://pages.github.com/", "GitHub pages") (a static site deployment service).
 
 
 == Create the package
@@ -409,14 +431,6 @@ OMEinsum = "0.8"
 ```
 
 Here, we have used the most widely used dependency version specifier `=`, which means matching the first nonzero component of the version number.
-
-==
-
-For example:
-
-- `1` matches `1.0.0`, `1.1.0`, `1.1.1`, but not `2.0.0`.
-- `0.8` matches `0.8.0`, `0.8.1`, `0.8.2`, but not `0.9.0` or `0.7.0`.
-- `1.2` matches `1.2.0`, `1.3.1`, but not `1.2.0` or `2.0.0`.
 
 ==
 
