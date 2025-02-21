@@ -377,3 +377,5 @@ Only one singular value is non-zero, so the state is not entangled.
 Task 1: Representing a quantum state with tensor networks
 1. How to represent the product state $|0 angle.r times.circle |0 angle.r$ with tensor network diagram?
 2. How to represent the GHZ state $ frac(|0 0 1 angle.r + |1 1 1 angle.r, sqrt(2))$ with tensor network diagram?
+
+#bibliography("refs.bib")
