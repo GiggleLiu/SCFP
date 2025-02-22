@@ -13,6 +13,16 @@
 }
 #set cite(style: "apa")
 
+#let show-graph(vertices, edges, radius:0.2) = {
+  import draw: *
+  for (k, (i, j)) in vertices.enumerate() {
+    circle((i, j), radius:radius, name: str(k), fill:white)
+  }
+  for (k, l) in edges {
+    line(str(k), str(l))
+  }
+}
+
 #let m = hkustgz-theme.register()
 
 #show raw.where(block: true): it=>{
@@ -54,6 +64,31 @@
   - #text(red)[Package development]
   - #text(red)[High-performance computing]
   - #text(red)[Arrays and some useful functionals]
+
+= Julia ecosystem
+== Featured ecosystem
+=== Domain-specific ecosystem
+- #link("https://github.com/ITensor/ITensors.jl", "ITensors.jl") (570) - Tensor networks
+- #link("https://github.com/QuantumBFS/Yao.jl", "Yao.jl") (1k) - Quantum computing
+- #link("https://github.com/JuliaMolSim/DFTK.jl", "DFTK.jl") (460) - Density functional theory
+
+=== General-purpose ecosystem
+- #link("https://github.com/jump-dev/JuMP.jl", "JuMP.jl") (2.3k) - #highlight[Mathematical optimization]
+- #link("https://github.com/SciML/DifferentialEquations.jl", "DifferentialEquations.jl") (2.9k) - #highlight[Solving differential equations]
+- #link("https://github.com/MakieOrg/Makie.jl", "Makie.jl") (2.5k) - Data visualization
+- #link("https://github.com/Jutho/KrylovKit.jl", "KrylovKit.jl") (333) - Large-scale linear algebra
+- #link("https://github.com/JuliaNLSolvers/Optim.jl", "Optim.jl") (1.1k) - Optimization
+
+== Communities
+
+#grid(columns: 2,  gutter: 50pt, [https://julialang.org/community/
+
+- Discourse (for questions): https://discourse.julialang.org/
+- Zulip (for discussions): https://julialang.zulipchat.com/
+- Slack (for discussions): https://julialang.org/slack/
+], [
+  #image("images/juliazulip.png", width: 150pt)
+])
 
 = Package structure
 
@@ -208,10 +243,27 @@ ERROR: Some tests did not pass: 1 passed, 1 failed, 0 errored, 0 broken.
 - `.github`: the folder that contains the GitHub Actions (a CI/CD system) configuration files.
 
 ==
+#timecounter(2)
 
 #image("images/github-actions.png")
 
 Let's check the details of tests runs: https://github.com/TensorBFS/TropicalNumbers.jl/actions
+
+== Configuration of CI/CD
+#timecounter(2)
+
+CI/CD are configured in the `.github/workflows` folder of the package path.
+Each file is a CI/CD configuration in the `.yml` format.
+
+```bash
+.github
+├── dependabot.yml
+└── workflows
+    ├── ci.yml        # automated testing and test coverage
+    └── TagBot.yml    # update the version of the package after a release
+```
+- Note: normally, you do not need to change the configuration files since the `PkgTemplates.jl` has already configured the CI/CD for you.
+- Note: the results of the CI/CD are reflected in the badge in the `README.md` file.
 
 == Package meta-information
 #timecounter(1)
@@ -278,6 +330,7 @@ $ cat  Manifest.toml
 ```
 
 == The global package environment
+#timecounter(1)
 ```bash
 $ cat ~/.julia/environments/v1.11/Project.toml
 [deps]
@@ -325,13 +378,16 @@ Registry Status
 
 = Create a package
 == Steps to create a package
+#timecounter(1)
 
-1. Create a package
-2. Specify the dependency
+1. Create a package template
+2. Specify the project dependency
 3. Develop the package
 4. Upload the package to GitHub
+5. (Optional) Register the package to the General registry
 
 == 1. Create a package
+#timecounter(2)
 
 We use #link("https://github.com/JuliaCI/PkgTemplates.jl", "PkgTemplates.jl"). Open a Julia REPL and type the following commands to initialize a new package named `MyFirstPackage`:
 
@@ -354,6 +410,7 @@ julia> tpl = Template(;
 ])
 
 == Comments on the plugins
+#timecounter(2)
 - `Git(; ssh=true)`: Use SSH protocol for Git rather than HTTPS. Using HTTPS with #link("https://docs.github.com/en/authentication/securing-your-account-with-two-factor-authentication-2fa/configuring-two-factor-authentication", "two-factor authentication (2FA)") for `Git` is more secure.
 - `GitHubActions(; x86=false)`: Enable continuous integration (CI) with #link("https://docs.github.com/en/actions", "GitHub Actions").
 - `Codecov`: to enable code coverage tracking with #link("https://about.codecov.io/", "Codecov"). It is a tool that helps you to measure the test coverage of your code. A package with high test coverage is more reliable.
@@ -361,6 +418,7 @@ julia> tpl = Template(;
 
 
 == Create the package
+#timecounter(1)
 
 ```julia
 julia> tpl("MyFirstPackage")
@@ -368,9 +426,8 @@ julia> tpl("MyFirstPackage")
 
 After running the above commands, a new directory named `MyFirstPackage` will be created in the folder `~/.julia/dev/` - the default location for Julia packages.
 
-= Manage dependencies
-
-== Specify the dependency
+== 2. Specify the dependency
+#timecounter(1)
 To *add a new dependency*, you can use the following command in the package path:
 ```bash
 $ cd ~/.julia/dev/MyFirstPackage
@@ -380,44 +437,49 @@ $ julia --project
 
 This will open a Julia REPL in the package environment. To check the package environment, you can type the following commands in the package mode (press `]`) of the REPL:
 
-```julia-repl
+```julia
 (MyFirstPackage) pkg> st
 Project MyFirstPackage v1.0.0-DEV
 Status `~/.julia/dev/MyFirstPackage/Project.toml` (empty project)
 ```
 
 ==
+#timecounter(1)
 
 After that, you can add a new dependency by typing:
-```julia-repl
-(MyFirstPackage) pkg> add OMEinsum
+#box(text(16pt)[```julia
+(MyFirstPackage) pkg> add TropicalNumbers
 
-(MyFirstPackage) pkg> st
+(MyFirstPackage) pkg> st   # check the dependency
 Project MyFirstPackage v1.0.0-DEV
 Status `~/.julia/dev/MyFirstPackage/Project.toml`
-  [ebe7aa44] OMEinsum v0.8.1
+  [b3a74e9c] TropicalNumbers v0.6.2
 ```
+])
 Press `backspace` to exit the package mode and then type
-```julia-repl
-julia> using OMEinsum
+#box(text(16pt)[```julia
+julia> using TropicalNumbers
 ```
+])
 The dependency is added correctly if no error is thrown.
 
 ==
+#timecounter(1)
 
 Type `;` to enter the shell mode and then type
-```julia-repl
+#box(text(12pt)[```julia
 shell> cat Project.toml
 name = "MyFirstPackage"
-uuid = "594718ca-da39-4ff3-a299-6d8961b2aa49"
+uuid = "8402d085-69c7-4601-8e57-9b55d4db68af"
 authors = ["GiggleLiu"]
 version = "1.0.0-DEV"
 
 [deps]
-OMEinsum = "ebe7aa44-baf0-506c-a96f-8464559b3922"
+TropicalNumbers = "b3a74e9c-7526-4576-a4eb-79c0d4c32334"   # new
 
 [compat]
-julia = "1.10"
+TropicalNumbers = "0.6.2"  # new
+julia = "1"
 
 [extras]
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
@@ -425,160 +487,125 @@ Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 [targets]
 test = ["Test"]
 ```
-You will see that the dependency `OMEinsum` is added to the `[deps]` section of the `Project.toml` file.
+])
 
-==
+== 3. Develop the package: Hands on
+#timecounter(15)
 
-We also need to specify which version of `OMEinsum` is *compatible* with the current package. To do so, you need to edit the `[compat]` section of the `Project.toml` file with your favorite editor.
-```toml
-[compat]
-julia = "1.10"
-OMEinsum = "0.8"
+
+1. Create a new package named `MyFirstPackage.jl` in your local machine.
+2. Implement the shortest path algorithm with TropicalNumbers.
+3. Write tests for the package.
+
+== Theory: Graph
+#timecounter(2)
+
+Graph $G = (V, E)$, where $V$ is the set of vertices and $E$ is the set of edges.
+#align(center, canvas(length:0.9cm, {
+  import draw: *
+  let vrotate(v, theta) = {
+    let (x, y) = v
+    return (x * calc.cos(theta) - y * calc.sin(theta), x * calc.sin(theta) + y * calc.cos(theta))
+  }
+
+  // petersen graph
+  let vertices1 = range(5).map(i=>vrotate((0, 2), i*72/180*calc.pi))
+  let vertices2 = range(5).map(i=>vrotate((0, 1), i*72/180*calc.pi))
+  let edges = ((0, 1), (1, 2), (2, 3), (3, 4), (4, 0), (0, 5), (1, 6), (2, 7), (3, 8), (4, 9), (5, 7), (6, 8), (7, 9), (8, 5), (9, 6))
+  show-graph((vertices1 + vertices2).map(v=>(v.at(0) + 4, v.at(1)+4)), edges, radius:0.2)
+}))
+
+#box(text(16pt)[```julia
+julia> using Graphs   # Graphs.jl is a package for graph theory
+
+julia> g = smallgraph(:petersen)  # a famous graph for testing
+{10, 15} undirected simple Int64 graph
 ```
-
-Here, we have used the most widely used dependency version specifier `=`, which means matching the first nonzero component of the version number.
-
-==
-
-- whenever an exported function is changed in a package, the first nonzero component of the version number should be increased.
-- version number starts with `0` is considered as a development version, and it is not stable.
-
-Please check the Julia documentation about #link("https://pkgdocs.julialang.org/v1/compatibility/", "package compatibility") for advanced usage.
-
-== Develop the package
-Developers develop packages in the package environment. The package development process includes:
-
-1. Edit the source code of the package
-The source code of the package is located in the `src` folder of the package path.
+])
 
 ==
+#timecounter(1)
 
-Let us add a simple function to the package. The source code of the package is as follows:
+#box(text(16pt)[```julia
+julia> vertices(g)
+Base.OneTo(10)
 
-*File*: `src/MyFirstPackage.jl`
-
-```julia
-module MyFirstPackage
-
-# using packages
-
-# exported interfaces
-export Lorenz, rk4_step
-export Point, Point2D, Point3D
-
-# include other source code
-include("lorenz.jl")
-
-end
+julia> [edges(g)...]   # `...` is the splat operator, it expands the edges into a vector
+15-element Vector{Graphs.SimpleGraphs.SimpleEdge{Int64}}:
+ Edge 1 => 2
+ Edge 1 => 5
+ Edge 1 => 6
+ Edge 2 => 3
+ ⋮
+ Edge 6 => 9
+ Edge 7 => 9
+ Edge 7 => 10
+ Edge 8 => 10
 ```
+])
 
-==
+Note: `edges(g)` returns an iterator, its elements are `SimpleEdge` objects.
 
-*File*: `src/lorenz.jl`
+== Adjacency matrix
+#timecounter(3)
 
-```julia
-struct Point{D, T <: Real}
-    data::NTuple{D, T}
-end
-const Point2D{T} = Point{2, T}
-const Point3D{T} = Point{3, T}
-Point(x::Real...) = Point((x...,))
-LinearAlgebra.dot(x::Point, y::Point) = mapreduce(*, +, x.data .* y.data)
-Base.:*(x::Real, y::Point) = Point(x .* y.data)
-Base.:/(y::Point, x::Real) = Point(y.data ./ x)
-Base.:+(x::Point, y::Point) = Point(x.data .+ y.data)
-Base.isapprox(x::Point, y::Point; kwargs...) = all(isapprox.(x.data, y.data; kwargs...))
-Base.getindex(p::Point, i::Int) = p.data[i]
-Base.broadcastable(p::Point) = p.data
-Base.iterate(p::Point, args...) = iterate(p.data, args...)
+The adjacency matrix $A in bb(Z)_2^(n times n)$ is defined as
+$
+A_(i j) = cases(1\, quad (i,j) in E, 0\, quad "otherwise")  
+$
+
+#box(text(14pt)[```julia
+julia> adjacency_matrix(g)
+10×10 SparseArrays.SparseMatrixCSC{Int64, Int64} with 30 stored entries:
+ ⋅  1  ⋅  ⋅  1  1  ⋅  ⋅  ⋅  ⋅
+ 1  ⋅  1  ⋅  ⋅  ⋅  1  ⋅  ⋅  ⋅
+ ⋅  1  ⋅  1  ⋅  ⋅  ⋅  1  ⋅  ⋅
+ ⋅  ⋅  1  ⋅  1  ⋅  ⋅  ⋅  1  ⋅
+ 1  ⋅  ⋅  1  ⋅  ⋅  ⋅  ⋅  ⋅  1
+ 1  ⋅  ⋅  ⋅  ⋅  ⋅  ⋅  1  1  ⋅
+ ⋅  1  ⋅  ⋅  ⋅  ⋅  ⋅  ⋅  1  1
+ ⋅  ⋅  1  ⋅  ⋅  1  ⋅  ⋅  ⋅  1
+ ⋅  ⋅  ⋅  1  ⋅  1  1  ⋅  ⋅  ⋅
+ ⋅  ⋅  ⋅  ⋅  1  ⋅  1  1  ⋅  ⋅
 ```
+])
 
-==
+== Shortest path
+#timecounter(2)
 
-```julia
-struct Lorenz
-    σ::Float64
-    ρ::Float64
-    β::Float64
-end
+Question: Is there a length-$l$ path connecting vertices $i$ and $j$?
 
-function field(p::Lorenz, u)
-    x, y, z = u
-    Point(p.σ*(y-x), x*(p.ρ-z)-y, x*y-p.β*z)
-end
-```
+Hint: Use Tropical matrix multiplication!
 
-== Runge-Kutta 4th order method
+$ A_(i j) B_(j k) = max_j (A_(i j) + B_(j k)) $
 
-```julia
-# Runge-Kutta 4th order method
-function rk4_step(f, t, y, Δt)
-    k1 = Δt * f(t, y)
-    k2 = Δt * f(t+Δt/2, y + k1 / 2)
-    k3 = Δt * f(t+Δt/2, y + k2 / 2)
-    k4 = Δt * f(t+Δt, y + k3)
-    return y + k1/6 + k2/3 + k3/3 + k4/6
-end
+By multiplying (Tropical) the adjacency matrix $A$ with itself $l$ times, we can get the number of length-$l$ paths connecting any two vertices.
+$
+  (A^l)_(i j) = max_(k_1, k_2, dots, k_(l-1)) (A_(i k_1) + A_(k_1 k_2) + dots + A_(k_(l-1) j))
+$
 
-function rk4_step(l::Lorenz, u, Δt)
-    return rk4_step((t, u) -> field(l, u), zero(Δt), u, Δt)
-end
-```
+== What is the computational complexity?
+#timecounter(2)
 
-==
-
-To use this function, you can type the following commands in the package environment:
-```julia-repl
-julia> using MyFirstPackage
-
-julia> MyFirstPackage.greet("Julia")
-"Hello, Julia!"
-```
-
-==
-
-2. Write tests for the package
-
-We always need to write tests for the package. The test code of the package is located in the `test` folder of the package path.
-
-*File*: `test/runtests.jl`
-```julia
-using Test
-using MyFirstPackage
-
-@testset "lorenz" begin
-    include("lorenz.jl")
-end
-
-```
-
-== Lorenz attractor
-
-- #link("https://www.youtube.com/watch?v=hIYqkydaMdw", "YouTube: Chaos Theory - the language of (in)stability")
-
-==
-
-*File*: `test/lorenz.jl`
-```julia
-using Test, MyFirstPackage
-
-@testset "Point" begin
-    p1 = Point(1.0, 2.0)
-    p2 = Point(3.0, 4.0)
-    @test p1 + p2 ≈ Point(4.0, 6.0)
-end
-
-@testset "step" begin
-    lz = Lorenz(10.0, 28.0, 8/3)
-    int = RungeKutta{4}()
-    r1 = integrate_step(lz, int, Point(1.0, 1.0, 1.0), 0.0001)
-    eu = Euclidean()
-    r2 = integrate_step(lz, eu, Point(1.0, 1.0, 1.0), 0.0001)
-    @test isapprox(r1, r2; rtol=1e-5)
+- Let $n$ be the number of vertices and $l$ be the length of the path.
+- The computational complexity of the shortest path problem is $O(n^3 log l)$.
+- The complexity of (tropical) matrix multiplication is $O(n^3)$.
+  #box(text(16pt)[```julia
+for i in 1:n
+  for j in 1:n
+    for k in 1:n
+      A[i, j] = max(A[i, j], A[i, k] + A[k, j])  # number of operations: n^3
+    end
+  end
 end
 ```
+])
 
-==
+Note: Big $O$ notation characterizes the *scaling* of the computational time with respect to the size of the input.
+
+
+== Run the tests
+#timecounter(1)
 
 To run the tests, you can use the following command in the package environment:
 ```julia-repl
@@ -589,15 +616,20 @@ Precompiling project...
   1 dependency successfully precompiled in 1 seconds. 21 already precompiled.
      Testing Running tests...
 Test Summary: | Pass  Total  Time
-lorenz        |    2      2  0.1s
+shortest-path |    2      2  0.1s
      Testing MyFirstPackage tests passed
 ```
 
 Cheers! All tests passed.
 
-==
+== Volunteer
+#timecounter(10)
 
-1. Write documentation for the package
+Show-case your test cases.
+
+== Next steps (left as homework)
+
+(TODO: ask Zhongyi if he has a note)
 
 The documentation is built with #link("https://documenter.juliadocs.org/stable/", "Documenter.jl"). The build script is `docs/make.jl`. To *build the documentation*, you can use the following command in the package path:
 ```bash
@@ -605,106 +637,6 @@ $ cd docs
 $ julia --project make.jl
 ```
 Instantiate the documentation environment if necessary. For seamless *debugging* of documentation, it is highly recommended using the #link("https://github.com/tlienart/LiveServer.jl", "LiveServer.jl") package.
-
-== 4. Open-source the package
-To open-source the package, you need to push the package to a public repository on GitHub.
-
-1. First create a GitHub repository with the same as the name of the package. In this example, the repository name should be `GiggleLiu/MyFirstPackage.jl`. To check the remote repository of the package, you can use the following command in the package path:
-   ```bash
-   $ git remote -v
-   origin	git@github.com:GiggleLiu/MyFirstPackage.jl.git (fetch)
-   origin	git@github.com:GiggleLiu/MyFirstPackage.jl.git (push)
-   ```
-
-==
-
-2. Then push the package to the remote repository:
-   ```bash
-   $ git add -A
-   $ git commit -m "Initial commit"
-   $ git push
-   ```
-
-==
-
-3. After that, you need to check if all your GitHub Actions are passing. You can check the status of the GitHub Actions from the badge in the `README.md` file of the package repository. The configuration of GitHub Actions is located in the `.github/workflows` folder of the package path. Its file structure is as follows:
-   ```bash
-   .github
-   ├── dependabot.yml
-   └── workflows
-       ├── CI.yml
-       ├── CompatHelper.yml
-       └── TagBot.yml
-   ```
-
-==
-
-   - The `CI.yml` file contains the configuration for the CI of the package, which is used to automate the process of
-      - *Testing* the package after a pull request is opened, or the main branch is updated. This process can be automated with the #link("https://github.com/julia-actions/julia-runtest", "julia-runtest") action.
-      - Building the *documentation* after the main branch is updated. Please check the #link("https://documenter.juliadocs.org/stable/man/hosting/", "Documenter documentation") for more information.
-
-==
-
-   - The `TagBot.yml` file contains the configuration for the #link("https://github.com/JuliaRegistries/TagBot", "TagBot"), which is used to automate the process of tagging a release after a pull request is merged.
-   - The `CompatHelper.yml` file contains the configuration for the #link("https://github.com/JuliaRegistries/CompatHelper.jl", "CompatHelper"), which is used to automate the process of updating the `[compat]` section of the `Project.toml` file after a pull request is merged.
-
-==
-
-   Configuring GitHub Actions is a bit complicated. For beginners, it is a good practise to mimic the configuration of another package, e.g. #link("https://github.com/under-Peter/OMEinsum.jl", "OMEinsum.jl").
-
-== 5. Register the package
-Package registration is the process of adding the package to the `General` registry. To do so, you need to create a pull request to the `General` registry and wait for the pull request to be reviewed and merged.
-This process can be automated by the #link("https://github.com/JuliaRegistries/Registrator.jl", "Julia registrator"). If the pull request meets all guidelines, your pull request will be merged after a few days. Then, your package is available to the public. 
-
-==
-
-A good practice is to *tag a release* after the pull request is merged so that your package version update can be reflected in your GitHub repository. This process can be automated by the #link("https://github.com/JuliaRegistries/TagBot", "TagBot").
-
-==
-
-
-The file structure of #link("https://github.com/under-Peter/OMEinsum.jl", "OMEinsum.jl")
-
-#image("images/omeinsum.png", width: 60%)
-
-- `build/passing`: the tests executed by GitHub Actions are passing.
-- `codecov/89%`: the code coverage is 89%, meaning that 89% of the code is covered by tests.
-- `docs/dev`: the documentation is built and deployed with GitHub pages.
-
-==
-
-Now, let's take a look at the file structure of the package by running the following command in the package path (`~/.julia/dev/OMEinsum`):
-```bash
-$ tree . -L 1 -a
-.
-├── .git
-├── .github
-├── .gitignore
-├── LICENSE
-├── Project.toml
-├── README.md
-├── benchmark
-├── docs
-├── examples
-├── ext
-├── ome-logo.png
-├── src
-└── test
-```
-
-== Featured ecosystem
-- JuMP.jl
-- DifferentialEquations.jl
-- DFTK.jl
-- Makie.jl
-- Yao.jl
-
-== Communities
-- Slack
-- Discourse
-- Zulip
-
-== Parallel computing
 
 == Memory access
 
@@ -746,16 +678,3 @@ $ tree . -L 1 -a
 
 - A typical CPU clock cycle is: 0.3 ns.
 - A typical memory access latency is: 50 ns, i.e. $~100$ times slower!
-
-
-== Visualization
-
-== Hands-on
-
-1. Create a new package named `MyFirstPackage.jl` in your local machine.
-2. Add a simple function to the package.
-3. Write tests for the package.
-4. Build the documentation for the package.
-5. Open-source the package to GitHub.
-
-
