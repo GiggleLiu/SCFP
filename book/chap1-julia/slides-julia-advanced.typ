@@ -207,6 +207,12 @@ ERROR: Some tests did not pass: 1 passed, 1 failed, 0 errored, 0 broken.
 
 - `.github`: the folder that contains the GitHub Actions (a CI/CD system) configuration files.
 
+==
+
+#image("images/github-actions.png")
+
+Let's check the details of tests runs: https://github.com/TensorBFS/TropicalNumbers.jl/actions
+
 == Package meta-information
 #timecounter(1)
 - `LICENSE`: the file that contains the license of the package.
