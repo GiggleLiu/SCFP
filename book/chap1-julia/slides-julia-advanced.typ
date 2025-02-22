@@ -628,6 +628,7 @@ Cheers! All tests passed.
 Show-case your test cases.
 
 == Next steps (left as homework)
+#timecounter(2)
 
 (TODO: ask Zhongyi if he has a note)
 
@@ -638,43 +639,45 @@ $ julia --project make.jl
 ```
 Instantiate the documentation environment if necessary. For seamless *debugging* of documentation, it is highly recommended using the #link("https://github.com/tlienart/LiveServer.jl", "LiveServer.jl") package.
 
-== Memory access
+Configure CI/CD permissions and secrets in the repository.
 
-#canvas({
-  import draw: *
-  let s(it) = text(12pt, white, it)
-  let t(it) = text(12pt, black, it)
-  let cpu(loc, size, color: gray.darken(50%)) = {
-    let  r = 0.8
-    let space = 0.2
-    for i in range(4) {
-      line((loc.at(0) - r * size, loc.at(1) - (i - 1.5) * space * size), (loc.at(0) + r * size, loc.at(1) - (i - 1.5) * space * size), stroke: (paint: color, thickness: 2pt))
-      line((loc.at(0) - (i - 1.5) * space * size, loc.at(1) - r * size), (loc.at(0) - (i - 1.5) * space * size, loc.at(1) + r * size), stroke: (paint: color, thickness: 2pt))
-    }
-    rect((loc.at(0) - size / 2, loc.at(1) - size / 2), (loc.at(0) + size / 2, loc.at(1) + size / 2), stroke: color, fill: color, radius: 0.1 * size)
-    content(loc, s[CPU])
-  }
-  cpu((-1, 0), 1)
-  on-yz(x: 1, {
-    rect((-0.6, -0.7), (0.6, 0.7), stroke: none, fill: green.darken(50%))
-    content((0, 0), s[$mat(1; 1)$])
-  })
-  on-yz(x: 2, {
-    rect((-1, -1), (1, 1), stroke: none, fill: green.darken(50%))
-    content((0, 0), s[$mat(1;1; 2;2)$])
-  })
-  rect((1.8, -0.0), (2.2, 0.8), stroke: (dash: "dotted", paint: white))
-  on-yz(x: 3.5, {
-    rect((-1.5, -1.5), (1.5, 1.5), stroke: none, fill: green.darken(50%))
-    content((0, 0), s[$mat(1,3; 1,2; 2,-4; 2, 3)$])
-  })
-  rect((3, -0.8), (3.4, 0.8), stroke: (dash: "dotted", paint: white))
-  content((1, 1), t[$L_1$])
-  content((2, 1.5), t[$L_2$])
-  content((3.5, 2), t[$L_3$])
-  content((6, 0), t[$mat(1,3,1,-2; 1,2,0, 5; 2,-4,-2,1; 2,3,1,-2)$])
-  rect((4.9, -0.8), (5.9, 0.8), stroke: (dash: "dotted"))
-})
+// == Memory access
 
-- A typical CPU clock cycle is: 0.3 ns.
-- A typical memory access latency is: 50 ns, i.e. $~100$ times slower!
+// #canvas({
+//   import draw: *
+//   let s(it) = text(12pt, white, it)
+//   let t(it) = text(12pt, black, it)
+//   let cpu(loc, size, color: gray.darken(50%)) = {
+//     let  r = 0.8
+//     let space = 0.2
+//     for i in range(4) {
+//       line((loc.at(0) - r * size, loc.at(1) - (i - 1.5) * space * size), (loc.at(0) + r * size, loc.at(1) - (i - 1.5) * space * size), stroke: (paint: color, thickness: 2pt))
+//       line((loc.at(0) - (i - 1.5) * space * size, loc.at(1) - r * size), (loc.at(0) - (i - 1.5) * space * size, loc.at(1) + r * size), stroke: (paint: color, thickness: 2pt))
+//     }
+//     rect((loc.at(0) - size / 2, loc.at(1) - size / 2), (loc.at(0) + size / 2, loc.at(1) + size / 2), stroke: color, fill: color, radius: 0.1 * size)
+//     content(loc, s[CPU])
+//   }
+//   cpu((-1, 0), 1)
+//   on-yz(x: 1, {
+//     rect((-0.6, -0.7), (0.6, 0.7), stroke: none, fill: green.darken(50%))
+//     content((0, 0), s[$mat(1; 1)$])
+//   })
+//   on-yz(x: 2, {
+//     rect((-1, -1), (1, 1), stroke: none, fill: green.darken(50%))
+//     content((0, 0), s[$mat(1;1; 2;2)$])
+//   })
+//   rect((1.8, -0.0), (2.2, 0.8), stroke: (dash: "dotted", paint: white))
+//   on-yz(x: 3.5, {
+//     rect((-1.5, -1.5), (1.5, 1.5), stroke: none, fill: green.darken(50%))
+//     content((0, 0), s[$mat(1,3; 1,2; 2,-4; 2, 3)$])
+//   })
+//   rect((3, -0.8), (3.4, 0.8), stroke: (dash: "dotted", paint: white))
+//   content((1, 1), t[$L_1$])
+//   content((2, 1.5), t[$L_2$])
+//   content((3.5, 2), t[$L_3$])
+//   content((6, 0), t[$mat(1,3,1,-2; 1,2,0, 5; 2,-4,-2,1; 2,3,1,-2)$])
+//   rect((4.9, -0.8), (5.9, 0.8), stroke: (dash: "dotted"))
+// })
+
+// - A typical CPU clock cycle is: 0.3 ns.
+// - A typical memory access latency is: 50 ns, i.e. $~100$ times slower!
