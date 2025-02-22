@@ -65,6 +65,15 @@
   - #text(red)[High-performance computing]
   - #text(red)[Arrays and some useful functionals]
 
+== This lecture
+
+You will learn:
+- Interesting *packages* and *forums* in the Julia ecosystem
+- #highlight[How to setup a development environment]
+- How to setup CI/CD to automate the testing and deployment
+- The *big-$O$ notation* for measuring the complexity of algorithms
+- How to represent a *graph* and how to solve the *shortest path problem* with the tropical matrix multiplication
+
 = Julia ecosystem
 == Featured ecosystem
 === Domain-specific ecosystem
