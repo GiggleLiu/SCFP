@@ -25,6 +25,8 @@
     #chapter("chap3-optimization/ad.typ")[Automatic differentiation]
     = Quantum systems
     #chapter("chap4-quantum/quantum-simulation.typ")[Quantum simulation]
+    = Appendix
+    #chapter("appendix/plotting.typ")[Plotting (CairoMakie)]
   ]
 )
 
