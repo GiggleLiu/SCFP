@@ -12,6 +12,22 @@ $ C_(i j) = sum_(k=1)^n A_(i k) B_(k j) $
 
 For square matrices where $n = p = m$, the standard algorithm has $O(n^3)$ time complexity. While advanced techniques like the Strassen algorithm and laser methods @Alman2021 can achieve $O(n^(2.81))$ or better, the standard algorithm remains most practical for typical matrix sizes. Modern implementations leverage hardware optimizations like tiling and parallelization to approach peak performance.
 
+=== Tutorial point: The Big $O$ notation
+
+The big $O$ notation characterizes the *scaling* of the computational time with respect to the size of the input. Usually, we do not care about the constant factor in the time complexity, since it can be different on different machines. We say the time complexity of an algorithm is a property of the algorithm, not the machine.
+
+The complexity of naive matrix multiplication is $O(n^3)$, how to understand this? It means the number of operations scales as $n^3$ when the size of the matrix $n$ increases.
+```julia
+for i in 1:n   # first loop
+  for j in 1:n  # second loop
+    for k in 1:n  # third loop
+      A[i, j] = max(A[i, j], A[i, k] + A[k, j])  # number of operations: n^3
+    end
+  end
+end
+```
+On whatever machine, when we double the size of the matrix, the number of operations will be $2^3 = 8$ times.
+
 == Linear Systems and LU Decomposition
 For an invertible matrix $A in CC^(n times n)$ and vector $b in CC^n$, solving a linear system means finding $x in CC^n$ such that:
 $ A x = b $

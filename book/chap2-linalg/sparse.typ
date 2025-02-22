@@ -571,27 +571,20 @@ A graph is a pair $G = (V, E)$, where $V$ is a set of vertices and $E$ is a set 
 ```julia
 using Graphs
 g = SimpleGraph(10)  # create an empty graph with 10 vertices
-add_vertex!(g)  # add a vertex
+add_vertex!(g)       # add a vertex
 add_edge!(g, 3, 11)  # add an edge between vertex 3 and 11
-has_edge(g, 3, 11)  # check if there is an edge between vertex 3 and 11
-rem_vertex!(g, 7)  # remove vertex 7
-has_edge(g, 3, 11)
-has_edge(g, 3, 7)  # vertex number 11 "renamed" to vertex number 7
-neighbors(g, 3)   # get the neighbors of vertex 3
+has_edge(g, 3, 11)   # output: true
+neighbors(g, 3)      # output: [11]
+vertices(g)          # output: OneTo(10)
+edges(g)             # output an iterator with element type `SimpleEdge{Int64}`
 ```
 
-A graph can be represented by an adjacency matrix $A in RR^(n times n)$, where $n$ is the number of vertices. The element $A_(i j)$ is 1 if there is an edge between vertex $i$ and vertex $j$, and 0 otherwise.
+A graph $G = (V, E)$ can be represented by a binary adjacency matrix $A in ZZ_2^(|V| times |V|)$ as
+$
+A_(i j) = cases(1\, quad (i,j) in E, 0\, quad "otherwise"),
+$
 
-For example, the adjacency matrix of the Petersen graph is
-
-```julia
-using Graphs
-graph = smallgraph(:petersen)
-adj_matrix = adjacency_matrix(graph)
-```
-
-
-#align(center, canvas(length:0.6cm, {
+#figure(canvas(length:0.8cm, {
   import draw: *
   let vrotate(v, theta) = {
     let (x, y) = v
@@ -603,15 +596,70 @@ adj_matrix = adjacency_matrix(graph)
   let vertices2 = range(5).map(i=>vrotate((0, 1), i*72/180*calc.pi))
   let edges = ((0, 1), (1, 2), (2, 3), (3, 4), (4, 0), (0, 5), (1, 6), (2, 7), (3, 8), (4, 9), (5, 7), (6, 8), (7, 9), (8, 5), (9, 6))
   show-graph((vertices1 + vertices2).map(v=>(v.at(0) + 4, v.at(1)+4)), edges, radius:0.2)
-}))
+}), caption: "The Petersen graph") <fig:petersen>
 
+For example, the adjacency matrix of the Petersen graph in @fig:petersen is
 
+```julia
+using Graphs
+graph = smallgraph(:petersen)
+adj_matrix = adjacency_matrix(graph)
+# output:
+# 10×10 SparseArrays.SparseMatrixCSC{Int64, Int64} with 30 stored entries:
+#  ⋅  1  ⋅  ⋅  1  1  ⋅  ⋅  ⋅  ⋅
+#  1  ⋅  1  ⋅  ⋅  ⋅  1  ⋅  ⋅  ⋅
+#  ⋅  1  ⋅  1  ⋅  ⋅  ⋅  1  ⋅  ⋅
+#  ⋅  ⋅  1  ⋅  1  ⋅  ⋅  ⋅  1  ⋅
+#  1  ⋅  ⋅  1  ⋅  ⋅  ⋅  ⋅  ⋅  1
+#  1  ⋅  ⋅  ⋅  ⋅  ⋅  ⋅  1  1  ⋅
+#  ⋅  1  ⋅  ⋅  ⋅  ⋅  ⋅  ⋅  1  1
+#  ⋅  ⋅  1  ⋅  ⋅  1  ⋅  ⋅  ⋅  1
+#  ⋅  ⋅  ⋅  1  ⋅  1  1  ⋅  ⋅  ⋅
+#  ⋅  ⋅  ⋅  ⋅  1  ⋅  1  1  ⋅  ⋅
+```
 
-
-The Laplacian matrix $L_(n times n)$ of a graph $G$ is defined as $L = D - A$, where $D$ is the degree matrix of the graph. The degree matrix is a diagonal matrix, where the diagonal element $D_(i i)$ is the degree of vertex $i$. The Laplacian matrix is symmetric and positive semidefinite.
+The Laplacian matrix $L$ of a graph $G$ is defined as $L = D - A$, where $D$ is the degree matrix of the graph. The degree matrix is a diagonal matrix, where the diagonal element $D_(i i)$ is the degree of vertex $i$. The Laplacian matrix is symmetric and positive semidefinite.
 
 ```julia
 lap_matrix = laplacian_matrix(graph)
+```
+
+=== Shortest path problem - The tropical matrix multiplication approach
+The shortest path problem is to find the shortest path between two vertices in a graph. The tropical matrix multiplication approach is one of the most efficient ways to solve the shortest path problem.
+
+It can be solved directly with the Min-Plus Tropical matrix multiplication:
+
+$ (A B)_(i k) = min_j (A_(i j) + B_(j k)). $
+
+By powering the adjacency matrix $A$ for $|V|$ times with Min-Plus Tropical algebra, we can get the shortest paths length between any two vertices.
+$
+  (A^(|V|))_(i j) = min_(k_1, k_2, dots, k_(|V|-1)) (A_(i k_1) + A_(k_1 k_2) + dots + A_(k_(|V|-1) j))
+$
+
+The implementation of the tropical matrix multiplication is straightforward.
+```julia
+using TropicalNumbers, LinearAlgebra
+tmat = map(x->iszero(x) ? zero(TropicalMinPlus{Float64}) : TropicalMinPlus(1.0), adjacency_matrix(g))  # TropicalMinPlus zero is Inf.
+tmat += Diagonal(fill(TropicalMinPlus(0.0), nv(g)))  # set diagonal to 0
+tmat^(nv(graph))
+# output:
+# 10×10 SparseArrays.SparseMatrixCSC{TropicalMinPlusF64, Int64} with 100 stored entries:
+#  0.0ₛ  1.0ₛ  2.0ₛ  2.0ₛ  1.0ₛ  1.0ₛ  2.0ₛ  2.0ₛ  2.0ₛ  2.0ₛ
+#  1.0ₛ  0.0ₛ  1.0ₛ  2.0ₛ  2.0ₛ  2.0ₛ  1.0ₛ  2.0ₛ  2.0ₛ  2.0ₛ
+#  2.0ₛ  1.0ₛ  0.0ₛ  1.0ₛ  2.0ₛ  2.0ₛ  2.0ₛ  1.0ₛ  2.0ₛ  2.0ₛ
+#  2.0ₛ  2.0ₛ  1.0ₛ  0.0ₛ  1.0ₛ  2.0ₛ  2.0ₛ  2.0ₛ  1.0ₛ  2.0ₛ
+#  1.0ₛ  2.0ₛ  2.0ₛ  1.0ₛ  0.0ₛ  2.0ₛ  2.0ₛ  2.0ₛ  2.0ₛ  1.0ₛ
+#  1.0ₛ  2.0ₛ  2.0ₛ  2.0ₛ  2.0ₛ  0.0ₛ  2.0ₛ  1.0ₛ  1.0ₛ  2.0ₛ
+#  2.0ₛ  1.0ₛ  2.0ₛ  2.0ₛ  2.0ₛ  2.0ₛ  0.0ₛ  2.0ₛ  1.0ₛ  1.0ₛ
+#  2.0ₛ  2.0ₛ  1.0ₛ  2.0ₛ  2.0ₛ  1.0ₛ  2.0ₛ  0.0ₛ  2.0ₛ  1.0ₛ
+#  2.0ₛ  2.0ₛ  2.0ₛ  1.0ₛ  2.0ₛ  1.0ₛ  1.0ₛ  2.0ₛ  0.0ₛ  2.0ₛ
+#  2.0ₛ  2.0ₛ  2.0ₛ  2.0ₛ  1.0ₛ  2.0ₛ  1.0ₛ  1.0ₛ  2.0ₛ  0.0ₛ
+```
+
+To get the shortest path length between vertex 1 and other vertices, we simply read the first row of the result. To confirm the result, we can use the built-in function in `Graphs.jl`:
+
+```julia
+dijkstra_shortest_paths(g, 2)
 ```
 
 === The spectral graph theory

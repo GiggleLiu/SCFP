@@ -11,4 +11,3 @@ mat(
 $
 
 Storing such a matrix in a dense format requires $n^2$ elements, which is very memory inefficient since it has only $3n-2$ nonzero elements.
-

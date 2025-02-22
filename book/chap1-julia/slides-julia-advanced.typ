@@ -549,7 +549,7 @@ Note: `edges(g)` returns an iterator, its elements are `SimpleEdge` objects.
 == Adjacency matrix
 #timecounter(3)
 
-The adjacency matrix $A in bb(Z)_2^(n times n)$ is defined as
+The adjacency matrix $A in bb(Z)_2^(|V| times |V|)$ is defined as
 $
 A_(i j) = cases(1\, quad (i,j) in E, 0\, quad "otherwise")  
 $
@@ -573,22 +573,22 @@ julia> adjacency_matrix(g)
 == Shortest path
 #timecounter(2)
 
-Question: Is there a length-$l$ path connecting vertices $i$ and $j$?
+The shortest path problem is to find the shortest path between two vertices in a graph. The tropical matrix multiplication approach is one of the most efficient ways to solve the shortest path problem.
 
 Hint: Use Tropical matrix multiplication!
 
-$ A_(i j) B_(j k) = max_j (A_(i j) + B_(j k)) $
+$ (A B)_(i k) = min_j (A_(i j) + B_(j k)). $
 
-By multiplying (Tropical) the adjacency matrix $A$ with itself $l$ times, we can get the number of length-$l$ paths connecting any two vertices.
+By powering the adjacency matrix $A$ for $|V|$ times with Min-Plus Tropical algebra, we can get the shortest paths length between any two vertices.
 $
-  (A^l)_(i j) = max_(k_1, k_2, dots, k_(l-1)) (A_(i k_1) + A_(k_1 k_2) + dots + A_(k_(l-1) j))
+  (A^(|V|))_(i j) = min_(k_1, k_2, dots, k_(|V|-1)) (A_(i k_1) + A_(k_1 k_2) + dots + A_(k_(|V|-1) j))
 $
 
-== What is the computational complexity?
+== Big $O$ notation
 #timecounter(2)
 
-- Let $n$ be the number of vertices and $l$ be the length of the path.
-- The computational complexity of the shortest path problem is $O(n^3 log l)$.
+- Let $n$ be the number of vertices.
+- The computational complexity of the shortest path problem is $O(n^3 log n)$.
 - The complexity of (tropical) matrix multiplication is $O(n^3)$.
   #box(text(16pt)[```julia
 for i in 1:n
@@ -603,6 +603,7 @@ end
 
 Note: Big $O$ notation characterizes the *scaling* of the computational time with respect to the size of the input.
 
+Quiz: Why the complexity of our shortest path algorithm is not $O(n^4)$?
 
 == Run the tests
 #timecounter(1)
