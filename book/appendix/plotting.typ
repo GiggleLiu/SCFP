@@ -3,7 +3,7 @@
 
 #show: book-page.with(title: "Plotting (CairoMakie)")
 
-= Plotting recipes with CairoMakie
+= Plotting (CairoMakie)
 
 In this appendix, we have prepared a set of plotting scripts and simple tutorials to show how to generate different type of pictures, such as line plots, scatter plots, subplots, heatmaps, contour plots, colorbars, arrows, brackets, error bars, stream plots, and text. We will use the CairoMakie library, which is a high-performance, interactive plotting library for Julia. They could be installed by running the following command in the Julia REPL:
 

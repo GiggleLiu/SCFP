@@ -1,6 +1,9 @@
 #import "../book.typ": book-page, cross-link, heading-reference
+#import "@preview/cetz:0.2.2": *
 #show: book-page.with(title: "My First Package")
-#let boxed(it, width: 100%) = box(stroke: 1pt, inset: 10pt, radius: 4pt, width: width)[#it]
+
+#set math.equation(numbering: "(1)")
+#let boxed(it, width: 100%) = block(stroke: 1pt, inset: 10pt, radius: 4pt, width: width)[#it]
 
 #show ref: it => {
   let el = it.element
@@ -15,13 +18,35 @@
 
 = My First Package
 Julia package development workflow is useful for both project code and package development. It enables developers to manage project dependencies, automate unit tests and documentation, and publish packages.
-The Julia development workflow usually includes the following steps:
+The Julia package development workflow incoporates the following modern software engineering practices:
 
-- @sec:create-package: Create a new package using #link("https://github.com/JuliaCI/PkgTemplates.jl", "PkgTemplates").
-- @sec:configure-dependencies: Configure project dependencies.
-- @sec:develop-package: Develop the package (code, tests, docs).
-- @sec:publish-package: Upload the package to GitHub or other git hosting services.
-- @sec:register-package: (Optional) Register the package in the #link("https://github.com/JuliaRegistries/General", "General") registry.
+#figure(canvas(length: 0.6cm, {
+  import draw: *
+  let s(it) = text(11pt, it)
+  content((0, 0), box(stroke: black, inset: 5pt, s[Code + Unit Test]), name: "code")
+  content((7, 0), box(stroke: black, inset: 5pt, s[GitHub]), name: "github")
+  content((14, 0), box(stroke: black, inset: 5pt, s[CI/CD]), name: "cicd")
+  line("code", "github", mark: (end: "straight"), name: "upload")
+  content((rel: (0, -0.5), to: "upload.mid"), s[Upload])
+
+  line("github", "cicd", mark: (end: "straight"), name: "trigger")
+  content((rel: (0, -0.5), to: "trigger.mid"), s[Trigger])
+  bezier("cicd.east", "cicd.north", (rel: (1.0, 1.0)), (rel: (-1.0, 1.0)), mark: (end: "straight"))
+  content((rel: (1, 2.3), to: "cicd"), s[Create an empty virtual machine\ and run the tests])
+}))
+
+Developers generate and write unit tests on their local machines. The code is then synchronized with the remote repository.
+This synchronization triggers the CI/CD pipeline, which runs the unit tests and builds the documentation.
+Next, we will go through the steps to generate a simple package that implements the Lorenz dynamics:
+
+$
+cases(
+  (diff x)/(diff t) = σ (y - x),
+  (diff y)/(diff t) = x (ρ - z) - y,
+  (diff z)/(diff t) = x y - β z
+)
+$ <eq:lorenz>
+where $x, y, z$ are the state variables and $sigma, rho, beta$ are the parameters. The integrator we will use is the 4th-order Runge-Kutta method.
 
 == Create a package <sec:create-package>
 
@@ -390,91 +415,8 @@ The `.github/workflows` directory contains three important configuration files:
 
 #boxed([
   *Tips: Learn from established packages*\
-  It is always a good practise to learn from established packages. For GitHub Actions configuration examples, #link("https://github.com/under-Peter/OMEinsum.jl", "OMEinsum.jl") is a good example.
+  It is always a good practise to learn from established packages. For examples, #link("https://github.com/under-Peter/OMEinsum.jl", "OMEinsum.jl") is a good example of package organization, GitHub Actions configuration, dependency management, and documentation.
 ])
-
 == Register the package <sec:register-package>
 
 To make your package accessible to the Julia community with `] add MyFirstPackage`, you need to register it in the #link("https://github.com/JuliaRegistries/General", "General") registry. This can be done automataically with #link("https://github.com/JuliaRegistries/Registrator.jl", "Registrator.jl").
-
-== Case study: OMEinsum.jl
-
-OMEinsum.jl provides a good example of package organization:
-
-```
-.
-├── .github/          # CI/CD configuration
-├── Project.toml      # Package metadata
-├── benchmark/        # Performance tests
-├── docs/             # Documentation
-├── examples/         # Usage examples
-├── ext/              # Package extensions
-├── src/              # Source code
-└── test/             # Test suite
-```
-
-The `Project.toml` shows the dependencies and version compatibility:
-
-```toml
-name = "OMEinsum"
-uuid = "ebe7aa44-baf0-506c-a96f-8464559b3922"
-authors = ["Andreas Peter <andreas.peter.ch@gmail.com>"]
-version = "0.8.4"
-
-[deps]
-AbstractTrees = "1520ce14-60c1-5f80-bbc7-55ef81b5835c"
-BatchedRoutines = "a9ab73d0-e05c-5df1-8fde-d6a4645b8d8e"
-ChainRulesCore = "d360d2e6-b24c-11e9-a2a3-2a2ae2dbcce4"
-Combinatorics = "861a8166-3701-5b0c-9a16-15d98fcdc6aa"
-LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
-MacroTools = "1914dd2f-81c6-5fcd-8719-6d5c9610ff09"
-OMEinsumContractionOrders = "6f22d1fd-8eed-4bb7-9776-e7d684900715"
-Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
-TupleTools = "9d95972d-f1c8-5527-a6e0-b4b365fa01f6"
-
-[weakdeps]
-AMDGPU = "21141c5a-9bdb-4563-92ae-f87d6854732e"
-CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba"
-Enzyme = "7da242da-08ed-463a-9acd-ee780be4f1d9"
-
-[extensions]
-AMDGPUExt = "AMDGPU"
-CUDAExt = "CUDA"
-EnzymeExt = "Enzyme"
-
-[compat]
-AMDGPU = "0.8"
-AbstractTrees = "0.3, 0.4"
-BatchedRoutines = "0.2"
-CUDA = "4, 5"
-ChainRulesCore = "1"
-Combinatorics = "1.0"
-Enzyme = "0.13.16"
-MacroTools = "0.5"
-OMEinsumContractionOrders = "0.9"
-TupleTools = "1.2, 1.3"
-julia = "1"
-
-[extras]
-Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
-DoubleFloats = "497a8b3b-efae-58df-a0af-a86822472b78"
-ForwardDiff = "f6369f11-7733-5829-9624-2563aa707210"
-LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
-LuxorGraphPlot = "1f49bdf2-22a7-4bc4-978b-948dc219fbbc"
-Polynomials = "f27b6e38-b328-58d1-80ce-0feddd5e7a45"
-ProgressMeter = "92933f4c-e287-5a05-a399-4b506db050ca"
-Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
-SymEngine = "123dc426-2d89-5057-bbad-38513e3affd8"
-Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
-TropicalNumbers = "b3a74e9c-7526-4576-a4eb-79c0d4c32334"
-Zygote = "e88e6eb3-aa80-5325-afca-941959d7151f"
-
-[targets]
-test = ["Test", "CUDA", "Documenter", "Enzyme", "LinearAlgebra", "LuxorGraphPlot", "ProgressMeter", "SymEngine", "Random", "Zygote", "DoubleFloats", "TropicalNumbers", "ForwardDiff", "Polynomials"]
-
-```
-
-* Quiz: *
-1. Is ChainRulesCore 1.2 compatible with OMEinsum?
-2. If ChainRulesCore 2.0 is released, what should be done to keep OMEinsum compatible?
-3. If I fixed the bug in OMEinsum, how to release a new version? How is it different compared with when I first release the package?
