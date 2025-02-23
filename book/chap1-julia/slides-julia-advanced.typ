@@ -32,7 +32,7 @@
 // Global information configuration
 #let m = (m.methods.info)(
   self: m,
-  title: [Julia: Advanced Topics],
+  title: [Julia: Correctness and Reproducibility],
   subtitle: [],
   author: [Jin-Guo Liu],
   date: datetime.today(),
@@ -57,36 +57,53 @@
   - SSH: connect to the remote server.
 - VSCode: a code editor.
 - Julia: a high-level, high-performance programming language for technical computing.
-  - Benchmarking and profiling
-  - Loops and functions
+  - Benchmarking and profiling (`@btime`, `@profile`, `@code_warntype`)
   - Type system and just-in-time compilation (JIT)
   - Multiple dispatch
   - #text(red)[Package development]
   - #text(red)[High-performance computing]
   - #text(red)[Arrays and some useful functionals]
 
+== Tower of software quality
+
+#figure(canvas({
+  import draw: *
+  let s(it) = text(18pt, it)
+  line((0, 0), (-8, -8), (8, -8), close: true)
+  line((-2, -2), (2, -2))
+  line((-4, -4), (4, -4))
+  line((-6, -6), (6, -6))
+  content((0, -7), highlight(s[Correctness & Robustness]))
+  content((0, -5), highlight(s[Reproducibility & Reliability]))
+  content((0, -3), s[Efficiency (JIT)])
+  content((6, -1), s[Extensibility, easy to use et al.])
+}))
+
 == This lecture
 
-You will learn:
+We focus on:
 - Interesting *packages* and *forums* in the Julia ecosystem
-- #highlight[How to setup a development environment]
+- How to setup unit tests and package dependencies
 - How to setup CI/CD to automate the testing and deployment
+
+Meanwhile, you will learn:
 - The *big-$O$ notation* for measuring the complexity of algorithms
 - How to represent a *graph* and how to solve the *shortest path problem* with the tropical matrix multiplication
 
 = Julia ecosystem
 == Featured ecosystem
+=== General-purpose ecosystem
+- #link("https://github.com/jump-dev/JuMP.jl", "JuMP.jl") (2.3k) - #highlight[Mathematical optimization, e.g. LP, SDP, MIP etc.]
+- #link("https://github.com/SciML/DifferentialEquations.jl", "DifferentialEquations.jl") (2.9k) - #highlight[Solving differential equations]
+- #link("https://github.com/MakieOrg/Makie.jl", "Makie.jl") (2.5k) - Data visualization
+- #link("https://github.com/Jutho/KrylovKit.jl", "KrylovKit.jl") (333) - Large-scale sparse linear algebra
+- #link("https://github.com/JuliaNLSolvers/Optim.jl", "Optim.jl") (1.1k) - Optimization, i.e. finding the minimum of a function
+
 === Domain-specific ecosystem
 - #link("https://github.com/ITensor/ITensors.jl", "ITensors.jl") (570) - Tensor networks
 - #link("https://github.com/QuantumBFS/Yao.jl", "Yao.jl") (1k) - Quantum computing
 - #link("https://github.com/JuliaMolSim/DFTK.jl", "DFTK.jl") (460) - Density functional theory
 
-=== General-purpose ecosystem
-- #link("https://github.com/jump-dev/JuMP.jl", "JuMP.jl") (2.3k) - #highlight[Mathematical optimization]
-- #link("https://github.com/SciML/DifferentialEquations.jl", "DifferentialEquations.jl") (2.9k) - #highlight[Solving differential equations]
-- #link("https://github.com/MakieOrg/Makie.jl", "Makie.jl") (2.5k) - Data visualization
-- #link("https://github.com/Jutho/KrylovKit.jl", "KrylovKit.jl") (333) - Large-scale linear algebra
-- #link("https://github.com/JuliaNLSolvers/Optim.jl", "Optim.jl") (1.1k) - Optimization
 
 == Communities
 
@@ -101,18 +118,25 @@ You will learn:
 
 = Package structure
 
-== Correctness - from programming to software engineering
+== Correctness, correctness and correctness!
 #timecounter(2)
 
 - Spent enourmous time debugging?
-- Can not reproduce previous results?
+- A piece of code was working yesterday, but not today?
+- A piece of code was working on your machine, but not on your colleague's?
 
-=== Modern software engineering
+#align(center, box(stroke: black, inset: 10pt, text(16pt)[Discussion: what is your practise to ensure the correctness of your code?]))
+
+== Modern software engineering
 
 #figure(canvas({
   import draw: *
   let s(it) = text(16pt, it)
-  content((0, 0), box(stroke: black, inset: 10pt, s[Code + Unit Test]), name: "code")
+  content((0, 0), box(stroke: black, inset: 10pt, width: 10em, s[Unit Test
+```julia
+@test sin(π/2) ≈ 1
+```
+  ]), name: "code")
   content((7, 0), box(stroke: black, inset: 10pt, s[GitHub]), name: "github")
   content((14, 0), box(stroke: black, inset: 10pt, s[CI/CD]), name: "cicd")
   line("code", "github", mark: (end: "straight"), name: "upload")
@@ -120,24 +144,24 @@ You will learn:
 
   line("github", "cicd", mark: (end: "straight"), name: "trigger")
   content((rel: (0, -0.5), to: "trigger.mid"), s[Trigger])
-  bezier("cicd.east", "cicd.north", (rel: (1.0, 1.0)), (rel: (-1.0, 1.0)), mark: (end: "straight"))
+  bezier("cicd.south", "github.south", (rel: (-1.0, -1.0)), (rel: (-2.0, -2.0)), mark: (end: "straight"))
   content((rel: (2, 2), to: "cicd"), s[Create an empty virtual machine\ and run the tests])
+  content((rel: (-3, -2.5), to: "cicd"), s[Pass or fail?])
 }))
 
 - _Unit test_: a collection of inputs and expected outputs for a function. It is used to verify the correctness of functions.
 - _CI/CD_: Continuous Integration/Continuous Deployment, which is an automation process that runs the unit tests, documentation building, and deployment.
-- _Virtual machine_: implemented with the containerization technology.
 
-== Script or package?
-#timecounter(1)
-- When to write a script? Never.
-- When to write a "package"? Always.
-  - Simple to use, little overhead
-  - Easy to reproduce results (dependency management)
-  - Easy to test (automated testing to ensure the correctness)
-  - Easy to share and install (can be installed by others)
-  - Easy to document and distribute
-  - ...
+// == Script or package?
+// #timecounter(1)
+// - When to write a script? Never.
+// - When to write a "package"? Always.
+//   - Simple to use, little overhead
+//   - Easy to reproduce results (dependency management)
+//   - Easy to test (automated testing to ensure the correctness)
+//   - Easy to share and install (can be installed by others)
+//   - Easy to document and distribute
+//   - ...
 
 == Case study: TropicalNumbers.jl
 #timecounter(2)
