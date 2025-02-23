@@ -7,16 +7,20 @@
 
 == Array initialization
 
-Arrays in Julia can be initialized in several ways:
+Array is a data structure that stores a collection of elements of the same type. In Julia, array type `Array{T, N}` has two type parameters: `T` is the type of the elements, and `N` is the number of dimensions. For example, `Array{Int, 2}` is a matrix of integers.
+An array can be instantiated in several ways:
 
 ```julia
+uninitialized_vector = Vector{Int}(undef, 3)  # uninitialized vector (fast)
+
 # Basic array creation
 A = [1, 2, 3]                         # vector
 B = [1 2 3; 4 5 6; 7 8 9]             # matrix
+
 zero_vector = zeros(3)                # zero vector
 rand_vector = randn(Float32, 3, 3)    # random normal distribution
+const_matrix = fill(2.0, 3, 3)        # constant matrix
 step_vector = collect(1:3)            # collect from range
-uninitialized_vector = Vector{Int}(undef, 3)  # uninitialized vector
 ```
 
 Unlike C, Python, and R, Julia array indexing starts from 1. This design choice aligns with mathematical notation and many scientific computing conventions.
@@ -28,9 +32,20 @@ A[1:2]    # first two elements
 A[2:-1:1] # first two elements in reverse order
 
 B = [1 2 3; 4 5 6; 7 8 9]
-B[1:2]        # first two elements (column-major)
-B[2]          # the second element in linearized representation
-B[1:2, 1:2]   # 2×2 submatrix
+B[1:2]            # first two elements (column-major)
+B[2]              # the second element in linearized representation
+B[1:2, 1:2]       # 2×2 submatrix
+
+view(B, 1:2, 1:2) # view of the submatrix
+```
+Remark: `view(B, 1:2, 1:2)` returns a view of the submatrix, which does not copy the data. It is different from `B[1:2, 1:2]` that returns a new matrix copies the data. For example,
+
+```julia
+x = collect(1:4)
+y1 = x[1:2:end]
+y2 = view(x, 1:2:lastindex(x))
+y1 .= 100  # `x` is still [1, 2, 3, 4]
+y2 .= 100  # `x` is changed to [100, 2, 100, 4]
 ```
 
 == Map, reduction, broadcasting, filtering and searching
