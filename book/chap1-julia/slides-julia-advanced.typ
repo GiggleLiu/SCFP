@@ -60,9 +60,29 @@
   - Benchmarking and profiling (`@btime`, `@profile`, `@code_warntype`)
   - Type system and just-in-time compilation (JIT)
   - Multiple dispatch
-  - #text(red)[Package development]
-  - #text(red)[High-performance computing]
-  - #text(red)[Arrays and some useful functionals]
+
+== Added: The Min-Plus Tropical semiring
+
+=== Examples:
+1. Replace `*` with `+`
+#box(text(16pt)[```julia
+julia> TropicalMinPlus(3.0) * TropicalMinPlus(4.0)
+7.0ₛ
+
+julia> one(TropicalMinPlus{Float64})   # the multiplicative identity
+0.0ₛ
+```
+])
+2. Replace `+` with `min`
+#box(text(16pt)[```julia
+julia> TropicalMinPlus(3) + TropicalMinPlus(4)
+3ₛ
+
+julia> zero(TropicalMinPlus{Float64})   # the additive identity
+Infₛ
+```
+])
+
 
 == Tower of software quality
 
@@ -82,16 +102,17 @@
 == This lecture
 
 We focus on:
-- Interesting *packages* and *forums* in the Julia ecosystem
-- How to setup unit tests and package dependencies
+- What is *unit test*, how to setup unit tests and package dependencies
 - How to setup CI/CD to automate the testing and deployment
 
 Meanwhile, you will learn:
-- The *big-$O$ notation* for measuring the complexity of algorithms
 - How to represent a *graph* and how to solve the *shortest path problem* with the tropical matrix multiplication
+- The *big-$O$ notation* for measuring the complexity of algorithms
 
-= Julia ecosystem
-== Featured ecosystem
+= Unit test and CI/CD
+
+== Julia software ecosystem
+#timecounter(2)
 === General-purpose ecosystem
 - #link("https://github.com/jump-dev/JuMP.jl", "JuMP.jl") (2.3k) - #highlight[Mathematical optimization, e.g. LP, SDP, MIP etc.]
 - #link("https://github.com/SciML/DifferentialEquations.jl", "DifferentialEquations.jl") (2.9k) - #highlight[Solving differential equations]
@@ -105,21 +126,16 @@ Meanwhile, you will learn:
 - #link("https://github.com/JuliaMolSim/DFTK.jl", "DFTK.jl") (460) - Density functional theory
 
 
-== Communities
-
-#grid(columns: 2,  gutter: 50pt, [https://julialang.org/community/
-
-- Discourse (for questions): https://discourse.julialang.org/
-- Zulip (for discussions): https://julialang.zulipchat.com/
-- Slack (for discussions): https://julialang.org/slack/
-], [
-  #image("images/juliazulip.png", width: 150pt)
-])
-
-= Package structure
-
 == Correctness, correctness and correctness!
 #timecounter(2)
+
+Many open-source developers maintain the codebase with $>10k$ lines of code. e.g. the quantum simulator `Yao.jl`:
+
+#box(text(16pt)[```bash
+➜  Yao git:(master) ✗ cloc .
+Julia                          245           4777           6108          18198
+```
+])
 
 - Spent enourmous time debugging?
 - A piece of code was working yesterday, but not today?
@@ -132,11 +148,11 @@ Meanwhile, you will learn:
 #figure(canvas({
   import draw: *
   let s(it) = text(16pt, it)
-  content((0, 0), box(stroke: black, inset: 10pt, width: 10em, s[Unit Test
+  content((-1, 0), box(stroke: black, inset: 10pt, width: 10em,  align(center, s[Unit Test
 ```julia
 @test sin(π/2) ≈ 1
 ```
-  ]), name: "code")
+  ])), name: "code")
   content((7, 0), box(stroke: black, inset: 10pt, s[GitHub]), name: "github")
   content((14, 0), box(stroke: black, inset: 10pt, s[CI/CD]), name: "cicd")
   line("code", "github", mark: (end: "straight"), name: "upload")
@@ -145,7 +161,7 @@ Meanwhile, you will learn:
   line("github", "cicd", mark: (end: "straight"), name: "trigger")
   content((rel: (0, -0.5), to: "trigger.mid"), s[Trigger])
   bezier("cicd.south", "github.south", (rel: (-1.0, -1.0)), (rel: (-2.0, -2.0)), mark: (end: "straight"))
-  content((rel: (2, 2), to: "cicd"), s[Create an empty virtual machine\ and run the tests])
+  content((rel: (0, 1.5), to: "cicd"), s[Create an empty virtual machine\ and run the tests])
   content((rel: (-3, -2.5), to: "cicd"), s[Pass or fail?])
 }))
 
@@ -163,59 +179,28 @@ Meanwhile, you will learn:
 //   - Easy to document and distribute
 //   - ...
 
-== Case study: TropicalNumbers.jl
-#timecounter(2)
+== Live code: Run tests of TropicalNumbers.jl
+#timecounter(4)
 
 - Install `TropicalNumbers.jl` in developer mode
-  ```julia
+  #box(text(16pt)[```julia
 (@v1.11) pkg> activate --temp  # create a temporary environment
 
 (@v1.11) pkg> dev TropicalNumbers  # develop the package
 ```
+  ])
 
 - Then you will see a new folder named `TropicalNumbers` in the `~/.julia/dev` folder
-  ```bash
+  #box(text(16pt)[```bash
   cd ~/.julia/dev/TropicalNumbers
+  julia --project
   ```
-
-== The file structure of the package
-#timecounter(2)
-
-#box(text(16pt)[```bash
-$ tree . -a    # installing `tree` required
-.
-├── .git              # Git repository
-├── .github              # GitHub Actions configuration
-├── .gitignore           # Git ignore rules
-
-├── LICENSE           # License of the package
-├── Project.toml      # Dependency specification
-├── README.md         # Description of the package
-
-├── docs              # Documentation
-├── src               # Source code
-└── test              # Test code
-```
-])
-Note: To install `tree` command, use `brew install tree` on macOS or `sudo apt install tree` on Ubuntu/WSL.
-
-== Package content
-#timecounter(2)
-- `src`: the folder that contains the source code of the package.
-  - `src/TropicalNumbers.jl`: the main source code of the package. It contains a module named `TropicalNumbers`. It includes multiple other files with the `include` statement.
-    #box(text(16pt)[```julia
-    module TropicalNumbers
-      using Package-1, Package-2, ...  # import other packages
-      export API-1, API-2...           # export the API
-      include("file-1.jl")             # include other files
-      include("file-2.jl")            
-      ...
-    end
-    ```
-    ])
-- `test`: the folder that contains the test code of the package
-  - contains the main test file `runtests.jl`, which includes multiple test files.
-- `docs`: the folder that contains the documentation of the package. (not covered in this course)
+  ])
+  To run tests in `test/runtests.jl`:
+  #box(text(16pt)[```julia
+  pkg> test
+  ```
+  ])
 
 == Unit Tests
 #timecounter(1)
@@ -256,33 +241,19 @@ ERROR: Some tests did not pass: 1 passed, 1 failed, 0 errored, 0 broken.
 ==
 #timecounter(1)
 
-#image("images/tropicalpackage.png")
+#image("images/tropicalpackage.png", width: 80%)
 
-- The CI of TropicalNumbers pass, meaning all tests pass. CI resolves the issue that a developer may not have a fresh machine to run the tests.
+- The CI of #link("https://github.com/TensorBFS/TropicalNumbers.jl", "TropicalNumbers.jl") pass, meaning all tests pass. CI resolves the issue that a developer may not have a fresh machine to run the tests.
 - The code coverage of TropicalNumbers is 86%, meaning 86% of the code is covered by tests.
 
-== Git related files
-#timecounter(1)
-- `.git` and `.gitignore`: the files that are used by Git. The `.gitingore` file contains the files that should be ignored by Git. By default, the `.gitignore` file contains the following lines:
-  ```gitignore
-  *.jl.*.cov
-  *.jl.cov         # files ending with `.jl.cov` are coverage files
-  *.jl.mem
-  .DS_Store
-  /Manifest.toml   # Manifest.toml is automatically generated
-  /dev/            # the `dev` folder
-  ```
-
-- `.github`: the folder that contains the GitHub Actions (a CI/CD system) configuration files.
-
-==
+== Live demo: GitHub Actions
 #timecounter(2)
 
 #image("images/github-actions.png")
 
 Let's check the details of tests runs: https://github.com/TensorBFS/TropicalNumbers.jl/actions
 
-== Configuration of CI/CD
+== Live demo: Configuration of CI/CD
 #timecounter(2)
 
 CI/CD are configured in the `.github/workflows` folder of the package path.
@@ -297,18 +268,13 @@ Each file is a CI/CD configuration in the `.yml` format.
 ```
 - Note: normally, you do not need to change the configuration files since the `PkgTemplates.jl` has already configured the CI/CD for you.
 - Note: the results of the CI/CD are reflected in the badge in the `README.md` file.
-
-== Package meta-information
+== Configure the dependency: Project.toml
 #timecounter(1)
-- `LICENSE`: the file that contains the license of the package.
-  - #link("https://en.wikipedia.org/wiki/MIT_License", "MIT"): a permissive free software license, featured with a short and simple permissive license with conditions only requiring preservation of copyright and license notices.
-  - #link("https://en.wikipedia.org/wiki/Apache_License", "Apache2"): a permissive free software license, featured with a contributor license agreement and a patent grant.
-  - #link("https://en.wikipedia.org/wiki/GNU_General_Public_License", "GPL"): a copyleft free software license, featured with a strong copyleft license that requires derived works to be available under the same license.
+`Project.toml`: the file that contains the metadata of the package, including the name, UUID, version, dependencies and compatibility of the package. Package manager resolves the environment with the known registries and generates the `Manifest.toml` file.
 
-- `README.md`: the manual that shows up in the GitHub repository of the package, which contains the description of the package.
-- `Project.toml`: the file that contains the metadata of the package, including the name, UUID, version, dependencies and compatibility of the package. Package manager resolves the environment with the known registries and generates the `Manifest.toml` file.
+Usually, we put `Manifest.toml` in the `.gitignore` file.
 
-== Project.toml
+== Live demo: Project.toml
 #timecounter(1)
 
 #box(text(16pt)[```bash
@@ -409,16 +375,53 @@ Registry Status
 - Multiple registries can be used
 - `General` is the only one that accessible by all Julia users.
 
-= Create a package
-== Steps to create a package
+
+= Develop a package
+== File structure of a package
+#timecounter(2)
+
+#box(text(16pt)[```bash
+$ tree . -a    # installing `tree` required
+.
+├── .git              # Git repository
+├── .github           # GitHub Actions configuration
+├── .gitignore        # Git ignore rules
+
+├── LICENSE           # License of the package
+├── Project.toml      # Dependency specification
+├── README.md         # Description of the package
+
+├── docs              # Documentation (not covered in this course)
+├── src               # Source code
+└── test              # Test code
+```
+])
+Note: To install `tree` command, use `brew install tree` on macOS or `sudo apt install tree` on Ubuntu/WSL.
+
+== Package content
+#timecounter(2)
+- `src`: the folder that contains the source code of the package.
+  - `src/TropicalNumbers.jl`: the main source code of the package. It contains a module named `TropicalNumbers`. It includes multiple other files with the `include` statement.
+    #box(text(16pt)[```julia
+    module TropicalNumbers
+      using Package-1, Package-2, ...  # import other packages
+      export API-1, API-2...           # export the API
+      include("file-1.jl")             # include other files
+      include("file-2.jl")            
+      ...
+    end
+    ```
+    ])
+
+
+== Package meta-information
 #timecounter(1)
+- `LICENSE`: the file that contains the license of the package.
+  - #link("https://en.wikipedia.org/wiki/MIT_License", "MIT"): a permissive free software license, featured with a short and simple permissive license with conditions only requiring preservation of copyright and license notices.
+  - #link("https://en.wikipedia.org/wiki/Apache_License", "Apache2"): a permissive free software license, featured with a contributor license agreement and a patent grant.
+  - #link("https://en.wikipedia.org/wiki/GNU_General_Public_License", "GPL"): a copyleft free software license, featured with a strong copyleft license that requires derived works to be available under the same license.
 
-1. Create a package template
-2. Specify the project dependency
-3. Develop the package
-4. Upload the package to GitHub
-5. (Optional) Register the package to the General registry
-
+= Live demo: Create a package
 == 1. Create a package
 #timecounter(2)
 
@@ -522,7 +525,7 @@ test = ["Test"]
 ```
 ])
 
-== 3. Develop the package: Hands on
+== Hands on: Develop the package
 #timecounter(15)
 
 
@@ -661,19 +664,35 @@ Cheers! All tests passed.
 
 Show-case your test cases.
 
-== Next steps (left as homework)
+== Onliner's implementation
 #timecounter(2)
 
-(TODO: ask Zhongyi if he has a note)
-
-The documentation is built with #link("https://documenter.juliadocs.org/stable/", "Documenter.jl"). The build script is `docs/make.jl`. To *build the documentation*, you can use the following command in the package path:
-```bash
-$ cd docs
-$ julia --project make.jl
+#box(text(16pt)[```julia
+using TropicalNumbers, LinearAlgebra, Graphs
+tmat = (map(x->iszero(x) ? zero(TropicalMinPlus{Float64}) : TropicalMinPlus(1.0), adjacency_matrix(smallgraph(:petersen))) + Diagonal(fill(TropicalMinPlus(0.0), 10)))^10
 ```
-Instantiate the documentation environment if necessary. For seamless *debugging* of documentation, it is highly recommended using the #link("https://github.com/tlienart/LiveServer.jl", "LiveServer.jl") package.
+])
+- "`map`": apply a function to each element of the input array.
+- "`Diagonal`": create a diagonal matrix from a vector.
+- "`x -> ...`": a anonymous function that takes an argument `x` and returns a value.
+- "`expression ? branch 1 : branch 2`": a ternary operator that returns `branch 1` if `expression` is true, otherwise returns `branch 2`.
+- "`fill(x, n)`": create a vector of length `n` with all elements being `x`.
 
-Configure CI/CD permissions and secrets in the repository.
+Note: `zero(TropicalMinPlus{Float64})` is `Inf`.
+
+// == Next steps (left as homework)
+// #timecounter(2)
+
+// (TODO: ask Zhongyi if he has a note)
+
+// The documentation is built with #link("https://documenter.juliadocs.org/stable/", "Documenter.jl"). The build script is `docs/make.jl`. To *build the documentation*, you can use the following command in the package path:
+// ```bash
+// $ cd docs
+// $ julia --project make.jl
+// ```
+// Instantiate the documentation environment if necessary. For seamless *debugging* of documentation, it is highly recommended using the #link("https://github.com/tlienart/LiveServer.jl", "LiveServer.jl") package.
+
+// Configure CI/CD permissions and secrets in the repository.
 
 // == Memory access
 
@@ -715,3 +734,19 @@ Configure CI/CD permissions and secrets in the repository.
 
 // - A typical CPU clock cycle is: 0.3 ns.
 // - A typical memory access latency is: 50 ns, i.e. $~100$ times slower!
+
+== Homework
+
+
+== Get help from communities
+#timecounter(3)
+
+#grid(columns: 2,  gutter: 50pt, [https://julialang.org/community/
+
+- Discourse (for questions): https://discourse.julialang.org/
+- Zulip (for discussions): https://julialang.zulipchat.com/
+- Slack (for discussions): https://julialang.org/slack/
+], [
+  #image("images/juliazulip.png", width: 150pt)
+])
+
