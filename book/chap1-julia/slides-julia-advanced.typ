@@ -61,9 +61,8 @@
   - Type system and just-in-time compilation (JIT)
   - Multiple dispatch
 
-== Added: The Min-Plus Tropical semiring
+== Revisit: The Min-Plus Tropical semiring
 
-=== Examples:
 1. Replace `*` with `+`
 #box(text(16pt)[```julia
 julia> TropicalMinPlus(3.0) * TropicalMinPlus(4.0)
@@ -737,6 +736,7 @@ Note: `zero(TropicalMinPlus{Float64})` is `Inf`.
 
 == Homework
 
+https://github.com/CodingThrust/AMAT5315-2025Spring-Homeworks/tree/main/hw3
 
 == Get help from communities
 #timecounter(3)
