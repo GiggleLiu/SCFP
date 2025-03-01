@@ -196,9 +196,79 @@ Update `C` as `alpha * A * B + beta * C` or `alpha * A' * B + beta * C` or `alph
 - Estimating condition numbers
 - Reordering of the Schur factorizations
 
-== Matrix types
+== Matrix types in BLAS and LAPACK - By Shape
 
-#let h(it) = table.cell(fill: silver)[#it]
+#let h(it) = table.cell(fill: silver, align: center)[#it]
+#let c(it) = table.cell(fill: white, align: center)[#it]
+#table(columns: (1fr, 1fr, 1fr, 1fr),
+h[#text(red)[ge]neral], h[#text(red)[tr]iangular], h[upper #text(red)[H]ei#text(red)[s]enberg], h[#text(red)[t]rape#text(red)[z]oidal],
+c[#canvas({
+  import draw: *
+  rect((0, 0), (3, 3), fill: red)
+})],
+c[#canvas({
+  import draw: *
+  rect((0, 0), (3, 3), fill: none)
+  line((3, 0), (0, 3), (3, 3), close: true, fill: red)
+})],
+
+c[#canvas({
+  import draw: *
+  rect((0, 0), (3, 3), fill: none)
+  line((3, 0),(2, 0),  (0, 2), (0, 3), (3, 3), close: true, fill: red)
+})],
+
+c[#canvas({
+  import draw: *
+  rect((0, 0), (4, 3), fill: none)
+  line((4, 0), (3, 0), (0, 3), (4, 3), close: true, fill: red)
+})],
+
+
+h[#text(red)[di]agonal],h[#text(red)[b]i#text(red)[d]iagonal],h[],h[],
+c[#canvas({
+  import draw: *
+  rect((0, 0), (3, 3), fill: none)
+  let n = 20
+  let delta = 3 / n
+  for i in range(n){
+    rect((3 - i * delta, i * delta), (3 - (i+1) * delta, (i+1) * delta), fill: red)
+  }
+})],
+
+c[#canvas({
+  import draw: *
+  rect((0, 0), (3, 3), fill: none)
+  let n = 20
+  let delta = 3 / n
+  for i in range(n){
+    rect((3 - i * delta, i * delta), (3 - (i+1) * delta, (i+1) * delta), fill: red)
+  }
+  for i in range(n - 1){
+    rect((3 - (i+1) * delta, i * delta), (3 - (i+2) * delta, (i+1) * delta), fill: red)
+    //rect((3 - i * delta, (i+1) * delta), (3 - (i+1) * delta, (i+2) * delta), fill: red)
+  }
+})],
+)
+
+Note: More general sparse matrix types will be introduced later.
+
+== Matrix types in BLAS and LAPACK - By Symmetry
+
+For a real matrix $A in RR^(n times n)$
+#table(columns: (1fr, 1fr, 1fr),
+h[symmetric], h[orthogonal],  h[SPD],
+c[$A = A^T$], c[$A^T A = I$], c[$forall_(x!=0) x^T A x > 0$],
+)
+For a complex matrix $A in CC^(n times n)$
+#table(columns: (1fr, 1fr, 1fr),
+h[Hermitian], h[unitary], h[HPD],
+c[$A = A^dagger$], c[$A^dagger A = I$], c[$forall_(x != 0) x^dagger A x > 0$],
+)
+
+==
+
+Columns are storage types, rows are matrix types.
 #table(columns: (auto, 1fr, 1fr, 1fr, 1fr, 1fr),
 table.header(h[], h[full], h[banded], h[packed], h[tridiag], h[generalized problem]),
 [general], [ge], [gb], [], [gt], [gg],
@@ -207,11 +277,8 @@ table.header(h[], h[full], h[banded], h[packed], h[tridiag], h[generalized probl
 [SPD/HPD], [po], [pb], [pp], [pt], [],
 [triangular], [tr], [tb], [tp], [], [tg],
 [upper Hessenberg], [hs], [], [], [], [hg],
-[trapezoidal], [tz], [], [], [], [],
 [orthogonal], [or], [op], [], [], [],
 [unitary], [un], [up], [], [], [],
-[diagonal], [di], [], [], [], [],
-[bidiagonal], [bd], [], [], [], [],
 )
 
 == An example of generalized problem
