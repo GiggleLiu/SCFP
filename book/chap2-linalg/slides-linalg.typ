@@ -196,6 +196,31 @@ Update `C` as `alpha * A * B + beta * C` or `alpha * A' * B + beta * C` or `alph
 - Estimating condition numbers
 - Reordering of the Schur factorizations
 
+== Matrix types
+
+#let h(it) = table.cell(fill: silver)[#it]
+#table(columns: (auto, 1fr, 1fr, 1fr, 1fr, 1fr),
+table.header(h[], h[full], h[banded], h[packed], h[tridiag], h[generalized problem]),
+[general], [ge], [gb], [], [gt], [gg],
+[symmetric], [sy], [sb], [sp], [st],[],
+[Hermitian], [he], [hb], [hp], [ht], [],
+[SPD/HPD], [po], [pb], [pp], [pt], [],
+[triangular], [tr], [tb], [tp], [], [tg],
+[upper Hessenberg], [hs], [], [], [], [hg],
+[trapezoidal], [tz], [], [], [], [],
+[orthogonal], [or], [op], [], [], [],
+[unitary], [un], [up], [], [], [],
+[diagonal], [di], [], [], [], [],
+[bidiagonal], [bd], [], [], [], [],
+)
+
+== An example of generalized problem
+
+The generalized eigenvalue problem is to find the eigenvalues and eigenvectors of a matrix pair $(A, B)$ such that
+$
+A z = lambda B z
+$
+
 == LU factorization of a banded matrix
 
 #box([```
@@ -474,6 +499,9 @@ vectors:
   0.565767  -0.909377
 ```
 
+== LAPACK functions
+
+- 
 == Example: eigenmodes of a vibrating string (or atomic chain)
 This example is about solving the dynamics of a vibrating string.
 
