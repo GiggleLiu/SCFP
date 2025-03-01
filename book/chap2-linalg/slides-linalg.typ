@@ -257,12 +257,12 @@ Note: More general sparse matrix types will be introduced later.
 
 For a real matrix $A in RR^(n times n)$
 #table(columns: (1fr, 1fr, 1fr),
-h[symmetric], h[orthogonal],  h[SPD],
+h[#text(red)[s]ymmetric], h[#text(red)[o]rthogonal],  h[S#text(red)[P]D],
 c[$A = A^T$], c[$A^T A = I$], c[$forall_(x!=0) x^T A x > 0$],
 )
 For a complex matrix $A in CC^(n times n)$
 #table(columns: (1fr, 1fr, 1fr),
-h[Hermitian], h[unitary], h[HPD],
+h[#text(red)[H]ermitian], h[#text(red)[u]nitary], h[H#text(red)[P]D],
 c[$A = A^dagger$], c[$A^dagger A = I$], c[$forall_(x != 0) x^dagger A x > 0$],
 )
 
