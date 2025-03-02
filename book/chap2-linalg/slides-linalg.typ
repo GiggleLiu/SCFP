@@ -440,7 +440,7 @@ julia> res.values
 julia> res.vectors
 ```
 
-== Example: eigenmodes of a vibrating string (or atomic chain)
+== Hands-on: eigenmodes of a vibrating string (or atomic chain)
 
 #figure(canvas({
   import draw: *
@@ -488,13 +488,13 @@ $
 
 == Matrix form
 
-The matrix form of the dynamics is
+The eigenmodes of the vibrating string can be found by solving the eigenvalue problem
 $
 -M omega^2 vec(u_1, u_2, dots.v, u_n) = C vec(u_1, u_2, dots.v, u_n)
 $
 where $
         M = "diag"(m_1, m_2, dots, m_n), quad
-        C = mat(-2c, c, 0, dots, 0, 0; c, -2c, c, dots, 0, 0; dots.v, dots.v, dots.v, dots.down, dots.v, dots.v; 0, 0, 0, dots, 0, c; 0, 0, 0, dots, c, -2c)
+        C = mat(-c, c, 0, dots, 0, 0; c, -2c, c, dots, 0, 0; dots.v, dots.v, dots.v, dots.down, dots.v, dots.v; 0, 0, 0, dots, 0, c; 0, 0, 0, dots, c, -c)
       $
 
 == 5-atom vibrating string
@@ -535,66 +535,6 @@ julia> u(1.0)  # atom locations offsets at t=1.0
 ```
 
 #figure(image("images/springs-demo.gif"))
-
-== Matrix functions
-
-Suppose we have a matrix $A in bb(C)^(n times n)$ and an analytic function $f$ defined with a power series
-
-$
-f(A) = sum_(i=0)^infinity a_i A^i.
-$
-
-== Matrix functions
-
-1. Diagonalize the matrix $A$ as $A = P D P^(-1)$, where $D$ is a diagonal matrix and $P$ is a matrix whose columns are the eigenvectors of $A$.
-2. Compute the matrix function $f(A)$ as $f(A) = P f(D) P^(-1)$.
-3. Compute the matrix function $f(D)$ by applying the function $f$ to the diagonal elements of $D$.
-4. Compute the matrix function $f(A)$ by multiplying the matrices $P$, $f(D)$, and $P^(-1)$, i.e. $f(A) = P f(D) P^(-1)$.
-
-== Example: Matrix exponential
-
-#box(text(16pt)[```julia
-julia> A = [1 2; 3 4]
-2×2 Matrix{Int64}:
- 1  2
- 3  4
-
-
-julia> exp(A)
-2×2 Matrix{Float64}:
-  51.969   74.7366
- 112.105  164.074
-```])
-
-
-#box(text(16pt)[```julia
-julia> D, P = LinearAlgebra.eigen(A)
-LinearAlgebra.Eigen{Float64, Float64, Matrix{Float64}, Vector{Float64}}
-values:
-2-element Vector{Float64}:
- -0.3722813232690143
-  5.372281323269014
-vectors:
-2×2 Matrix{Float64}:
- -0.824565  -0.415974
-  0.565767  -0.909377
-```])
-
-#box(text(16pt)[
-```julia
-julia> P * LinearAlgebra.Diagonal(exp.(D)) * inv(P)
-2×2 Matrix{Float64}:
-  51.969   74.7366
- 112.105  164.074
-```])
-
-#box(text(16pt)[
-```julia
-julia> exp(A)
-2×2 Matrix{Float64}:
-  51.969   74.7366
- 112.105  164.074
-```])
 
 ==
 
