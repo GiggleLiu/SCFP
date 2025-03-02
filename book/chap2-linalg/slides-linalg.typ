@@ -87,10 +87,10 @@ $
 $
 The matrix form of the system is
 $
-A = mat(2, 3, -2; 3, 2, 3; 4, -3, 2)
-x = vec(x_1, x_2, x_3)
+A x = b\
+A = mat(2, 3, -2; 3, 2, 3; 4, -3, 2), quad
+x = vec(x_1, x_2, x_3), quad
 b = vec(1, 2, 3)
-A x = b
 $
 
 == Solving a system of linear equations
@@ -225,6 +225,8 @@ julia> x = (A' * A) \ (A' * b)
 #timecounter(1)
 - _Fact_: the normal equation method is numerically *unstable*. Why?
 
+TODO: add an example to show the instability.
+
 Short answer:
 - #link("https://en.wikipedia.org/wiki/Floating-point_arithmetic", "Floating-point numbers") for storing real numbers has limited precision.
 - We use the _condition number_ $kappa(A)$ to measure the instability of a linear system.
@@ -341,7 +343,8 @@ The singular values of $A^dagger A$ are the squared singular values of $A$.
 
 Hence, $kappa(A^dagger A) = kappa(A)^2$.
 
-==
+== Example: condition number of the normal equation
+#timecounter(2)
 
 Problem: The condition number of $A^dagger A$ is the square of the *condition number* of $A$, which can be very large.
 
@@ -353,17 +356,36 @@ julia> cond(A' * A)
 1217.9555821049864
 ```])
 
-== The QR Decomposition approach
+Revisit the normal equation:
+$
+x = (A^T A)^(-1) A^T b
+$
+We effectively solve the linear system: $(A^T A) x = A^T b$, which is unstable.
+
+= QR decomposition
+== Stabilize the normal equation: QR Decomposition
 #timecounter(2)
 
 The QR decomposition of a matrix $A in bb(C)^(m times n)$ is a factorization of the form
 $
 A = Q R
 $
-where $Q in bb(C)^(m times m)$ is an orthogonal matrix and $R in bb(C)^(m times n)$ is an upper triangular matrix.
+where $Q in bb(C)^(m times min(m, n))$ is an orthogonal matrix (i.e. $Q^dagger Q = I$) and $R in bb(C)^(min(m, n) times n)$ is an upper triangular matrix.
 
-In Julia, we can find the QR decomposition of a matrix using the `qr` function.
+== Solving linear systems with QR decomposition
+#timecounter(2)
+Let $A = Q R$, the least squares problem $min_x ||A x - b||_2^2$ is equivalent to
+$
+  min_x ||Q R x - b||_2^2 = underbrace(min_y ||R x - Q^dagger b||_2^2, "zero") + ||Q^dagger_bot b||_2^2\
+  arrow.double.r R x = Q^dagger b
+$
+where $Q^dagger_bot$ is the orthogonal complement of $Q^dagger$, i.e. $Q^dagger_bot Q = 0$ and $Q^dagger_bot Q^dagger = I$.
 
+- _Remark_: For a unitary matrix $Q$, $||Q x||_2 = ||x||_2$. However, $||Q^dagger x||_2 <= ||x||_2$, where the equality holds if and only if $x$ is in the column space of $Q$.
+- _Remark_: For an upper triangular matrix $R$, the solution of $R x = y$ can be found by _backward substitution_. $kappa(R) = kappa(A)$.
+
+== Live coding: solving the least squares problem with QR decomposition
+#timecounter(2)
 #box(text(16pt)[```julia
 julia> Q, R = qr(A)
 LinearAlgebra.QRCompactWY{Float64, Matrix{Float64}, Matrix{Float64}}
@@ -384,7 +406,7 @@ julia> x = R \ (Matrix(Q)' * y)
 == LU Decomposition
 #timecounter(2)
 
-```julia
+#box(text(16pt)[```julia
 julia> using LinearAlgebra
 
 julia> lures = lu(A)  # pivot rows by default
@@ -399,16 +421,16 @@ U factor:
  4.0  -3.0   2.0
  0.0   4.5  -3.0
  0.0   0.0   4.33333
-```
+```])
 
-```julia
+#box(text(16pt)[```julia
 julia> lures.L * lures.U ≈ lures.P * A
 true
-```
+```])
 
 == Forward and backward substitution
 
-```julia
+#box(text(16pt)[```julia
 julia> forward = LowerTriangular(lures.L) \ (lures.P * b)
 3-element Vector{Float64}:
   3.0
@@ -420,9 +442,7 @@ julia> x = UpperTriangular(lures.U) \ forward
   0.6666666666666666
  -0.07692307692307693
   0.05128205128205128
-```
-
-
+```])
 
 == Eigen-decomposition
 The eigenvalues and eigenvectors of a matrix $A in bb(C)^(n times n)$ are the solutions to the equation
