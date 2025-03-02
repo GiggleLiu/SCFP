@@ -382,68 +382,49 @@ $
 where $Q^dagger_bot$ is the orthogonal complement of $Q^dagger$, i.e. $Q^dagger_bot Q = 0$ and $Q^dagger_bot Q^dagger = I$.
 
 - _Remark_: For a unitary matrix $Q$, $||Q x||_2 = ||x||_2$. However, $||Q^dagger x||_2 <= ||x||_2$, where the equality holds if and only if $x$ is in the column space of $Q$.
-- _Remark_: For an upper triangular matrix $R$, the solution of $R x = y$ can be found by _backward substitution_. $kappa(R) = kappa(A)$.
+- _Remark_: For an upper triangular matrix $R$, the solution of $R x = y$ can be found by _backward substitution_ in $O(n^2)$ time. $kappa(R) = kappa(A)$.
 
 == Live coding: solving the least squares problem with QR decomposition
 #timecounter(2)
 #box(text(16pt)[```julia
 julia> Q, R = qr(A)
-LinearAlgebra.QRCompactWY{Float64, Matrix{Float64}, Matrix{Float64}}
-Q factor: 10×10 LinearAlgebra.QRCompactWYQ{Float64, Matrix{Float64}, Matrix{Float64}}
-R factor:
-3×3 Matrix{Float64}:
- -3.16228  -7.11512  -22.5312
-  0.0       4.54148   20.4366
-  0.0       0.0        5.74456
+
+julia> Q' * Q    # Identity matrix
+julia> Q * Q'
+julia> rank(Q * Q')
 
 julia> x = R \ (Matrix(Q)' * y)
-3-element Vector{Float64}:
-  2.3781818181818197
-  2.492424242424242
- -0.22121212121212133
 ```])
 
-== LU Decomposition
+== Alternative approach: LU Decomposition
+#timecounter(2)
+
+The LU decomposition of a matrix $A in bb(C)^(m times n)$ is a factorization of the form
+$
+A = L U
+$
+where $L$ is a lower triangular matrix, and $U$ is an upper triangular matrix.
+
+- _Remark_: Given a linear system $A x = b$, we can reformulate it as $L U x = b$, and solve it by first solving $L y = b$ and then solving $U x = y$.
+
+== Live coding: LU Decomposition
 #timecounter(2)
 
 #box(text(16pt)[```julia
 julia> using LinearAlgebra
 
-julia> lures = lu(A)  # pivot rows by default
-LinearAlgebra.LU{Float64, Matrix{Float64}, Vector{Int64}}
-L factor:
-3×3 Matrix{Float64}:
- 1.0   0.0       0.0
- 0.5   1.0       0.0
- 0.75  0.944444  1.0
-U factor:
-3×3 Matrix{Float64}:
- 4.0  -3.0   2.0
- 0.0   4.5  -3.0
- 0.0   0.0   4.33333
-```])
+julia> lures = lu(A, NoPivot())  # pivot rows by default
 
-#box(text(16pt)[```julia
-julia> lures.L * lures.U ≈ lures.P * A
-true
-```])
+julia> lures.L * lures.U ≈ A
 
-== Forward and backward substitution
-
-#box(text(16pt)[```julia
 julia> forward = LowerTriangular(lures.L) \ (lures.P * b)
-3-element Vector{Float64}:
-  3.0
- -0.5
-  0.2222222222222222
-
 julia> x = UpperTriangular(lures.U) \ forward
-3-element Vector{Float64}:
-  0.6666666666666666
- -0.07692307692307693
-  0.05128205128205128
 ```])
 
+- _Remark_: pivoting can improve the stability of the LU decomposition.
+- _Remark_: for symmetric _positive definite matrices_ (i.e. $A = A^T$ and $x^T A x > 0$ for any $x != 0$), we have the Cholesky decomposition $A = L L^dagger$, which is a special case of the LU decomposition.
+
+= Eigenvalues and eigenvectors
 == Eigen-decomposition
 The eigenvalues and eigenvectors of a matrix $A in bb(C)^(n times n)$ are the solutions to the equation
 $
@@ -473,9 +454,6 @@ vectors:
   0.565767  -0.909377
 ```
 
-== LAPACK functions
-
-- 
 == Example: eigenmodes of a vibrating string (or atomic chain)
 This example is about solving the dynamics of a vibrating string.
 

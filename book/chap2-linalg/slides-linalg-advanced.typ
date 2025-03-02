@@ -343,3 +343,7 @@ Solves the linear equation A \* X = B where A is a square matrix using the LU fa
 
 == Strassen's algorithm
 
+
+== Pivoting
+
+== Flops
