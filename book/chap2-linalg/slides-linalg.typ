@@ -432,59 +432,70 @@ A x = lambda x
 $
 where $lambda$ is a scalar and $x$ is a non-zero vector.
 
-In Julia, we can find the eigenvalues and eigenvectors of a matrix using the `eigen` function.
-
 ```julia
 julia> A = [1 2; 3 4]
-2×2 Matrix{Int64}:
- 1  2
- 3  4
-```
 
-```julia
-julia> eigen(A)
-LinearAlgebra.Eigen{Float64, Float64, Matrix{Float64}, Vector{Float64}}
-values:
-2-element Vector{Float64}:
- -0.3722813232690143
-  5.372281323269014
-vectors:
-2×2 Matrix{Float64}:
- -0.824565  -0.415974
-  0.565767  -0.909377
+julia> res = eigen(A)
+julia> res.values
+julia> res.vectors
 ```
 
 == Example: eigenmodes of a vibrating string (or atomic chain)
-This example is about solving the dynamics of a vibrating string.
 
-![](image-2.png)
+#figure(canvas({
+  import draw: *
+  let (dx, dy) = (2.0, 1.0)
+  let s(it) = text(16pt)[#it]
+  let u = (0, 0, 0, -0.6, 0.8, 0, 0, 0)
+  for i in range(8){
+    circle((i * dx + u.at(i), 0), radius: 0.2, name: "atom" + str(i))
+  }
+  for i in range(7){
+    decorations.wave(line("atom" + str(i), "atom" + str(i + 1)), amplitude: 0.2)
+  }
+  line((3 * dx, 1), (3 * dx, 0), mark: (end: "straight"))
+  line((4 * dx, 1), (4 * dx, 0), mark: (end: "straight"))
+  content((3.5 * dx, 1.8), s[equilibrium position])
 
-[Image source and main reference](https://lampz.tugraz.at/~hadley/ss1/phonons/1d/1dphonons.php)
+  line((3 * dx, -0.3), (3 * dx + u.at(3), -0.3), mark: (end: "straight"), name: "d1")
+  content((rel: (0, -0.3), to: "d1.mid"), s[$u_4$])
+  line((4 * dx, -0.3), (4 * dx + u.at(4), -0.3), mark: (end: "straight"), name: "d2")
+  content((rel: (0, -0.3), to: "d2.mid"), s[$u_5$])
 
-== Dynamics of a vibrating string
+  content((1.5 * dx, 0.8), s[$c/2 (u_i - u_(i+1))^2$])
+}),
+)
 
 The dynamics of a one dimensional vibrating string can be described by the Newton's second law
 $
-M dot.double(u) = C(u_{i+1} - u_i) - C(u_i - u_{i-1})
+m_i dot.double(u)_i = c (u_(i+1) - u_i) - c (u_i - u_(i-1))
 $
-where $M$ is the mass matrix, $C$ is the stiffness, and $u_i$ is the displacement of the $i$th atom. The end atoms are fixed, so we have $u_0 = u_{n+1} = 0$.
+where $m_i$ is the mass of the $i$th atom, $c$ is the stiffness, and $u_i$ is the displacement of the $i$-th atom. The end atoms are fixed, so we have $u_0 = u_(n+1) = 0$.
 
-== Eigen-decomposition of the mass matrix
-We assume all atoms have the same eigenfrequency $omega$ and the displacement of the $i$th atom is given by
+== The eigenmodes of the vibrating string
+
+Assume all atoms have the same eigenfrequency $omega$ and the displacement of the $i$-th atom is given by
 $
-u_i(t) = A_i cos(omega t + phi_i)
+u_i (t) = A_i cos(omega t + phi_i)
 $
 where $phi_i$ is the phase of the $i$th atom.
 
-== Eigenmodes of the vibrating string
+We have
 
 $
-mat(-C, C, 0, dots, 0; C, -2C, C, dots, 0; 0, C, -2C, dots, 0; dots.v, dots.v, dots.v, dots.down, dots.v; 0, 0, 0, dots, -C)
-
-vec(A_1, A_2, A_3, dots.v, A_n)
-= -omega^2 M vec(A_1, A_2, A_3, dots.v, A_n)
+-m_i omega^2 u_i = c (u_(i+1) - u_i) - c (u_i - u_(i-1))
 $
-The eigenvalues $omega^2$ are the squared eigenfrequencies.
+
+== Matrix form
+
+The matrix form of the dynamics is
+$
+-M omega^2 vec(u_1, u_2, dots.v, u_n) = C vec(u_1, u_2, dots.v, u_n)
+$
+where $
+        M = "diag"(m_1, m_2, dots, m_n), quad
+        C = mat(-2c, c, 0, dots, 0, 0; c, -2c, c, dots, 0, 0; dots.v, dots.v, dots.v, dots.down, dots.v, dots.v; 0, 0, 0, dots, 0, c; 0, 0, 0, dots, c, -2c)
+      $
 
 == 5-atom vibrating string
 ```julia
@@ -523,7 +534,7 @@ julia> u(1.0)  # atom locations offsets at t=1.0
   0.01755397796957868
 ```
 
-![](springs-demo.gif)
+#figure(image("images/springs-demo.gif"))
 
 == Matrix functions
 
@@ -542,7 +553,7 @@ $
 
 == Example: Matrix exponential
 
-```julia
+#box(text(16pt)[```julia
 julia> A = [1 2; 3 4]
 2×2 Matrix{Int64}:
  1  2
@@ -553,11 +564,10 @@ julia> exp(A)
 2×2 Matrix{Float64}:
   51.969   74.7366
  112.105  164.074
-```
+```])
 
----
 
-```julia
+#box(text(16pt)[```julia
 julia> D, P = LinearAlgebra.eigen(A)
 LinearAlgebra.Eigen{Float64, Float64, Matrix{Float64}, Vector{Float64}}
 values:
@@ -568,13 +578,24 @@ vectors:
 2×2 Matrix{Float64}:
  -0.824565  -0.415974
   0.565767  -0.909377
-```
-    
+```])
+
+#box(text(16pt)[
 ```julia
 julia> P * LinearAlgebra.Diagonal(exp.(D)) * inv(P)
 2×2 Matrix{Float64}:
   51.969   74.7366
  112.105  164.074
-```
+```])
+
+#box(text(16pt)[
+```julia
+julia> exp(A)
+2×2 Matrix{Float64}:
+  51.969   74.7366
+ 112.105  164.074
+```])
+
+==
 
 #bibliography("refs.bib")
