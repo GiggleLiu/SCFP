@@ -220,7 +220,16 @@ julia> x = (A' * A) \ (A' * b)
 
 - _Note_: "`'`" is the Hermitian conjugate of a matrix. For real matrices, it is the transpose.
 - _Note_: "`hcat`" is the horizontal concatenation of matrices.
-- _Remark_: the normal equation method is numerically *unstable* due to the problem of ill-conditioned matrix $A^T A$ (detailed later).
+
+== Stability of the normal equation method
+#timecounter(1)
+- _Fact_: the normal equation method is numerically *unstable*. Why?
+
+Short answer:
+- #link("https://en.wikipedia.org/wiki/Floating-point_arithmetic", "Floating-point numbers") for storing real numbers has limited precision.
+- We use the _condition number_ $kappa(A)$ to measure the instability of a linear system.
+- $A^T A$ squares the condition number of $A$.
+
 
 
 = Errors and condition number
@@ -228,33 +237,59 @@ julia> x = (A' * A) \ (A' * b)
 == Floating-point numbers and relative errors
 #timecounter(2)
 
-_Remark_: You will learn why the normal equation method is numerically unstable. *Numerical stability* is a central topic in numerical linear algebra.
+Layout for 64-bit floating point numbers (IEEE 754 standard)
 
-- Short answer: #link("https://en.wikipedia.org/wiki/Floating-point_arithmetic", "floating-point numbers") for storing real numbers has limited precision.
+#figure(canvas({
+  import draw: *
+  let (dx, dy) = (1.0, 1.0)
+  let s(it) = text(16pt)[#it]
+  content((-1, 0), s[$x:$])
+  rect((-dx/2, -dy/2), (dx/2, dy/2), name: "sign")
+  rect((dx/2, -dy/2), (3.5*dx, dy/2), name: "exponent")
+  rect((3.5*dx, -dy/2), (6*dx, dy/2), name: "mantissa")
+  content("sign", s[$plus.minus$])
+  content("exponent", s[$a_1 a_2 dots a_11$])
+  content("mantissa", s[$b_1 b_2 dots b_52$])
+  content((rel: (0, -1), to: "sign"), s[sign])
+  content((rel: (0, -1), to: "exponent"), s[exponent])
+  content((rel: (0, -1), to: "mantissa"), s[mantissa])
+}),
+)
+It represents the number $x = plus.minus 1.b_1 b_2 dots b_52 2^(a_1 a_2 dots a_11 - 1023)$.
 
-#figure(image("images/float.png", width: 60%), caption: text(16pt)[An example of a layout for 32-bit floating point numbers (IEEE 754 standard)], numbering: none)
+== Floating point errors
+#timecounter(2)
+
+$"fl"(x) = x (1 + delta), quad |delta| <= u$, where $u$ is the unit roundoff defined by
+$
+u = "nextfloat"(1.0) - 1.0
+$
+
 
 #box(text(16pt)[```julia
-julia> eps(Float64)  # relative precision: 1.22e-16
-julia> eps(1e-50)    # 1.187e-66, Q: what is the relative precision?
-julia> eps(1e50)     # 2.077e34,  Q: what is the relative precision?
+julia> eps(Float64)  # 2.22e-16
+julia> eps(1e-50)    # absolute precision: 1.187e-66
+julia> eps(1e50)     # absolute precision: 2.077e34
 julia> typemax(Float64)  # Inf
 julia> prevfloat(Inf)    # 1.798e308
 ```])
 
-== Stability of floating-point arithmetic
+- Q: why is the relative precision $u$ remains approximately the same for different numbers?
 
+== Stability of floating-point arithmetic
+#timecounter(2)
 Task: compute $p - sqrt(p^2 + q)$ for $p = 12345678$ and $q = 1$.
 
 - Method 1:
 #box(text(16pt)[```julia
-p - sqrt(p^2 + q)
+p - sqrt(p^2 + q)       # -4.0978193283081055e-8
 ```])
 - Method 2:
 #box(text(16pt)[```julia
-q/(p + sqrt(p^2 + q))
+-q/(p + sqrt(p^2 + q))  # -4.0500003321000205e-8
 ```])
 
+Q: which one is more accurate? Hint: imagine we perform "$-$" operation on two very close large numbers.
 
 == Condition number
 #timecounter(2)
@@ -264,6 +299,47 @@ q/(p + sqrt(p^2 + q))
 - _Remark_: there are two popular norms for matrices: the Frobenius norm and the $p$-norms. Here, we use the $p=2$ norm for simplicity.
   - Frobenius norm: $||A||_F = sqrt(sum_(i j) |a_(i j)|^2)$
   - $p$-norm: $||A||_p = max_(x != 0) (||A x||_p)/ (||x||_p)$, for $p = 2$, it is the spectral norm $||A||_2 = sigma_1(A)$, the largest _singular value_ of $A$.
+
+== Meaning of the condition number
+#timecounter(2)
+
+- _Remark_: meaning of the condition number: if we solve the linear system $A x = b$ with a small perturbation $b + delta b$, the relative error of the solution $x$ is at most $kappa(A) times$ the relative error of $b$.
+
+$
+  A(x + delta x) = b + delta b\
+  arrow.double.r (||delta x||) / (||x||) = (||A^(-1) delta b||) / (||A^(-1) b||) <= (lambda_1(A^(-1))) / (lambda_n (A^(-1))) (||delta b||) / (||b||)
+$
+where $lambda_1(A^(-1))$ and $lambda_n (A^(-1))$ ($= lambda_1(A)^(-1)$) are the largest and smallest _singular values_ of $A^(-1)$, respectively.
+
+Hence, the relative error of the solution $x$ is at most $kappa(A) times$ the relative error of $b$.
+
+== Singular values decomposition
+#timecounter(2)
+The singular values decomposition (SVD) of a matrix $A in bb(C)^(m times n)$ is a factorization of the form
+$
+A = U S V^dagger
+$
+where $U in bb(C)^(m times m)$ and $V in bb(C)^(n times n)$ are unitary matrices (i.e. $U^dagger U = I$ and $V^dagger V = I$), and $S = "diag"(lambda_1, lambda_2, dots, lambda_n)$ is a diagonal matrix with *non-negative* real numbers on the diagonal.
+
+- _Remark_: the SVD is a generalization of the eigendecomposition of a matrix. The diagonal elements of $S$ are the singular values arranged in descending order.
+- _Remark_: For real matrices, $U$ and $V$ are orthogonal matrices (i.e. $U^T U = I$ and $V^T V = I$).
+
+== SVD and condition number
+#timecounter(2)
+
+Consider $A = U S V^dagger$,
+$
+  (||A x||_2) / (||x||_2) = (||S V^dagger x||_2) / (||x||_2) = (||S y||_2) / (||y||_2) <= lambda_1,
+$
+where $y = V^dagger x$. We used the fact that $||U x||_2 = ||x||_2$ for any unitary matrix $U$.
+
+The effect of "squaring" a matrix:
+$
+  A^dagger A = V S^dagger U^dagger U S V^dagger = V S^2 V^dagger.
+$
+The singular values of $A^dagger A$ are the squared singular values of $A$.
+
+Hence, $kappa(A^dagger A) = kappa(A)^2$.
 
 ==
 
