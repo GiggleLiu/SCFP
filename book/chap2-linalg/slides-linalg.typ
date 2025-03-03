@@ -440,6 +440,34 @@ julia> res.values
 julia> res.vectors
 ```
 
+== Recap
+
+#figure(canvas({
+  import draw: *
+  let s(it) = text(16pt)[#it]
+  content((0, 0), box(stroke: black, inset: 10pt, s[Linear equations]), name: "le")
+  content((10, 0), box(stroke: black, inset: 10pt, s[Least square problem]), name: "lsq")
+  content((5, -2), box(stroke: black, inset: 10pt, s[QR]), name: "qr")
+  content((0, -2), box(stroke: black, inset: 10pt, s[LU]), name: "lu")
+  content((0, -4), box(stroke: black, inset: 10pt, s[Cholesky]), name: "cholesky")
+  content((10, -3), box(stroke: black, inset: 10pt, s[Normal equations\ (unstable)]), name: "normal-equations")
+  content((20, 0), box(stroke: black, inset: 10pt, s[Condition number $kappa$]), name: "condition-number")
+  line("le", "lsq", name: "le-lsq", mark: (end: "straight"))
+  content((rel: (0, 0.5), to: "le-lsq.mid"), s[Overdetermined])
+  line("lsq", "qr", name: "lsq-qr", mark: (end: "straight"))
+  line("le", "lu", name: "le-lu", mark: (end: "straight"))
+  line("le", "qr", name: "le-qr", mark: (end: "straight"))
+  line("lu", "cholesky", name: "lu-cholesky", mark: (end: "straight"))
+  line("lsq", "normal-equations", name: "lsq-normal-equations", mark: (end: "straight"))
+  line("lsq", "condition-number", name: "lsq-condition-number", mark: (end: "straight"))
+  content((rel: (0, 0.5), to: "lsq-condition-number.mid"), s[Sensitivity])
+
+  content((20, -2), box(stroke: black, inset: 10pt, s[SVD]), name: "svd")
+  content((20, -4), box(stroke: black, inset: 10pt, s[Eigen decomposition]), name: "eigen")
+  line("condition-number", "svd", name: "condition-number-eigen", mark: (end: "straight"))
+  line("svd", "eigen", name: "svd-eigen", mark: (end: "straight"))
+}))
+
 == Hands-on: eigenmodes of a vibrating string (or atomic chain)
 
 #figure(canvas({
