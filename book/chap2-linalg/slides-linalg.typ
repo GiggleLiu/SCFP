@@ -67,6 +67,7 @@ Matrix computations @Golub2013. Cited by 85063 papers!
 - Transpose: $A^T$
 - Complex Conjugate: $A^*$
 - Hermitian conjugate: $A^dagger ("or" A^H) = (A^T)^*$
+- Unitary matrix: $U^dagger U = U U^dagger = I$
 
 == System of Linear Equations
 #timecounter(1)
@@ -93,23 +94,14 @@ x = vec(x_1, x_2, x_3), quad
 b = vec(1, 2, 3)
 $
 
-== Solving a system of linear equations
+== Live coding: Solving a system of linear equations
 #timecounter(2)
 
 #box(text(16pt)[```julia
 julia> A, b = [2 3 -2; 3 2 3; 4 -3 2], [1, 2, 3];
 
 julia> x = A \ b   # solve A x = b
-3-element Vector{Float64}:
-  0.6666666666666666
- -0.07692307692307693
-  0.05128205128205128
-
 julia> A * x
-3-element Vector{Float64}:
- 0.9999999999999999
- 2.0
- 3.0
 ```])
 
 == Least Squares Problem
@@ -223,11 +215,15 @@ julia> x = (A' * A) \ (A' * b)
 
 == Stability of the normal equation method
 #timecounter(1)
-- _Fact_: the normal equation method is numerically *unstable*. Why?
+- _Fact_: the normal equation method is numerically *unstable*.
 
-TODO: add an example to show the instability.
+  #box(text(16pt)[```julia
+julia> A = rand(1000, 1000)^10; A /= norm(A)
 
-Short answer:
+julia> A\ b - (A' * A) \ (A' * b)    # two different methods give different results
+```])
+
+Why? Short answer:
 - #link("https://en.wikipedia.org/wiki/Floating-point_arithmetic", "Floating-point numbers") for storing real numbers has limited precision.
 - We use the _condition number_ $kappa(A)$ to measure the instability of a linear system.
 - $A^T A$ squares the condition number of $A$.

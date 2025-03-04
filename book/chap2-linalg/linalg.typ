@@ -1,10 +1,23 @@
 #import "../book.typ": book-page
+#import "@preview/cetz:0.2.2": *
 
 #show: book-page.with(title: "Linear Algebra")
+#let exampleblock(it) = block(fill: rgb("#ffffff"), inset: 1em, radius: 4pt, stroke: black, it)
+#set math.equation(numbering: "(1)")
 
 = Matrix Computation
 
 In this chapter, we explore fundamental operations in linear algebra, including matrix multiplication, linear systems, matrix decompositions, and eigenvalue problems. We'll provide practical examples and applications for each concept. For a comprehensive reference on matrix computations, see @Golub2016.
+
+== Notations
+
+- Real Scalar: $x in RR$
+- Real Matrix: $A in RR^(m times n)$
+- Complex Scalar: $z in CC$
+- Transpose: $A^T$
+- Complex Conjugate: $A^*$
+- Hermitian conjugate: $A^dagger ("or" A^H) = (A^T)^*$
+- Unitary matrix: $U^dagger U = U U^dagger = I$
 
 == Matrix Multiplication
 Matrix multiplication is a core operation in linear algebra. For matrices $A in CC^(m times n)$ and $B in CC^(n times p)$, their product $C = A B$ is defined as:
@@ -12,11 +25,9 @@ $ C_(i j) = sum_(k=1)^n A_(i k) B_(k j) $
 
 For square matrices where $n = p = m$, the standard algorithm has $O(n^3)$ time complexity. While advanced techniques like the Strassen algorithm and laser methods @Alman2021 can achieve $O(n^(2.81))$ or better, the standard algorithm remains most practical for typical matrix sizes. Modern implementations leverage hardware optimizations like tiling and parallelization to approach peak performance.
 
-=== Tutorial point: The Big $O$ notation
+=== Tutorial point: The Big $O$ notation and flop count
 
-The big $O$ notation characterizes the *scaling* of the computational time with respect to the size of the input. Usually, we do not care about the constant factor in the time complexity, since it can be different on different machines. We say the time complexity of an algorithm is a property of the algorithm, not the machine.
-
-The complexity of naive matrix multiplication is $O(n^3)$, how to understand this? It means the number of operations scales as $n^3$ when the size of the matrix $n$ increases.
+The big $O$ notation characterizes the *scaling* of the computational time with respect to the size of the input. The complexity of naive matrix multiplication is $O(n^3)$, which means the number of operations scales as $n^3$ when the size of the matrix $n$ increases.
 ```julia
 for i in 1:n   # first loop
   for j in 1:n  # second loop
@@ -26,49 +37,51 @@ for i in 1:n   # first loop
   end
 end
 ```
-On whatever machine, when we double the size of the matrix, the number of operations will be $2^3 = 8$ times.
+On any machine, whenever we double the size of the matrix, the number of operations will be $2^3 = 8$ times. So the big $O$ notation is a property of the algorithm, not the machine. To more accurately describe the performance of an algorithm, we can use the *flop* (floating-point operation) count. For example, the flop count of matrix multiplication is $2 n^3$, as we have $n^2$ multiplications and $n^2$ additions. The flop count considers the basic operations, including addition, subtraction, multiplication, and division.
 
 == Linear Systems and LU Decomposition
-For an invertible matrix $A in CC^(n times n)$ and vector $b in CC^n$, solving a linear system means finding $x in CC^n$ such that:
-$ A x = b $
+Let $A in RR^(n times n)$ be an invertible square matrix and $b in RR^n$ be a vector. Solving a linear equation means finding a vector $x in RR^n$ such that
+$
+A x = b
+$
 
-#block(
-  fill: rgb("#f6f6f6"),
-  inset: 1em,
-  radius: 4pt,
-  [
-    *Example:* Consider the system:
+#exampleblock([
+    *Example:* Let us consider the following system of linear equations
     $ cases(
       2x_1 + 3x_2 - 2x_3 &= 1,
       3x_1 + 2x_2 + 3x_3 &= 2,
       4x_1 - 3x_2 + 2x_3 &= 3
     ) $
 
-    In matrix form:
-    $ mat(
-      2, 3, -2;
-      3, 2, 3;
-      4, -3, 2
-    ) mat(x_1; x_2; x_3) = mat(1; 2; 3) $
+    The matrix form of the system is
+    $
+    A x = b\
+    A = mat(2, 3, -2; 3, 2, 3; 4, -3, 2), quad
+    x = vec(x_1, x_2, x_3), quad
+    b = vec(1, 2, 3)
+    $
 
-    In Julia, we can solve this using the backslash operator:
+
+
+    In Julia, we can solve this using the "`\`" operator:
     ```julia
     A = [2 3 -2; 3 2 3; 4 -3 2]
     b = [1, 2, 3]
     x = A \ b
     A * x
     ```
-
-    The backslash method uses LU decomposition internally:
-    ```julia
-    using LinearAlgebra
-    lures = lu(A)  # pivot rows by default
-    lures.L * lures.U ≈ lures.P * A
-
-    UpperTriangular(lures.U) \ (LowerTriangular(lures.L) \ (lures.P * b))
-    ```
   ]
 )
+
+
+In the above example, when applied on a square matrix, the "`\`" operator uses LU decomposition internally:
+```julia
+using LinearAlgebra
+lures = lu(A)  # pivot rows by default
+lures.L * lures.U ≈ lures.P * A
+
+UpperTriangular(lures.U) \ (LowerTriangular(lures.L) \ (lures.P * b))
+```
 
 The LU decomposition of a matrix $A in CC^(n times n)$ is a factorization:
 $ P A = L U $
@@ -86,62 +99,225 @@ To solve a linear system using LU decomposition:
 
 == Least Squares Problem and QR Decomposition
 
-The least squares problem seeks to minimize the residual:
-$ norm(A x - b)_2 $
-where $A in CC^(m times n)$ and $b in CC^m$. This is solved using QR decomposition:
+The least squares problem is to find a vector $x in RR^n$ that minimizes the residual
+$
+min_x norm(A x - b)_2
+$ <eq:lsq-problem>
+where $A in RR^(m times n)$ and $b in RR^m$.
+
+A linear equation is just a special case of the least squares problem, where the *residual* is zero.
+The least squares problem "makes sense" only when $A$ is *over-determined* (meaning having too many equations such that not all can be satisfied), i.e. $m > n$.
+
+Converting the least squares problem to a normal equation is a straightforward approach to solve it.
+We first square and expand the residual in @eq:lsq-problem:
+$
+(A x - b)^T (A x - b) = x^T A^T A x - 2 x^T A^T b + b^T b.
+$
+The minimum is attained when the gradient of the quadratic function is zero, i.e.
+$
+nabla_(x) (x^T A^T A x - 2 x^T A^T b + b^T b) = 2 A^T A x - 2 A^T b = 0\
+arrow.double.r x = (A^T A)^(-1) A^T b,
+$
+which is the normal equation.
+
+== Sensitivity of the normal equation
+== Floating-point numbers and relative errors
+
+Layout for 64-bit floating point numbers (IEEE 754 standard)
+
+#figure(canvas({
+  import draw: *
+  let (dx, dy) = (1.0, 1.0)
+  let s(it) = text(16pt)[#it]
+  content((-1, 0), s[$x:$])
+  rect((-dx/2, -dy/2), (dx/2, dy/2), name: "sign")
+  rect((dx/2, -dy/2), (3.5*dx, dy/2), name: "exponent")
+  rect((3.5*dx, -dy/2), (6*dx, dy/2), name: "mantissa")
+  content("sign", s[$plus.minus$])
+  content("exponent", s[$a_1 a_2 dots a_11$])
+  content("mantissa", s[$b_1 b_2 dots b_52$])
+  content((rel: (0, -1), to: "sign"), s[sign])
+  content((rel: (0, -1), to: "exponent"), s[exponent])
+  content((rel: (0, -1), to: "mantissa"), s[mantissa])
+}),
+)
+It represents the number $x = plus.minus 1.b_1 b_2 dots b_52 2^(a_1 a_2 dots a_11 - 1023)$.
+
+== Floating point errors
+
+$"fl"(x) = x (1 + delta), quad |delta| <= u$, where $u$ is the unit roundoff defined by
+$
+u = "nextfloat"(1.0) - 1.0
+$
+
+
+#box(text(16pt)[```julia
+julia> eps(Float64)  # 2.22e-16
+julia> eps(1e-50)    # absolute precision: 1.187e-66
+julia> eps(1e50)     # absolute precision: 2.077e34
+julia> typemax(Float64)  # Inf
+julia> prevfloat(Inf)    # 1.798e308
+```])
+
+- Q: why is the relative precision $u$ remains approximately the same for different numbers?
+
+== Stability of floating-point arithmetic
+Task: compute $p - sqrt(p^2 + q)$ for $p = 12345678$ and $q = 1$.
+
+- Method 1:
+#box(text(16pt)[```julia
+p - sqrt(p^2 + q)       # -4.0978193283081055e-8
+```])
+- Method 2:
+#box(text(16pt)[```julia
+-q/(p + sqrt(p^2 + q))  # -4.0500003321000205e-8
+```])
+
+Q: which one is more accurate? Hint: imagine we perform "$-$" operation on two very close large numbers.
+
+== Condition number
+
+- _Condition number_ of a matrix $A$ is defined as $kappa(A) = ||A|| ||A^(-1)|| >=1$. If the condition number is close to 1, the matrix is _well-conditioned_, otherwise it is _ill-conditioned_.
+
+- _Remark_: there are two popular norms for matrices: the Frobenius norm and the $p$-norms. Here, we use the $p=2$ norm for simplicity.
+  - Frobenius norm: $||A||_F = sqrt(sum_(i j) |a_(i j)|^2)$
+  - $p$-norm: $||A||_p = max_(x != 0) (||A x||_p)/ (||x||_p)$, for $p = 2$, it is the spectral norm $||A||_2 = sigma_1(A)$, the largest _singular value_ of $A$.
+
+== Meaning of the condition number
+
+- _Remark_: meaning of the condition number: if we solve the linear system $A x = b$ with a small perturbation $b + delta b$, the relative error of the solution $x$ is at most $kappa(A) times$ the relative error of $b$.
+
+$
+  A(x + delta x) = b + delta b\
+  arrow.double.r (||delta x||) / (||x||) = (||A^(-1) delta b||) / (||A^(-1) b||) <= (lambda_1(A^(-1))) / (lambda_n (A^(-1))) (||delta b||) / (||b||)
+$
+where $lambda_1(A^(-1))$ and $lambda_n (A^(-1))$ ($= lambda_1(A)^(-1)$) are the largest and smallest _singular values_ of $A^(-1)$, respectively.
+
+Hence, the relative error of the solution $x$ is at most $kappa(A) times$ the relative error of $b$.
+
+== Singular values decomposition
+The singular values decomposition (SVD) of a matrix $A in bb(C)^(m times n)$ is a factorization of the form
+$
+A = U S V^dagger
+$
+where $U in bb(C)^(m times m)$ and $V in bb(C)^(n times n)$ are unitary matrices (i.e. $U^dagger U = I$ and $V^dagger V = I$), and $S = "diag"(lambda_1, lambda_2, dots, lambda_n)$ is a diagonal matrix with *non-negative* real numbers on the diagonal.
+
+- _Remark_: the SVD is a generalization of the eigendecomposition of a matrix. The diagonal elements of $S$ are the singular values arranged in descending order.
+- _Remark_: For real matrices, $U$ and $V$ are orthogonal matrices (i.e. $U^T U = I$ and $V^T V = I$).
+
+== SVD and condition number
+
+Consider $A = U S V^dagger$,
+$
+  (||A x||_2) / (||x||_2) = (||S V^dagger x||_2) / (||x||_2) = (||S y||_2) / (||y||_2) <= lambda_1,
+$
+where $y = V^dagger x$. We used the fact that $||U x||_2 = ||x||_2$ for any unitary matrix $U$.
+
+The effect of "squaring" a matrix:
+$
+  A^dagger A = V S^dagger U^dagger U S V^dagger = V S^2 V^dagger.
+$
+The singular values of $A^dagger A$ are the squared singular values of $A$.
+
+Hence, $kappa(A^dagger A) = kappa(A)^2$.
+
+== Example: condition number of the normal equation
+
+Problem: The condition number of $A^dagger A$ is the square of the *condition number* of $A$, which can be very large.
+
+#box(text(16pt)[```julia
+julia> cond(A)
+34.899220365288556
+
+julia> cond(A' * A)
+1217.9555821049864
+```])
+
+Revisit the normal equation:
+$
+x = (A^T A)^(-1) A^T b
+$
+We effectively solve the linear system: $(A^T A) x = A^T b$, which is unstable.
+
+
+
+== QR Decomposition
+This is solved using QR decomposition:
 $ A = Q R $
 where $Q in CC^(m times m)$ is orthogonal and $R in CC^(m times n)$ is upper triangular.
 
-#block(
-  fill: rgb("#f6f6f6"),
-  inset: 1em,
-  radius: 4pt,
-  [
+#exampleblock([
     *Example: Data Fitting*
 
-    Consider fitting a quadratic function $y = c_0 + c_1 t + c_2 t^2$ to data points:
+Consider we have a set of data points $(t_i, y_i)$ for $i = 1, 2, dots, n$.
+The objective of the data fitting problem is to find a *smooth* curve that fits the data the *best*.
+#figure(table(columns: 11,
+[$t_i$], [0.0], [0.5], [1.0], [1.5], [2.0], [2.5], [3.0], [3.5], [4.0], [4.5],
+[$y_i$], [2.9], [2.7], [4.8], [5.3], [7.1], [7.6], [7.7], [7.6], [9.4], [9.0],
+))
 
-    #table(
-      columns: 11,
-      align: center,
-      [$t_i$], [0.0], [0.5], [1.0], [1.5], [2.0], [2.5], [3.0], [3.5], [4.0], [4.5],
-      [$y_i$], [2.9], [2.7], [4.8], [5.3], [7.1], [7.6], [7.7], [7.6], [9.4], [9.0]
-    )
+#figure(canvas(length:0.9cm, {
+  import plot
+  import draw: *
+  let t = (0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5)
+  let y = (2.9, 2.7, 4.8, 5.3, 7.1, 7.6, 7.7, 7.6, 9.4, 9.0)
+  plot.plot(size: (10,6),
+    x-tick-step: 1,
+    y-tick-step: 2,
+    x-label: [$t$],
+    y-label: [$y$],
+    y-max: 10,
+    y-min: 0,
+    x-max: 5,
+    x-min: -0.1,
+    name: "plot",
+    {
+      plot.add(t.zip(y), style: (stroke: none), mark: "o", mark-style: (fill: blue), mark-size: 0.2)
+      plot.add(
+        domain: (0, 5),
+        x => 2.3781818181818135 + 2.4924242424242453 * x - 0.22121212121212158 * x * x,
+        label: [$?$],
+        style: (stroke: blue)
+      )
+    }
+  )
+}),
+caption: [Data fiting problem. The objective is to find a smooth curve that fits the data the best.]
+)
 
-    #figure(
-      image("images/fitting-data.png", width: 60%),
-      caption: "Data points and fitted curve"
-    )
 
-    The least squares problem minimizes:
-    $ sum_(i=1)^n (y_i - (c_0 + c_1 t_i + c_2 t_i^2))^2 $
+We consider parameterizing the latent function as a linear combination of a set of basis functions. To be specific, we assume the latent function is a low order polynomial to ensure it is smooth:
+$ y = c_0 + c_1 t + c_2 t^2. $
 
-    In matrix form:
-    $ min_x norm(A x - b)_2 $
-    where:
-    $ A = mat(
-      1, t_1, t_1^2;
-      1, t_2, t_2^2;
-      dots.v, dots.v, dots.v;
-      1, t_n, t_n^2
-    ),
-    x = mat(c_0; c_1; c_2),
-    b = mat(y_1; y_2; dots.v; y_n) $
+To measure the quality of the fit, we use the mean squares error as the cost function:
+$
+cal(L)(c_0, c_1, c_2) = sum_(i=1)^n (y_i - (c_0 + c_1 t_i + c_2 t_i^2))^2.
+$
+The objective is to find the coefficients $c_0, c_1, c_2$ that minimizes the mean squares error.
+The more basis functions we use, the more likely to have a lower error. But, it's also more likely to *overfit* the data.
+In matrix form, the cost function can be written as:
+$ cal(L)(x) = norm(A x - b)_2 $
+where
+$
+A = mat(1, t_1, t_1^2; 1, t_2, t_2^2; dots.v, dots.v, dots.v; 1, t_n, t_n^2), quad
+x = vec(c_0, c_1, c_2), quad
+b = vec(y_1, y_2, dots.v, y_n).
+$
 
-    While we can solve this using the normal equations:
-    $ x = (A^dagger A)^(-1) A^dagger b $
-    this approach is numerically unstable for large matrices. Instead, use QR decomposition:
+It is a standard least squares problem, and can be solved using QR decomposition:
+```julia
+julia> using LinearAlgebra
 
-    ```julia
-    Q, R = qr(A)
-    x = R \ (Matrix(Q)' * y)
-    ```
-
-    Or the pseudoinverse (using SVD internally):
-    ```julia
-    x = LinearAlgebra.pinv(A) * y
-    ```
-  ]
+julia> t = [0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5];
+julia> y = [2.9, 2.7, 4.8, 5.3, 7.1, 7.6, 7.7, 7.6, 9.4, 9.0];
+julia> A = hcat(ones(length(t)), t, t.^2); # `hcat` is the horizontal concatenation
+julia> x = (A' * A) \ (A' * b)    # `'` is the Hermitian conjugate
+3-element Vector{Float64}:
+  2.3781818181818135
+  2.4924242424242453
+ -0.22121212121212158
+```
+]
 )
 
 == Eigenvalues and Eigenvectors
