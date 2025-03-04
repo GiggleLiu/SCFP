@@ -54,14 +54,16 @@ $
 A = L U
 $
 where $L$ is a lower triangular matrix, and $U$ is an upper triangular matrix.
-Solving a triangular system is much more efficient than solving a general linear system, which can be done by _forward and backward substitution_.
+Solving a triangular system is much more efficient than solving a general linear system, which can be done by _forward and backward substitution_ in $O(n^2)$ time.
 Given a linear system $A x = b$, we can reformulate it as $L U x = b$, and solve it by first solving $L y = b$ and then solving $U x = y$.
 The LU decomposition can be unstable when the diagonal elements of $A$ are small. To improve the stability, we can use the LU decomposition with _pivoting_, which is a variant of the LU decomposition that allows us to swap rows or columns or both of $A$ to ensure numerical stability. By default, Julia's `lu` function performs partial pivoting, which swaps rows of $A$ to ensure numerical stability:
 $ P A = L U. $
 where $P$ is a permutation matrix for pivoting rows.
 
 #exampleblock([
-    *Example:* Let us consider the following system of linear equations
+    *Example: Solving a linear system*
+
+    Let us consider the following system of linear equations
     $ cases(
       2x_1 + 3x_2 - 2x_3 &= 1,
       3x_1 + 2x_2 + 3x_3 &= 2,
@@ -80,17 +82,25 @@ where $P$ is a permutation matrix for pivoting rows.
 
     In Julia, we can solve this using the "`\`" operator:
     ```julia
-    A = [2 3 -2; 3 2 3; 4 -3 2]
-    b = [1, 2, 3]
-    x = A \ b
-    A * x
+    julia> A = [2 3 -2; 3 2 3; 4 -3 2]
+    julia> b = [1, 2, 3]
+    julia> x = A \ b
+    3-element Vector{Float64}:
+      0.6666666666666666
+     -0.07692307692307693
+      0.05128205128205128
+    julia> A * x  # should be close to b
     ```
     The "`\`" operator effectively performs the following steps:
     ```julia
-    using LinearAlgebra
-    res = lu(A)  # lu decomposition, `res.L * res.U ≈ res.P * A`
-    y = LowerTriangular(res.L) \ (res.P*b)  # solve Ly = Pb with forward substitution
-    x = UpperTriangular(res.U) \ y  # solve Ux = y with backward substitution
+    julia> using LinearAlgebra
+    julia> res = lu(A)  # lu decomposition, `res.L * res.U ≈ res.P * A`
+    julia> y = LowerTriangular(res.L) \ (res.P*b)  # forward substitution
+    julia> x = UpperTriangular(res.U) \ y  # backward substitution
+    3-element Vector{Float64}:
+      0.6666666666666666
+     -0.07692307692307693
+      0.05128205128205128
     ```
     Here, in order to ensure that Julia recognizes `res.L` and `res.U` as triangular matrices, we need to wrap them with `LowerTriangular(res.L)` and `UpperTriangular(res.U)`.
   ]
@@ -102,12 +112,19 @@ Cholesky decomposition is a variant of LU decomposition for _symmetric positive-
 $ A = L L^dagger $
 where $L in CC^(n times n)$ is lower triangular. Cholesky decomposition is often used as a compact representation of a positive-definite matrix. In Julia, the `cholesky` function returns a `Cholesky` object, which contains the lower triangular matrix $L$ and the determinant of $A$.
 ```julia
-A = [2 1; 1 3]  # symmetric positive-definite
-C = cholesky(A)
-C.L * C.L' ≈ A  # verify decomposition
+julia> A = [2 1; 1 3]  # symmetric positive-definite
+
+julia> C = cholesky(A)
+Cholesky{Float64, Matrix{Float64}}
+U factor:
+2×2 UpperTriangular{Float64, Matrix{Float64}}:
+ 1.41421  0.707107
+  ⋅       1.58114
+
+julia> C.L * C.L' ≈ A  # output: true
 ```
 
-== Least Squares Problem and Normal Equation
+== Least Squares Problem and QR Decomposition
 
 The least squares problem is to find a vector $x in RR^n$ that minimizes the residual
 $
@@ -126,29 +143,21 @@ nabla_(x) (x^T A^T A x - 2 x^T A^T b + b^T b) = 2 A^T A x - 2 A^T b = 0\
 arrow.double.r x = (A^T A)^(-1) A^T b,
 $
 which is the _normal equation_.
+Directly solving the normal equation with matrix inversion is numerically unstable. This is due to the fact that the condition number of $A^T A$ is the square of the condition number of $A$. The relation between the condition numbers and the numerical stability is discussed in a later section.
 
-== QR Decomposition
-This is solved using QR decomposition:
-$ A = Q R $
-where $Q in CC^(m times m)$ is orthogonal and $R in CC^(m times n)$ is upper triangular.
-
-The QR decomposition of a matrix $A in bb(C)^(m times n)$ is a factorization of the form
+The QR decomposition of a matrix provides a more stable way to solve the least squares problem. Given a matrix $A in bb(C)^(m times n)$, the QR decomposition is a factorization of the form
 $
 A = Q R
 $
 where $Q in bb(C)^(m times min(m, n))$ is an orthogonal matrix (i.e. $Q^dagger Q = I$) and $R in bb(C)^(min(m, n) times n)$ is an upper triangular matrix.
-
-== Solving linear systems with QR decomposition
-
 Let $A = Q R$, the least squares problem $min_x ||A x - b||_2^2$ is equivalent to
 $
   min_x ||Q R x - b||_2^2 = underbrace(min_y ||R x - Q^dagger b||_2^2, "zero") + ||Q^dagger_bot b||_2^2\
   arrow.double.r R x = Q^dagger b
 $
-where $Q^dagger_bot$ is the orthogonal complement of $Q^dagger$, i.e. $Q^dagger_bot Q = 0$ and $Q^dagger_bot Q^dagger = I$.
+where $Q^dagger_bot$ is the orthogonal complement of $Q^dagger$, i.e. $Q^dagger_bot Q = 0$ and $Q^dagger_bot Q^dagger = I$. For a unitary matrix $Q$, we have $||Q x||_2 = ||x||_2$. However, this is not true for $Q^dagger$, i.e. $||Q^dagger x||_2 <= ||x||_2$, where the equality holds if and only if $x$ is in the column space of $Q$. This explains why we have an extra term $||Q^dagger_bot b||_2^2$ in the above equation.
 
-- _Remark_: For a unitary matrix $Q$, $||Q x||_2 = ||x||_2$. However, $||Q^dagger x||_2 <= ||x||_2$, where the equality holds if and only if $x$ is in the column space of $Q$.
-- _Remark_: For an upper triangular matrix $R$, the solution of $R x = y$ can be found by _backward substitution_ in $O(n^2)$ time. $kappa(R) = kappa(A)$.
+To summarize, to solve a least squares problem, we first compute the QR decomposition of $A = Q R$, then solve an upper triangular system $R x = Q^dagger b$ in $O(n^2)$ time. The condition number of $R$ is the same as that of $A$, hence the solution is numerically stable.
 
 #exampleblock([
     *Example: Data Fitting*
@@ -208,34 +217,38 @@ x = vec(c_0, c_1, c_2), quad
 b = vec(y_1, y_2, dots.v, y_n).
 $
 
-It is a standard least squares problem, and can be solved using QR decomposition:
+It is a standard least squares problem, and we first solve it using the normal equation:
 ```julia
 julia> using LinearAlgebra
 
 julia> t = [0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5];
 julia> y = [2.9, 2.7, 4.8, 5.3, 7.1, 7.6, 7.7, 7.6, 9.4, 9.0];
 julia> A = hcat(ones(length(t)), t, t.^2); # `hcat` is the horizontal concatenation
-julia> x = (A' * A) \ (A' * b)    # `'` is the Hermitian conjugate
+
+julia> x = (A' * A) \ (A' * y)    # `'` is the Hermitian conjugate
 3-element Vector{Float64}:
   2.3781818181818135
   2.4924242424242453
  -0.22121212121212158
 ```
-]
-)
 
-
-== Live coding: solving the least squares problem with QR decomposition
+Then, we compute the QR decomposition of $A$:
 ```julia
-julia> Q, R = qr(A)
+julia> Q, R = qr(A);
 
 julia> Q' * Q    # Identity matrix
-julia> Q * Q'
-julia> rank(Q * Q')
+julia> Q * Q'    # Not identity matrix
+julia> rank(Q * Q')   # not full rank
 
-julia> x = R \ (Matrix(Q)' * y)
+julia> x = R \ (Matrix(Q)' * y)  # solve Rx = Q'y
+ 3-element Vector{Float64}:
+  2.3781818181818197
+  2.492424242424242
+ -0.22121212121212133
 ```
-
+Here, we did not see a big difference in the solution due to the small size of the matrix. But for larger matrices, the QR decomposition is more stable and accurate.
+]
+)
 
 == Singular values decomposition
 The singular values decomposition (SVD) of a matrix $A in bb(C)^(m times n)$ is a factorization of the form
@@ -247,6 +260,168 @@ where $U in bb(C)^(m times m)$ and $V in bb(C)^(n times n)$ are unitary matrices
 - _Remark_: the SVD is a generalization of the eigendecomposition of a matrix. The diagonal elements of $S$ are the singular values arranged in descending order.
 - _Remark_: For real matrices, $U$ and $V$ are orthogonal matrices (i.e. $U^T U = I$ and $V^T V = I$).
 
+== Eigen-decomposition
+The eigenvalues and (right) eigenvectors of a matrix $A in bb(C)^(n times n)$ are the solutions to the equation
+$
+A x = lambda x
+$
+where $lambda$ is a scalar and $x$ is a non-zero vector. The eigen-decomposition of a matrix is a factorization of the form
+$
+A = P D P^(-1)
+$
+where $D$ is a diagonal matrix and the diagonal elements of $D = "diag"(lambda_1, lambda_2, dots, lambda_n)$ are the eigenvalues of $A$. The $i$-th column of $P$ is the right eigenvectors of $A$ that corresponds to the eigenvalue $lambda_i$. For symmetric matrices, the eigenvalues are real and eigenvectors are orthogonal, i.e. $P^dagger P = I$.
+
+Eigen-decomposition is useful for computing matrix functions. Consider an analytic function $f$ defined by a power series and matrix $A in CC^(n times n)$:
+$ f(A) = sum_(i=0)^infinity a_i A^i, $
+its value can be computed by first diagonalizing $A = P D P^(-1)$, then evaluate $f(A)$ as $P f(D) P^(-1)$. The function $f$ applied to a diagonal matrix is element-wise as $f(D) = "diag"(f(lambda_1), f(lambda_2), dots, f(lambda_n)).$
+
+#exampleblock[
+    *Example: Matrix Exponential*
+    
+    Compute the matrix function $exp(A)$ for
+    $ A = mat(1, 2; 3, 4). $
+
+    The first approach is using Julia's `exp` function:
+    ```julia
+    julia> A = [1 2; 3 4]
+    julia> exp(A)
+    2×2 Matrix{Float64}:
+      51.969   74.7366
+     112.105  164.074
+    ```
+
+    Alternatively, we can use the eigen-decomposition:
+    ```julia
+    julia> using LinearAlgebra
+    julia> D, P = eigen(A)
+    julia> P * Diagonal(exp.(D)) * inv(P)
+    2×2 Matrix{Float64}:
+      51.969   74.7366
+     112.105  164.074
+    ```
+  ]
+
+
+
+
+
+
+In Julia, we can find the eigenvalues and eigenvectors using the `eigen` function:
+
+
+```julia
+julia> A = [1 2; 3 4]
+
+julia> res = eigen(A)
+Eigen{Float64, Float64, Matrix{Float64}, Vector{Float64}}
+values:
+2-element Vector{Float64}:
+ -0.3722813232690143
+  5.372281323269014
+vectors:
+2×2 Matrix{Float64}:
+ -0.824565  -0.415974
+  0.565767  -0.909377
+```
+
+```julia
+A = [1 2; 3 4]
+eigen(A)
+```
+
+#exampleblock([
+*Example: eigenmodes of a vibrating spring chain*
+
+#figure(canvas(length: 0.8cm, {
+  import draw: *
+  let (dx, dy) = (2.0, 1.0)
+  let s(it) = text(12pt)[#it]
+  let u = (0, 0, 0, -0.6, 0.8, 0, 0, 0)
+  for i in range(8){
+    circle((i * dx + u.at(i), 0), radius: 0.2, name: "atom" + str(i))
+  }
+  for i in range(7){
+    decorations.wave(line("atom" + str(i), "atom" + str(i + 1)), amplitude: 0.2)
+  }
+  line((3 * dx, 1), (3 * dx, 0), mark: (end: "straight"))
+  line((4 * dx, 1), (4 * dx, 0), mark: (end: "straight"))
+  content((3.5 * dx, 1.8), s[equilibrium position])
+
+  line((3 * dx, -0.3), (3 * dx + u.at(3), -0.3), mark: (end: "straight"), name: "d1")
+  content((rel: (0, -0.3), to: "d1.mid"), s[$u_4$])
+  line((4 * dx, -0.3), (4 * dx + u.at(4), -0.3), mark: (end: "straight"), name: "d2")
+  content((rel: (0, -0.3), to: "d2.mid"), s[$u_5$])
+
+  //content((1.5 * dx, 0.8), s[$c/2 (u_i - u_(i+1))^2$])
+}),
+)
+
+Let us consider a system with $n$ atoms connected by springs. The potential energy of the spring system has the following quadratic form:
+$
+V(bold(u)) = c/2 sum_(i=1)^(n-1) (u_i - u_(i+1))^2
+$
+where $c$ is the stiffness, and $u_i$ is the displacement of the $i$-th atom. The end atoms are fixed, so we have $u_0 = u_(n+1) = 0$. Its dynamics can be described by the Newton's second law
+$
+m dot.double(u)_i = c (u_(i+1) - u_i) - c (u_i - u_(i-1))
+$ <eq:spring-dynamics>
+where $m$ is the mass of the atom.
+
+It is known that a spring system has the eigenmodes of the form
+$
+u_i (t) = A_i cos(omega t + phi_i)
+$ <eq:spring-eigenmodes>
+where $A_i$ is the amplitude, $omega$ is the eigenfrequency, and $phi_i$ is the phase of the $i$th atom. All the atoms oscillate with the same eigenfrequency $omega$ around their equilibrium positions. In the following, we will derive the eigenfrequencies and eigenmodes of the spring system.
+
+By inserting @eq:spring-eigenmodes into @eq:spring-dynamics, we have
+$
+-m omega^2 u_i = c (u_(i+1) - u_i) - c (u_i - u_(i-1))
+$
+Then finding the eigenmodes of the spring system is equivalent to solving the following eigenvalue problem:
+$
+C vec(u_1, u_2, dots.v, u_n) = -M omega^2 vec(u_1, u_2, dots.v, u_n)
+$
+where $
+        M = "diag"(m_1, m_2, dots, m_n), quad
+        C = mat(-c, c, 0, dots, 0, 0; c, -2c, c, dots, 0, 0; dots.v, dots.v, dots.v, dots.down, dots.v, dots.v; 0, 0, 0, dots, 0, c; 0, 0, 0, dots, c, -c).
+      $
+
+In the following, we will solve the eigenmodes problem for a 5-atom spring system with $m = c = 1.0$.
+```julia
+julia> M = C = 1.0;
+julia> C_matrix = [-C C 0 0 0; C -2C C 0 0; 0 C -2C C 0; 0 0 C -2C C; 0 0 0 C -C];
+julia> evals, evecs = LinearAlgebra.eigen(C_matrix);
+julia> second_omega = sqrt(-evals[2]/M)  # the second eigenfrequency
+1.618033988749894
+
+julia> second_mode = evecs[:, 2]  # the second eigenmode, each element is the amplitude of the $i$-th atom
+5-element Vector{Float64}:
+  0.37174803446018484
+ -0.6015009550075462
+  1.4023804401251382e-15
+  0.601500955007545
+ -0.3717480344601845
+```
+
+```julia
+julia> u(t) = second_mode .* cos.(-second_omega .* t) # (ϕi=0)
+u (generic function with 1 method)
+
+julia> u(1.0)  # atom locations offsets at t=1.0
+5-element Vector{Float64}:
+ -0.017553977969578697
+  0.028402932992545194
+ -6.622053936793937e-17
+ -0.028402932992545135
+  0.01755397796957868
+```
+
+#figure(image("images/springs-demo.gif"))
+
+
+Any initial condition can be expressed as a linear combination of these eigenmodes. For implementation details, see the #link("https://github.com/GiggleLiu/ScientificComputingDemos/tree/main/SpringSystem")[source code].
+ 
+]
+)
 
 = Sensitivity analysis
 
@@ -304,7 +479,7 @@ p - sqrt(p^2 + q)       # -4.0978193283081055e-8
 
 Q: which one is more accurate? Hint: imagine we perform "$-$" operation on two very close large numbers.
 
-== Condition number
+== Condition number <sec:condition-number>
 
 - _Condition number_ of a matrix $A$ is defined as $kappa(A) = ||A|| ||A^(-1)|| >=1$. If the condition number is close to 1, the matrix is _well-conditioned_, otherwise it is _ill-conditioned_.
 
@@ -358,231 +533,6 @@ x = (A^T A)^(-1) A^T b
 $
 We effectively solve the linear system: $(A^T A) x = A^T b$, which is unstable.
 
-
-
-= Eigenvalues and eigenvectors
-== Eigen-decomposition
-The eigenvalues and eigenvectors of a matrix $A in bb(C)^(n times n)$ are the solutions to the equation
-$
-A x = lambda x
-$
-where $lambda$ is a scalar and $x$ is a non-zero vector.
-
-```julia
-julia> A = [1 2; 3 4]
-
-julia> res = eigen(A)
-julia> res.values
-julia> res.vectors
-```
-
-== Hands-on: eigenmodes of a vibrating string (or atomic chain)
-
-#figure(canvas(length: 0.8cm, {
-  import draw: *
-  let (dx, dy) = (2.0, 1.0)
-  let s(it) = text(12pt)[#it]
-  let u = (0, 0, 0, -0.6, 0.8, 0, 0, 0)
-  for i in range(8){
-    circle((i * dx + u.at(i), 0), radius: 0.2, name: "atom" + str(i))
-  }
-  for i in range(7){
-    decorations.wave(line("atom" + str(i), "atom" + str(i + 1)), amplitude: 0.2)
-  }
-  line((3 * dx, 1), (3 * dx, 0), mark: (end: "straight"))
-  line((4 * dx, 1), (4 * dx, 0), mark: (end: "straight"))
-  content((3.5 * dx, 1.8), s[equilibrium position])
-
-  line((3 * dx, -0.3), (3 * dx + u.at(3), -0.3), mark: (end: "straight"), name: "d1")
-  content((rel: (0, -0.3), to: "d1.mid"), s[$u_4$])
-  line((4 * dx, -0.3), (4 * dx + u.at(4), -0.3), mark: (end: "straight"), name: "d2")
-  content((rel: (0, -0.3), to: "d2.mid"), s[$u_5$])
-
-  content((1.5 * dx, 0.8), s[$c/2 (u_i - u_(i+1))^2$])
-}),
-)
-
-The dynamics of a one dimensional vibrating string can be described by the Newton's second law
-$
-m_i dot.double(u)_i = c (u_(i+1) - u_i) - c (u_i - u_(i-1))
-$
-where $m_i$ is the mass of the $i$th atom, $c$ is the stiffness, and $u_i$ is the displacement of the $i$-th atom. The end atoms are fixed, so we have $u_0 = u_(n+1) = 0$.
-
-== The eigenmodes of the vibrating string
-
-Assume all atoms have the same eigenfrequency $omega$ and the displacement of the $i$-th atom is given by
-$
-u_i (t) = A_i cos(omega t + phi_i)
-$
-where $phi_i$ is the phase of the $i$th atom.
-
-We have
-
-$
--m_i omega^2 u_i = c (u_(i+1) - u_i) - c (u_i - u_(i-1))
-$
-
-== Matrix form
-
-The eigenmodes of the vibrating string can be found by solving the eigenvalue problem
-$
--M omega^2 vec(u_1, u_2, dots.v, u_n) = C vec(u_1, u_2, dots.v, u_n)
-$
-where $
-        M = "diag"(m_1, m_2, dots, m_n), quad
-        C = mat(-c, c, 0, dots, 0, 0; c, -2c, c, dots, 0, 0; dots.v, dots.v, dots.v, dots.down, dots.v, dots.v; 0, 0, 0, dots, 0, c; 0, 0, 0, dots, c, -c)
-      $
-
-== 5-atom vibrating string
-```julia
-julia> M = C = 1.0;
-
-julia> C_matrix = [-C C 0 0 0; C -2C C 0 0; 0 C -2C C 0; 0 0 C -2C C; 0 0 0 C -C];
-
-julia> evals, evecs = LinearAlgebra.eigen(C_matrix);
-```
-
-```julia
-julia> second_omega = sqrt(-evals[2]/M)
-1.618033988749894
-
-julia> second_mode = evecs[:, 2]
-5-element Vector{Float64}:
-  0.37174803446018484
- -0.6015009550075462
-  1.4023804401251382e-15
-  0.601500955007545
- -0.3717480344601845
-```
-
-== Example: eigenmodes of a vibrating string
-
-```julia
-julia> u(t) = second_mode .* cos.(-second_omega .* t) # (ϕi=0)
-u (generic function with 1 method)
-
-julia> u(1.0)  # atom locations offsets at t=1.0
-5-element Vector{Float64}:
- -0.017553977969578697
-  0.028402932992545194
- -6.622053936793937e-17
- -0.028402932992545135
-  0.01755397796957868
-```
-
-#figure(image("images/springs-demo.gif"))
-
-
-== Eigenvalues and Eigenvectors
-The eigenvalues and eigenvectors of a matrix $A in CC^(n times n)$ are the solutions to the equation:
-$ A x = lambda x $
-where $lambda$ is a scalar and $x$ is a non-zero vector. The eigenvalues of a matrix can be found by solving the characteristic equation:
-$ det(A - lambda I) = 0 $
-where $I$ is the identity matrix.
-
-In Julia, we can find the eigenvalues and eigenvectors using the `eigen` function:
-
-```julia
-A = [1 2; 3 4]
-eigen(A)
-```
-
-#block(
-  fill: rgb("#f6f6f6"),
-  inset: 1em,
-  radius: 4pt,
-  [
-    *Example: Eigenmodes of a Vibrating String*
-    
-    Consider a one-dimensional vibrating string or atomic chain:
-
-    #figure(
-      image("images/spring.png"),
-      caption: [Vibrating string model. #link("https://lampz.tugraz.at/~hadley/ss1/phonons/1d/1dphonons.php")[Image source]]
-    )
-    
-    The dynamics follow Newton's second law:
-    $ M dot.double(u) = C(u_(i+1) - u_i) - C(u_i - u_(i-1)) $
-    where $M$ is mass, $C$ is stiffness, and $u_i$ is the displacement of atom $i$. With fixed ends ($u_0 = u_(n+1) = 0$) and assuming harmonic motion:
-    $ u_i(t) = A_i cos(omega t + phi_i) $
-
-    This transforms into an eigenvalue problem:
-    $ mat(
-      -C, C, 0, dots.h, 0;
-      C, -2C, C, dots.h, 0;
-      0, C, -2C, dots.h, 0;
-      dots.v, dots.v, dots.v, dots.down, dots.v;
-      0, 0, 0, dots.h, -C
-    ) mat(
-      A_1;
-      A_2;
-      A_3;
-      dots.v;
-      A_n
-    ) = -omega^2 M mat(
-      A_1;
-      A_2;
-      A_3;
-      dots.v;
-      A_n
-    ) $
-
-    Let's solve for a 5-atom string with $M = C = 1.0$:
-
-    ```julia
-    M = C = 1.0
-    C_matrix = [-C C 0 0 0; C -2C C 0 0; 0 C -2C C 0; 0 0 C -2C C; 0 0 0 C -C]
-    evals, evecs = LinearAlgebra.eigen(C_matrix)
-    second_omega = sqrt(-evals[2]/M)
-    second_mode = evecs[:, 2]
-    u(t) = second_mode .* cos.(-second_omega .* t) # (ϕi=0)
-    u(1.0)  # atom locations at t=1.0
-    ```
-
-    #figure(
-      image("images/springs-demo.gif", width: 60%),
-      caption: "Visualization of eigenmodes"
-    )
-
-    Any initial condition can be expressed as a linear combination of these eigenmodes. For implementation details, see the #link("https://github.com/GiggleLiu/ScientificComputingDemos/tree/main/PhysicsSimulation")[source code].
-  ]
-)
-
-== Matrix functions
-
-For an analytic function $f$ defined by a power series and matrix $A in CC^(n times n)$:
-$ f(A) = sum_(i=0)^infinity a_i A^i $
-
-To compute a matrix function (e.g., $f(A) = e^A$):
-
-1. Diagonalize $A = P D P^(-1)$, where $D$ is diagonal and $P$ contains eigenvectors
-2. Compute $f(A) = P f(D) P^(-1)$
-3. Apply $f$ to diagonal elements of $D$
-4. Multiply matrices: $f(A) = P f(D) P^(-1)$
-
-#box(
-  fill: rgb("#f6f6f6"),
-  inset: 1em,
-  radius: 4pt,
-  [
-    *Example: Matrix Exponential*
-    
-    Consider the matrix:
-    $ A = mat(1, 2; 3, 4) $
-
-    Using Julia's `exp` function:
-    ```julia
-    A = [1 2; 3 4]
-    exp(A)
-    ```
-
-    Verify using eigendecomposition:
-    ```julia
-    D, P = LinearAlgebra.eigen(A)
-    P * LinearAlgebra.Diagonal(exp.(D)) * inv(P)
-    ```
-  ]
-)
 
 == Singular Value Decomposition
 The singular value decomposition (SVD) of a matrix $A in CC^(m times n)$ is a factorization:

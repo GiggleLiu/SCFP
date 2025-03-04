@@ -522,15 +522,15 @@ where $
       $
 
 == 5-atom vibrating string
-```julia
+#box(text(16pt)[```julia
 julia> M = C = 1.0;
 
 julia> C_matrix = [-C C 0 0 0; C -2C C 0 0; 0 C -2C C 0; 0 0 C -2C C; 0 0 0 C -C];
 
 julia> evals, evecs = LinearAlgebra.eigen(C_matrix);
-```
+```])
 
-```julia
+#box(text(16pt)[```julia
 julia> second_omega = sqrt(-evals[2]/M)
 1.618033988749894
 
@@ -541,11 +541,11 @@ julia> second_mode = evecs[:, 2]
   1.4023804401251382e-15
   0.601500955007545
  -0.3717480344601845
-```
+```])
 
 == Example: eigenmodes of a vibrating string
 
-```julia
+#box(text(16pt)[```julia
 julia> u(t) = second_mode .* cos.(-second_omega .* t) # (ϕi=0)
 u (generic function with 1 method)
 
@@ -556,7 +556,7 @@ julia> u(1.0)  # atom locations offsets at t=1.0
  -6.622053936793937e-17
  -0.028402932992545135
   0.01755397796957868
-```
+```])
 
 #figure(image("images/springs-demo.gif"))
 
