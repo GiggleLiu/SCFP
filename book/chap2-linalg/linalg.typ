@@ -9,6 +9,7 @@
 
 In this chapter, we explore fundamental operations in linear algebra, including matrix multiplication, linear systems, matrix decompositions, and eigenvalue problems. We'll provide practical examples and applications for each concept. For a comprehensive reference on matrix computations, see @Golub2016.
 
+= Linear Algebra Basics
 == Notations
 
 - Real Scalar: $x in RR$
@@ -42,8 +43,22 @@ On any machine, whenever we double the size of the matrix, the number of operati
 == Linear Systems and LU Decomposition
 Let $A in RR^(n times n)$ be an invertible square matrix and $b in RR^n$ be a vector. Solving a linear equation means finding a vector $x in RR^n$ such that
 $
-A x = b
+A x = b.
 $
+A straightforward way to solve this is to compute the inverse of $A$ and then multiply it by $b$:
+$
+x = A^(-1) b.
+$
+However, computing the inverse of a matrix is computationally expensive and numerically unstable. A more efficient and stable way to solve the linear system is to use the LU decomposition. The LU decomposition of a matrix $A in RR^(n times n)$ is a factorization of the form
+$
+A = L U
+$
+where $L$ is a lower triangular matrix, and $U$ is an upper triangular matrix.
+Solving a triangular system is much more efficient than solving a general linear system, which can be done by _forward and backward substitution_.
+Given a linear system $A x = b$, we can reformulate it as $L U x = b$, and solve it by first solving $L y = b$ and then solving $U x = y$.
+The LU decomposition can be unstable when the diagonal elements of $A$ are small. To improve the stability, we can use the LU decomposition with _pivoting_, which is a variant of the LU decomposition that allows us to swap rows or columns or both of $A$ to ensure numerical stability. By default, Julia's `lu` function performs partial pivoting, which swaps rows of $A$ to ensure numerical stability:
+$ P A = L U. $
+where $P$ is a permutation matrix for pivoting rows.
 
 #exampleblock([
     *Example:* Let us consider the following system of linear equations
@@ -70,34 +85,29 @@ $
     x = A \ b
     A * x
     ```
+    The "`\`" operator effectively performs the following steps:
+    ```julia
+    using LinearAlgebra
+    res = lu(A)  # lu decomposition, `res.L * res.U ≈ res.P * A`
+    y = LowerTriangular(res.L) \ (res.P*b)  # solve Ly = Pb with forward substitution
+    x = UpperTriangular(res.U) \ y  # solve Ux = y with backward substitution
+    ```
+    Here, in order to ensure that Julia recognizes `res.L` and `res.U` as triangular matrices, we need to wrap them with `LowerTriangular(res.L)` and `UpperTriangular(res.U)`.
   ]
 )
 
 
-In the above example, when applied on a square matrix, the "`\`" operator uses LU decomposition internally:
+== Cholesky Decomposition
+Cholesky decomposition is a variant of LU decomposition for _symmetric positive-definite_ matrices. For a symmetric positive-definite matrix $A in CC^(n times n)$, $A succ.eq 0 $, the Cholesky decomposition provides a factorization:
+$ A = L L^dagger $
+where $L in CC^(n times n)$ is lower triangular. Cholesky decomposition is often used as a compact representation of a positive-definite matrix. In Julia, the `cholesky` function returns a `Cholesky` object, which contains the lower triangular matrix $L$ and the determinant of $A$.
 ```julia
-using LinearAlgebra
-lures = lu(A)  # pivot rows by default
-lures.L * lures.U ≈ lures.P * A
-
-UpperTriangular(lures.U) \ (LowerTriangular(lures.L) \ (lures.P * b))
+A = [2 1; 1 3]  # symmetric positive-definite
+C = cholesky(A)
+C.L * C.L' ≈ A  # verify decomposition
 ```
 
-The LU decomposition of a matrix $A in CC^(n times n)$ is a factorization:
-$ P A = L U $
-where $P$ is a permutation matrix for pivoting rows, $L$ is lower triangular, and $U$ is upper triangular. Row pivoting ensures numerical stability by avoiding division by zero. In Julia, matrices marked as `UpperTriangular` or `LowerTriangular` are solved efficiently using forward and backward substitution.
-
-To solve a linear system using LU decomposition:
-
-1. Decompose $P A in CC^(n times n)$ into $L in CC^(n times n)$ and $U in CC^(n times n)$ using Gaussian elimination or Crout's method.
-
-2. Rewrite $A x = b$ as $L U x = P b$.
-
-3. Forward-substitution: Solve $L y = P b$ by working top-down, substituting known values.
-
-4. Back-substitution: Solve $U x = y$ by working bottom-up, substituting known values.
-
-== Least Squares Problem and QR Decomposition
+== Least Squares Problem and Normal Equation
 
 The least squares problem is to find a vector $x in RR^n$ that minimizes the residual
 $
@@ -109,142 +119,36 @@ A linear equation is just a special case of the least squares problem, where the
 The least squares problem "makes sense" only when $A$ is *over-determined* (meaning having too many equations such that not all can be satisfied), i.e. $m > n$.
 
 Converting the least squares problem to a normal equation is a straightforward approach to solve it.
-We first square and expand the residual in @eq:lsq-problem:
-$
-(A x - b)^T (A x - b) = x^T A^T A x - 2 x^T A^T b + b^T b.
-$
+We first square and expand the residual in @eq:lsq-problem as $(A x - b)^T (A x - b).$
 The minimum is attained when the gradient of the quadratic function is zero, i.e.
 $
 nabla_(x) (x^T A^T A x - 2 x^T A^T b + b^T b) = 2 A^T A x - 2 A^T b = 0\
 arrow.double.r x = (A^T A)^(-1) A^T b,
 $
-which is the normal equation.
-
-== Sensitivity of the normal equation
-== Floating-point numbers and relative errors
-
-Layout for 64-bit floating point numbers (IEEE 754 standard)
-
-#figure(canvas({
-  import draw: *
-  let (dx, dy) = (1.0, 1.0)
-  let s(it) = text(16pt)[#it]
-  content((-1, 0), s[$x:$])
-  rect((-dx/2, -dy/2), (dx/2, dy/2), name: "sign")
-  rect((dx/2, -dy/2), (3.5*dx, dy/2), name: "exponent")
-  rect((3.5*dx, -dy/2), (6*dx, dy/2), name: "mantissa")
-  content("sign", s[$plus.minus$])
-  content("exponent", s[$a_1 a_2 dots a_11$])
-  content("mantissa", s[$b_1 b_2 dots b_52$])
-  content((rel: (0, -1), to: "sign"), s[sign])
-  content((rel: (0, -1), to: "exponent"), s[exponent])
-  content((rel: (0, -1), to: "mantissa"), s[mantissa])
-}),
-)
-It represents the number $x = plus.minus 1.b_1 b_2 dots b_52 2^(a_1 a_2 dots a_11 - 1023)$.
-
-== Floating point errors
-
-$"fl"(x) = x (1 + delta), quad |delta| <= u$, where $u$ is the unit roundoff defined by
-$
-u = "nextfloat"(1.0) - 1.0
-$
-
-
-#box(text(16pt)[```julia
-julia> eps(Float64)  # 2.22e-16
-julia> eps(1e-50)    # absolute precision: 1.187e-66
-julia> eps(1e50)     # absolute precision: 2.077e34
-julia> typemax(Float64)  # Inf
-julia> prevfloat(Inf)    # 1.798e308
-```])
-
-- Q: why is the relative precision $u$ remains approximately the same for different numbers?
-
-== Stability of floating-point arithmetic
-Task: compute $p - sqrt(p^2 + q)$ for $p = 12345678$ and $q = 1$.
-
-- Method 1:
-#box(text(16pt)[```julia
-p - sqrt(p^2 + q)       # -4.0978193283081055e-8
-```])
-- Method 2:
-#box(text(16pt)[```julia
--q/(p + sqrt(p^2 + q))  # -4.0500003321000205e-8
-```])
-
-Q: which one is more accurate? Hint: imagine we perform "$-$" operation on two very close large numbers.
-
-== Condition number
-
-- _Condition number_ of a matrix $A$ is defined as $kappa(A) = ||A|| ||A^(-1)|| >=1$. If the condition number is close to 1, the matrix is _well-conditioned_, otherwise it is _ill-conditioned_.
-
-- _Remark_: there are two popular norms for matrices: the Frobenius norm and the $p$-norms. Here, we use the $p=2$ norm for simplicity.
-  - Frobenius norm: $||A||_F = sqrt(sum_(i j) |a_(i j)|^2)$
-  - $p$-norm: $||A||_p = max_(x != 0) (||A x||_p)/ (||x||_p)$, for $p = 2$, it is the spectral norm $||A||_2 = sigma_1(A)$, the largest _singular value_ of $A$.
-
-== Meaning of the condition number
-
-- _Remark_: meaning of the condition number: if we solve the linear system $A x = b$ with a small perturbation $b + delta b$, the relative error of the solution $x$ is at most $kappa(A) times$ the relative error of $b$.
-
-$
-  A(x + delta x) = b + delta b\
-  arrow.double.r (||delta x||) / (||x||) = (||A^(-1) delta b||) / (||A^(-1) b||) <= (lambda_1(A^(-1))) / (lambda_n (A^(-1))) (||delta b||) / (||b||)
-$
-where $lambda_1(A^(-1))$ and $lambda_n (A^(-1))$ ($= lambda_1(A)^(-1)$) are the largest and smallest _singular values_ of $A^(-1)$, respectively.
-
-Hence, the relative error of the solution $x$ is at most $kappa(A) times$ the relative error of $b$.
-
-== Singular values decomposition
-The singular values decomposition (SVD) of a matrix $A in bb(C)^(m times n)$ is a factorization of the form
-$
-A = U S V^dagger
-$
-where $U in bb(C)^(m times m)$ and $V in bb(C)^(n times n)$ are unitary matrices (i.e. $U^dagger U = I$ and $V^dagger V = I$), and $S = "diag"(lambda_1, lambda_2, dots, lambda_n)$ is a diagonal matrix with *non-negative* real numbers on the diagonal.
-
-- _Remark_: the SVD is a generalization of the eigendecomposition of a matrix. The diagonal elements of $S$ are the singular values arranged in descending order.
-- _Remark_: For real matrices, $U$ and $V$ are orthogonal matrices (i.e. $U^T U = I$ and $V^T V = I$).
-
-== SVD and condition number
-
-Consider $A = U S V^dagger$,
-$
-  (||A x||_2) / (||x||_2) = (||S V^dagger x||_2) / (||x||_2) = (||S y||_2) / (||y||_2) <= lambda_1,
-$
-where $y = V^dagger x$. We used the fact that $||U x||_2 = ||x||_2$ for any unitary matrix $U$.
-
-The effect of "squaring" a matrix:
-$
-  A^dagger A = V S^dagger U^dagger U S V^dagger = V S^2 V^dagger.
-$
-The singular values of $A^dagger A$ are the squared singular values of $A$.
-
-Hence, $kappa(A^dagger A) = kappa(A)^2$.
-
-== Example: condition number of the normal equation
-
-Problem: The condition number of $A^dagger A$ is the square of the *condition number* of $A$, which can be very large.
-
-#box(text(16pt)[```julia
-julia> cond(A)
-34.899220365288556
-
-julia> cond(A' * A)
-1217.9555821049864
-```])
-
-Revisit the normal equation:
-$
-x = (A^T A)^(-1) A^T b
-$
-We effectively solve the linear system: $(A^T A) x = A^T b$, which is unstable.
-
-
+which is the _normal equation_.
 
 == QR Decomposition
 This is solved using QR decomposition:
 $ A = Q R $
 where $Q in CC^(m times m)$ is orthogonal and $R in CC^(m times n)$ is upper triangular.
+
+The QR decomposition of a matrix $A in bb(C)^(m times n)$ is a factorization of the form
+$
+A = Q R
+$
+where $Q in bb(C)^(m times min(m, n))$ is an orthogonal matrix (i.e. $Q^dagger Q = I$) and $R in bb(C)^(min(m, n) times n)$ is an upper triangular matrix.
+
+== Solving linear systems with QR decomposition
+
+Let $A = Q R$, the least squares problem $min_x ||A x - b||_2^2$ is equivalent to
+$
+  min_x ||Q R x - b||_2^2 = underbrace(min_y ||R x - Q^dagger b||_2^2, "zero") + ||Q^dagger_bot b||_2^2\
+  arrow.double.r R x = Q^dagger b
+$
+where $Q^dagger_bot$ is the orthogonal complement of $Q^dagger$, i.e. $Q^dagger_bot Q = 0$ and $Q^dagger_bot Q^dagger = I$.
+
+- _Remark_: For a unitary matrix $Q$, $||Q x||_2 = ||x||_2$. However, $||Q^dagger x||_2 <= ||x||_2$, where the equality holds if and only if $x$ is in the column space of $Q$.
+- _Remark_: For an upper triangular matrix $R$, the solution of $R x = y$ can be found by _backward substitution_ in $O(n^2)$ time. $kappa(R) = kappa(A)$.
 
 #exampleblock([
     *Example: Data Fitting*
@@ -319,6 +223,255 @@ julia> x = (A' * A) \ (A' * b)    # `'` is the Hermitian conjugate
 ```
 ]
 )
+
+
+== Live coding: solving the least squares problem with QR decomposition
+```julia
+julia> Q, R = qr(A)
+
+julia> Q' * Q    # Identity matrix
+julia> Q * Q'
+julia> rank(Q * Q')
+
+julia> x = R \ (Matrix(Q)' * y)
+```
+
+
+== Singular values decomposition
+The singular values decomposition (SVD) of a matrix $A in bb(C)^(m times n)$ is a factorization of the form
+$
+A = U S V^dagger
+$
+where $U in bb(C)^(m times m)$ and $V in bb(C)^(n times n)$ are unitary matrices (i.e. $U^dagger U = I$ and $V^dagger V = I$), and $S = "diag"(lambda_1, lambda_2, dots, lambda_n)$ is a diagonal matrix with *non-negative* real numbers on the diagonal.
+
+- _Remark_: the SVD is a generalization of the eigendecomposition of a matrix. The diagonal elements of $S$ are the singular values arranged in descending order.
+- _Remark_: For real matrices, $U$ and $V$ are orthogonal matrices (i.e. $U^T U = I$ and $V^T V = I$).
+
+
+= Sensitivity analysis
+
+== Floating-point numbers and relative errors
+
+Layout for 64-bit floating point numbers (IEEE 754 standard)
+
+#figure(canvas(length: 0.8cm, {
+  import draw: *
+  let (dx, dy) = (1.0, 1.0)
+  let s(it) = text(12pt)[#it]
+  content((-1, 0), s[$x:$])
+  rect((-dx/2, -dy/2), (dx/2, dy/2), name: "sign")
+  rect((dx/2, -dy/2), (3.5*dx, dy/2), name: "exponent")
+  rect((3.5*dx, -dy/2), (6*dx, dy/2), name: "mantissa")
+  content("sign", s[$plus.minus$])
+  content("exponent", s[$a_1 a_2 dots a_11$])
+  content("mantissa", s[$b_1 b_2 dots b_52$])
+  content((rel: (0, -1), to: "sign"), s[sign])
+  content((rel: (0, -1), to: "exponent"), s[exponent])
+  content((rel: (0, -1), to: "mantissa"), s[mantissa])
+}),
+)
+It represents the number $x = plus.minus 1.b_1 b_2 dots b_52 2^(a_1 a_2 dots a_11 - 1023)$.
+
+== Floating point errors
+
+$"fl"(x) = x (1 + delta), quad |delta| <= u$, where $u$ is the unit roundoff defined by
+$
+u = "nextfloat"(1.0) - 1.0
+$
+
+
+```julia
+julia> eps(Float64)  # 2.22e-16
+julia> eps(1e-50)    # absolute precision: 1.187e-66
+julia> eps(1e50)     # absolute precision: 2.077e34
+julia> typemax(Float64)  # Inf
+julia> prevfloat(Inf)    # 1.798e308
+```
+
+- Q: why is the relative precision $u$ remains approximately the same for different numbers?
+
+== Stability of floating-point arithmetic
+Task: compute $p - sqrt(p^2 + q)$ for $p = 12345678$ and $q = 1$.
+
+- Method 1:
+```julia
+p - sqrt(p^2 + q)       # -4.0978193283081055e-8
+```
+- Method 2:
+```julia
+-q/(p + sqrt(p^2 + q))  # -4.0500003321000205e-8
+```
+
+Q: which one is more accurate? Hint: imagine we perform "$-$" operation on two very close large numbers.
+
+== Condition number
+
+- _Condition number_ of a matrix $A$ is defined as $kappa(A) = ||A|| ||A^(-1)|| >=1$. If the condition number is close to 1, the matrix is _well-conditioned_, otherwise it is _ill-conditioned_.
+
+- _Remark_: there are two popular norms for matrices: the Frobenius norm and the $p$-norms. Here, we use the $p=2$ norm for simplicity.
+  - Frobenius norm: $||A||_F = sqrt(sum_(i j) |a_(i j)|^2)$
+  - $p$-norm: $||A||_p = max_(x != 0) (||A x||_p)/ (||x||_p)$, for $p = 2$, it is the spectral norm $||A||_2 = sigma_1(A)$, the largest _singular value_ of $A$.
+
+== Meaning of the condition number
+
+- _Remark_: meaning of the condition number: if we solve the linear system $A x = b$ with a small perturbation $b + delta b$, the relative error of the solution $x$ is at most $kappa(A) times$ the relative error of $b$.
+
+$
+  A(x + delta x) = b + delta b\
+  arrow.double.r (||delta x||) / (||x||) = (||A^(-1) delta b||) / (||A^(-1) b||) <= (lambda_1(A^(-1))) / (lambda_n (A^(-1))) (||delta b||) / (||b||)
+$
+where $lambda_1(A^(-1))$ and $lambda_n (A^(-1))$ ($= lambda_1(A)^(-1)$) are the largest and smallest _singular values_ of $A^(-1)$, respectively.
+
+Hence, the relative error of the solution $x$ is at most $kappa(A) times$ the relative error of $b$.
+
+== SVD and condition number
+
+Consider $A = U S V^dagger$,
+$
+  (||A x||_2) / (||x||_2) = (||S V^dagger x||_2) / (||x||_2) = (||S y||_2) / (||y||_2) <= lambda_1,
+$
+where $y = V^dagger x$. We used the fact that $||U x||_2 = ||x||_2$ for any unitary matrix $U$.
+
+The effect of "squaring" a matrix:
+$
+  A^dagger A = V S^dagger U^dagger U S V^dagger = V S^2 V^dagger.
+$
+The singular values of $A^dagger A$ are the squared singular values of $A$.
+
+Hence, $kappa(A^dagger A) = kappa(A)^2$.
+
+== Example: condition number of the normal equation
+
+Problem: The condition number of $A^dagger A$ is the square of the *condition number* of $A$, which can be very large.
+
+```julia
+julia> cond(A)
+34.899220365288556
+
+julia> cond(A' * A)
+1217.9555821049864
+```
+
+Revisit the normal equation:
+$
+x = (A^T A)^(-1) A^T b
+$
+We effectively solve the linear system: $(A^T A) x = A^T b$, which is unstable.
+
+
+
+= Eigenvalues and eigenvectors
+== Eigen-decomposition
+The eigenvalues and eigenvectors of a matrix $A in bb(C)^(n times n)$ are the solutions to the equation
+$
+A x = lambda x
+$
+where $lambda$ is a scalar and $x$ is a non-zero vector.
+
+```julia
+julia> A = [1 2; 3 4]
+
+julia> res = eigen(A)
+julia> res.values
+julia> res.vectors
+```
+
+== Hands-on: eigenmodes of a vibrating string (or atomic chain)
+
+#figure(canvas(length: 0.8cm, {
+  import draw: *
+  let (dx, dy) = (2.0, 1.0)
+  let s(it) = text(12pt)[#it]
+  let u = (0, 0, 0, -0.6, 0.8, 0, 0, 0)
+  for i in range(8){
+    circle((i * dx + u.at(i), 0), radius: 0.2, name: "atom" + str(i))
+  }
+  for i in range(7){
+    decorations.wave(line("atom" + str(i), "atom" + str(i + 1)), amplitude: 0.2)
+  }
+  line((3 * dx, 1), (3 * dx, 0), mark: (end: "straight"))
+  line((4 * dx, 1), (4 * dx, 0), mark: (end: "straight"))
+  content((3.5 * dx, 1.8), s[equilibrium position])
+
+  line((3 * dx, -0.3), (3 * dx + u.at(3), -0.3), mark: (end: "straight"), name: "d1")
+  content((rel: (0, -0.3), to: "d1.mid"), s[$u_4$])
+  line((4 * dx, -0.3), (4 * dx + u.at(4), -0.3), mark: (end: "straight"), name: "d2")
+  content((rel: (0, -0.3), to: "d2.mid"), s[$u_5$])
+
+  content((1.5 * dx, 0.8), s[$c/2 (u_i - u_(i+1))^2$])
+}),
+)
+
+The dynamics of a one dimensional vibrating string can be described by the Newton's second law
+$
+m_i dot.double(u)_i = c (u_(i+1) - u_i) - c (u_i - u_(i-1))
+$
+where $m_i$ is the mass of the $i$th atom, $c$ is the stiffness, and $u_i$ is the displacement of the $i$-th atom. The end atoms are fixed, so we have $u_0 = u_(n+1) = 0$.
+
+== The eigenmodes of the vibrating string
+
+Assume all atoms have the same eigenfrequency $omega$ and the displacement of the $i$-th atom is given by
+$
+u_i (t) = A_i cos(omega t + phi_i)
+$
+where $phi_i$ is the phase of the $i$th atom.
+
+We have
+
+$
+-m_i omega^2 u_i = c (u_(i+1) - u_i) - c (u_i - u_(i-1))
+$
+
+== Matrix form
+
+The eigenmodes of the vibrating string can be found by solving the eigenvalue problem
+$
+-M omega^2 vec(u_1, u_2, dots.v, u_n) = C vec(u_1, u_2, dots.v, u_n)
+$
+where $
+        M = "diag"(m_1, m_2, dots, m_n), quad
+        C = mat(-c, c, 0, dots, 0, 0; c, -2c, c, dots, 0, 0; dots.v, dots.v, dots.v, dots.down, dots.v, dots.v; 0, 0, 0, dots, 0, c; 0, 0, 0, dots, c, -c)
+      $
+
+== 5-atom vibrating string
+```julia
+julia> M = C = 1.0;
+
+julia> C_matrix = [-C C 0 0 0; C -2C C 0 0; 0 C -2C C 0; 0 0 C -2C C; 0 0 0 C -C];
+
+julia> evals, evecs = LinearAlgebra.eigen(C_matrix);
+```
+
+```julia
+julia> second_omega = sqrt(-evals[2]/M)
+1.618033988749894
+
+julia> second_mode = evecs[:, 2]
+5-element Vector{Float64}:
+  0.37174803446018484
+ -0.6015009550075462
+  1.4023804401251382e-15
+  0.601500955007545
+ -0.3717480344601845
+```
+
+== Example: eigenmodes of a vibrating string
+
+```julia
+julia> u(t) = second_mode .* cos.(-second_omega .* t) # (ϕi=0)
+u (generic function with 1 method)
+
+julia> u(1.0)  # atom locations offsets at t=1.0
+5-element Vector{Float64}:
+ -0.017553977969578697
+  0.028402932992545194
+ -6.622053936793937e-17
+ -0.028402932992545135
+  0.01755397796957868
+```
+
+#figure(image("images/springs-demo.gif"))
+
 
 == Eigenvalues and Eigenvectors
 The eigenvalues and eigenvectors of a matrix $A in CC^(n times n)$ are the solutions to the equation:
@@ -460,35 +613,6 @@ F.U * Diagonal(F.S) * F.Vt ≈ A  # verify decomposition
     3. *Pseudoinverse*: Compute $A^+ = V Sigma^+ U^dagger$ for least squares problems
     4. *Matrix Rank*: Count non-zero singular values
     5. *Matrix Condition Number*: Ratio of largest to smallest singular value
-  ]
-)
-
-== Cholesky Decomposition
-For a symmetric positive-definite matrix $A in CC^(n times n)$, the Cholesky decomposition provides a factorization:
-$ A = L L^dagger $
-where $L in CC^(n times n)$ is lower triangular. This decomposition is:
-- Unique when $A$ is positive definite
-- More efficient than LU decomposition for symmetric matrices
-- Numerically stable without pivoting
-
-In Julia:
-```julia
-A = [2 1; 1 3]  # symmetric positive-definite
-C = cholesky(A)
-C.L * C.L' ≈ A  # verify decomposition
-```
-
-#box(
-  fill: rgb("#f6f6f6"),
-  inset: 1em,
-  radius: 4pt,
-  [
-    *Common Applications*
-
-    1. *Linear Systems*: Solve $A x = b$ using forward and backward substitution
-    2. *Monte Carlo Simulation*: Generate correlated random variables
-    3. *Optimization*: Test for positive definiteness and compute search directions
-    4. *Kalman Filtering*: Update covariance matrices efficiently
   ]
 )
 
