@@ -425,7 +425,7 @@ julia> u(1.0)  # atom locations offsets at t=1.0
   0.01755397796957868
 ```
 
-#figure(image("images/springs-demo.gif"))
+#figure(image("images/springs-demo.gif", width: 300pt), caption: [One of the eigenmodes of a spring chain. The simulation result is obtained by solving the differential equation with the Verlet algorithm. Exact result is given by the eigen-decomposition of the stiffness matrix.])
 
 
 Any initial condition can be expressed as a linear combination of these eigenmodes. For implementation details, see the #link("https://github.com/GiggleLiu/ScientificComputingDemos/tree/main/SpringSystem")[source code].
