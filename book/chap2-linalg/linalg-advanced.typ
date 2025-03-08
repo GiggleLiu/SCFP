@@ -115,11 +115,14 @@ julia> cond(A' * A)
 1217.9555821049864
 ```
 
-== Implement your own LU factorization
+= Triangular linear systems
+
+Triangular linear systems are a type of linear system where the coefficient matrix is either upper or lower triangular.
+They can be solved efficiently using forward or backward substitution in time $O(n^2)$, where $n$ is the size of the matrix.
 
 == Forward-substitution
 Forward substitution is an algorithm used to solve a system of linear equations with a lower triangular matrix
-$L x = b$
+$ L x = b $
 where $L in RR^(n times n)$ is a lower triangular matrix defined as
 $
 L = mat(
@@ -137,70 +140,43 @@ $
 #exampleblock[
 *Example: forward substitution*
 
-Consider the following system of lower triangular linear equations
+Consider the following system of lower triangular linear equations:
 $
-L = mat(
+L x = b quad "where" quad L = mat(
   3, 0, 0;
   2, 5, 0;
   1, 4, 2
-) mat(
+), quad x = mat(
   x_1;
   x_2;
   x_3
-) = mat(
+), quad b = mat(
   9;
   12;
   13
 )
 $
 
-To solve for $x_1$, $x_2$, and $x_3$ using forward substitution, we start with the first equation:
-$
-3x_1 + 0x_2 + 0x_3 = 9
-$
-Solving for $x_1$, we get $x_1 = 3$. Substituting $x = 3$ into the second equation (row), we get:
-$
-2(3) + 5x_2 + 0x_3 = 12
-$
-Solving for $x_2$, we get $x_2 = (12 - 6) / 5 = 1.2$. Substituting $x = 3$ and $x_2 = 1.2$ into the third equation (row), we get:
+Following the forward substitution algorithm, we solve for each component of $x$ sequentially:
+1. First equation ($i=1$): $3x_1 = 9 arrow.r x_1 = 9/3 = 3$
+2. Second equation ($i=2$): $2x_1 + 5x_2 = 12 arrow.r x_2 = (12 - 2 times 3)/5 = (12 - 6)/5 = 1.2$
+3. Third equation ($i=3$): $x_1 + 4x_2 + 2x_3 = 13 arrow.r x_3 = (13 - 1 times 3 - 4 times 1.2)/2 = (13 - 3 - 4.8)/2 = 2.6$
 
-$
-1(3) + 4(1.2) + 2x_3 = 13
-$
-Solving for $x_3$, we get $x_3 = (13 - 3 - 4(1.2)) / 2 = 1.5$. Therefore, the solution to the system of equations is:
+Therefore, the solution to the system is:
 $
 x = mat(
   3;
   1.2;
-  1.5
-)
-$
-])
-
-== Back-substitution
-
-Back substitution is an algorithm used to solve a system of linear equations with an upper triangular matrix
-$
-U x = b
-$
-where $U in RR^(n times n)$ is an upper triangular matrix defined as
-$
-U = mat(
-  u_(1 1), u_(1 2), dots.h, u_(1 n);
-  0, u_(2 2), dots.h, u_(2 n);
-  dots.v, dots.v, dots.down, dots.v;
-  0, 0, dots.h, u_(n n)
+  2.6
 )
 $
 
-The back substitution can be summarized to the following algorithm
-$
-x_n = b_n/u_(n n),quad x_i = (b_i - sum_(j=i+1)^(n) u_(i j) x_j)\/u_(i i),quad i=n-1, ..., 1
-$
-We implement the above algorithm in Julia language.
+You can verify this is correct by multiplying $L x$ to get $b$.
+]
 
+We implement the forward substitution algorithm in Julia language.
 ```julia
-function back_substitution!(l::AbstractMatrix, b::AbstractVector)
+function forward_substitution!(l::AbstractMatrix, b::AbstractVector)
     n = length(b)
     @assert size(l) == (n, n) "size mismatch"
     x = zero(b)
@@ -242,133 +218,116 @@ using Test, LinearAlgebra
 end
 ```
 
-== LU Factorization with Gaussian Elimination
-LU decomposition is a method for solving linear equations that involves breaking down a matrix into lower and upper triangular matrices. The $L U$ decomposition of a matrix $A$ is represented as $A = L U$, where $L$ is a lower triangular matrix and $U$ is an upper triangular matrix.
 
-== The elementary elimination matrix
+== Back-substitution
 
-An elementary elimination matrix is a matrix that is used in the process of Gaussian elimination to transform a system of linear equations into an equivalent system that is easier to solve. It is a square matrix that is obtained by performing a single elementary row operation on the identity matrix.
-
+Back substitution is an algorithm used to solve a system of linear equations with an upper triangular matrix
 $
-(M_k)_(i j) = cases(
-  delta_(i j) & "if" i = j,
-  - a_(i k)\/a_(k k) & "if" i > j "and" j = k,
-  0 & "otherwise"
+U x = b
+$
+where $U in RR^(n times n)$ is an upper triangular matrix defined as
+$
+U = mat(
+  u_(1 1), u_(1 2), dots.h, u_(1 n);
+  0, u_(2 2), dots.h, u_(2 n);
+  dots.v, dots.v, dots.down, dots.v;
+  0, 0, dots.h, u_(n n)
 )
 $
 
-Let $A = (a_(i j))$ be a square matrix of size $n times n$. The $k$th elementary elimination matrix for it is defined as
-
+The back substitution can be summarized to the following algorithm
 $
-M_k = mat(
-  1, dots, 0, 0, 0, dots, 0;
-  dots.v, dots.down, dots.v, dots.v, dots.v, dots.down, dots.v;
-  0, dots, 1, 0, 0, dots, 0;
-  0, dots, 0, 1, 0, dots, 0;
-  0, dots, 0, -m_(k+1), 1, dots, 0;
-  dots.v, dots.down, dots.v, dots.v, dots.v, dots.down, dots.v;
-  0, dots, 0, -m_n, 0, dots, 1
+x_n = b_n\/u_(n n),quad x_i = (b_i - sum_(j=i+1)^(n) u_(i j) x_j)\/u_(i i),quad i=n-1, ..., 1
+$
+
+= LU Factorization
+== Gaussian Elimination
+LU decomposition is a method for solving linear equations that involves breaking down a matrix into lower and upper triangular matrices. The $L U$ decomposition of a matrix $A$ is represented as
+$
+A = L U,
+$
+where $L$ is a lower triangular matrix and $U$ is an upper triangular matrix.
+Gaussian elimination is a method for finding the $L U$ decomposition of a matrix.
+
+#exampleblock[
+*Example: LU decomposition using Gaussian elimination*
+
+Consider the matrix
+$
+A = mat(
+  1, 2, 2;
+  4, 4, 2; 
+  4, 6, 4
 )
 $
 
-where $m_i = a_(i k)/a_(k k)$.
+Let's perform LU decomposition step by step using Gaussian elimination:
 
-By applying this elementary elimination matrix $M_1$ on $A$, we can obtain a new matrix with the $a'_(i 1) = 0$ for all $i>1$.
+1. First step ($k=1$): eliminate entries below $a_(1 1)$
+   - Compute multipliers: $m_2 = a_(2 1)\/a_(1 1) = 4$, $m_3 = a_(3 1)\/a_(1 1) = 4$
+   - Subtract $m_2$ times row 1 from row 2:
+   $
+   mat(
+     1, 2, 2;
+     4, 4, 2;
+     4, 6, 4
+   ) arrow.r mat(
+     1, 2, 2;
+     0, -4, -6;
+     4, 6, 4
+   )
+   $
+   - Subtract $m_3$ times row 1 from row 3:
+   $
+   mat(
+     1, 2, 2;
+     0, -4, -6;
+     0, -2, -4
+   )
+   $
+
+2. Second step ($k=2$): eliminate entries below $a_(2 2)$
+   - Compute multiplier: $m_3 = (-2)\/(-4) = 1/2$
+   - Subtract $m_3$ times row 2 from row 3:
+   $
+   mat(
+     1, 2, 2;
+     0, -4, -6;
+     0, -2, -4
+   ) arrow.r mat(
+     1, 2, 2;
+     0, -4, -6;
+     0, 0, -1
+   ) = U
+   $
+
+The lower triangular matrix $L$ contains the multipliers used in the elimination:
 $
-M_1 A = mat(
-  a_(1 1), a_(1 2), a_(1 3), dots.h, a_(1 n);
-  0, a'_(2 2), a'_(2 3), dots.h, a'_(2 n);
-  0, a'_(3 2), a'_(3 3), dots.h, a'_(3 n);
-  dots.v, dots.down, dots.v, dots.down, dots.v;
-  0, a'_(n 2), a'_(n 3), dots.h, a'_(n n)
+L = mat(
+  1, 0, 0;
+  4, 1, 0;
+  4, 1/2, 1
 )
 $
-
-For $k=1,2,dots,n$, apply $M_k$ on $A$. We will have an upper triangular matrix.
+You can verify that $L U = A$:
 $
-U = M_(n-1) dots.h M_1 A
+mat(
+  1, 0, 0;
+  4, 1, 0;
+  4, 1/2, 1
+) mat(
+  1, 2, 2;
+  0, -4, -6;
+  0, 0, -1
+) = mat(
+  1, 2, 2;
+  4, 4, 2;
+  4, 6, 4
+)
 $
+]
 
-Since $M_k$ is reversible, we have
-$
-A = L U\
-L = M_1^(-1) M_2^(-1) dots.h M_(n-1)^(-1)
-$
-Elementary elimination matrices have the following properties that making the above process efficient:
-1. Its inverse can be computed in $O(n)$ time
-   $
-   M_k^(-1) = 2I - M_k
-   $
-2. The multiplication of two elementary matrices can be computed in $O(n)$ time
-   $
-   M_k M_(k' > k) = M_k + M_(k') - I
-   $
-== Code: Elementary Elimination Matrix
-
-```julia
-A3 = [1 2 2; 4 4 2; 4 6 4]
-
-function elementary_elimination_matrix(A::AbstractMatrix{T}, k::Int) where T
-    n = size(A, 1)
-    @assert size(A, 2) == n
-    # create Elementary Elimination Matrices
-    M = Matrix{Float64}(I, n, n)
-    for i=k+1:n
-        M[i, k] =  -A[i, k] ./ A[k, k]
-    end
-    return M
-end
-```
-
-The elementary elimination matrix for the above matrix `A3` eliminating the first column is
-
-```julia
-elementary_elimination_matrix(A3, 1)
-elementary_elimination_matrix(A3, 1) * A3
-```
-
-Verify the property 1
-
-```julia
-inv(elementary_elimination_matrix(A3, 1))
-```
-
-Verify the property 2
-
-```julia
-elementary_elimination_matrix(A3, 2)
-inv(elementary_elimination_matrix(A3, 1)) * inv(elementary_elimination_matrix(A3, 2))
-```
-
-== Code: LU Factorization by Gaussian Elimination
-
-A naive implementation of elimentary elimination matrix is as follows
-
-
-```julia
-function lufact_naive!(A::AbstractMatrix{T}) where T
-    n = size(A, 1)
-    @assert size(A, 2) == n
-    M = Matrix{T}(I, n, n)
-    for k=1:n-1
-        m = elementary_elimination_matrix(A, k)
-        M = M * inv(m)
-        A .= m * A
-    end
-    return M, A
-end
-
-lufact_naive!(copy(A3))
-
-@testset "naive LU factorization" begin
-    A = [1 2 2; 4 4 2; 4 6 4]
-    L, U = lufact_naive!(copy(A))
-    @test L * U ≈ A
-end
-```
-
-The above implementation has time complexity $O(n^4)$ since we did not use the sparsity of elimentary elimination matrix. A better implementation that gives $O(n^3)$ time complexity is as follows.
-
+In the following, we implement the Gaussian elimination in Julia language.
 ```julia
 function lufact!(a::AbstractMatrix)
     n = size(a, 1)
@@ -410,60 +369,27 @@ We can test the performance of our implementation.
 
 ```julia
 A4 = randn(4, 4)
-
 lufact(A4)
 ```
 
-Julia language has a much better implementation in the standard library `LinearAlgebra`.
-
-```julia
-julia_lures = lu(A4, NoPivot())  # the version we implemented above has no pivot
-
-julia_lures.U
-
-typeof(julia_lures)
-
-fieldnames(julia_lures |> typeof)
-```
-
 == Pivoting technique
-!!! note "How to handle small diagonal entries?"
 
-    The above Gaussian elimination process is not stable if any diagonal entry in $A$ has a value that close to zero.
-    ```julia
-    small_diagonal_matrix = [1e-8 1; 1 1]
-    lures = lufact(small_diagonal_matrix)
-    ```
-    This issue is can be resolved by permuting the rows of $A$ before factorizing it.
-    For example:
-    ```julia
-    lufact(small_diagonal_matrix[end:-1:1, :])
-    ```
-    This technique is called pivoting.
+The above Gaussian elimination process is numerically unstable if $A$ has a diagonal entry that is close to zero. The small diagonal element will be a divisor in the elimination process, which will introduce extremely large numbers in the computed solution.
+As we discussed in the previous section, large numbers have a large absolute error that may propagate through the computation.
 
+To avoid this issue, we can use pivoting technique.
 == Partial pivoting
-LU factoriaztion (or Gaussian elimination) with row pivoting is defined as
-```math
+LU factoriaztion with row pivoting is defined as
+$
 P A = L U
-```
+$
 where $P$ is a permutation matrix.
-Pivoting in Gaussian elimination is the process of selecting a pivot element in a matrix and then using it to eliminate other elements in the same column or row. The pivot element is chosen as the largest absolute value in the column, and its row is swapped with the row containing the current element being eliminated if necessary. This is done to avoid division by zero or numerical instability, and to ensure that the elimination process proceeds smoothly. Pivoting is an important step in Gaussian elimination, as it ensures that the resulting matrix is in reduced row echelon form and that the solution to the system of equations is accurate.
+Pivoting is a crucial technique in Gaussian elimination that helps maintain numerical stability. At each step, we select the element with the largest absolute value in the current column as the pivot. We then swap the row containing this pivot with the current row before performing elimination. This strategy serves two key purposes:
 
-Let $A=(a_(i j))$ be a square matrix of size $n times n$. The Gaussian elimination process with partial pivoting can be represented as
-$
-M_(n-1)P_(n-1) dots.h M_2P_2M_1P_1 A = U
-$
+1. It avoids division by very small numbers that could lead to large roundoff errors
+2. It reduces error growth during the elimination process
 
-Here we emphsis that $P_{k}$ and $M_{j<k}$ commute.
-
-== Complete pivoting
-The complete pivoting also allows permuting columns. The LU factorization with complete pivoting is defined as
-$
-P A Q = L U.
-$
-Complete pivoting produces better numerical stability but is also harder to implement. In most practical using cases, partial pivoting is good enough.
-
-== Code: LU Factoriaztion by Gaussian Elimination with Partial Pivoting
+By choosing the largest possible pivot, we minimize the size of the multipliers used in elimination, which helps control error accumulation. Without pivoting, even a well-conditioned system could produce inaccurate results if small pivots are encountered during elimination.
 
 A Julia implementation of the Gaussian elimination with partial pivoting is
 
@@ -523,45 +449,56 @@ end
 end
 ```
 
-The performance of our implementation is as follows.
+== Complete pivoting
+Complete pivoting extends partial pivoting by allowing both row and column permutations. The LU factorization with complete pivoting is defined as
+$
+P A Q = L U
+$
+where $P$ and $Q$ are permutation matrices that reorder both rows and columns. At each step, the pivot is chosen as the largest element in absolute value from the entire remaining submatrix, not just a single column.
+
+While complete pivoting provides superior numerical stability compared to partial pivoting, its implementation is more complex and computationally expensive. In practice, partial pivoting usually provides sufficient numerical stability for most applications while being simpler and faster to compute.
+
+== Cholesky Decomposition
+
+Cholesky decomposition is a method of decomposing a positive-definite matrix into a product of a lower triangular matrix and its transpose. It is often used in solving systems of linear equations, computing the inverse of a matrix, and generating random numbers with a given covariance matrix. The Cholesky decomposition is computationally efficient and numerically stable, making it a popular choice in many applications.
+
+Given a positive definite symmetric matrix $A in RR^(n times n)$, the Cholesky decomposition is formally defined as
+$
+A = L L^T,
+$
+where $L$ is an upper triangular matrix.
+
+The implementation of Cholesky decomposition is similar to LU decomposition.
 
 ```julia
-julia> using BenchmarkTools
-
-julia> n = 200
-200
-
-julia> A = randn(n, n);
-
-julia> @benchmark lufact_pivot!($A)
-BenchmarkTools.Trial: 7451 samples with 1 evaluation.
- Range (min … max):  621.834 μs …  11.111 ms  ┊ GC (min … max): 0.00% … 0.00%
- Time  (median):     643.541 μs               ┊ GC (median):    0.00%
- Time  (mean ± σ):   668.927 μs ± 255.808 μs  ┊ GC (mean ± σ):  0.84% ± 2.57%
-
-     ▂█▂                                                        
-  ▄▄▂███▆▄▄▅▅▅▅▄▄▃▃▃▃▃▃▃▃▃▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▁▂▂▁▂▂▁▂▂ ▃
-  622 μs           Histogram: frequency by time          835 μs <
-
- Memory estimate: 314.31 KiB, allocs estimate: 3.
-
-julia> n = 200
-200
-
-julia> A = randn(n, n);
-
-julia> @benchmark lu($A)
-BenchmarkTools.Trial: 10000 samples with 1 evaluation.
- Range (min … max):  247.709 μs …  11.649 ms  ┊ GC (min … max): 0.00% … 96.82%
- Time  (median):     269.583 μs               ┊ GC (median):    0.00%
- Time  (mean ± σ):   318.077 μs ± 247.482 μs  ┊ GC (mean ± σ):  1.69% ±  2.69%
-
-  ▆██▄▂▃▅▅▄▃▂▂▁ ▁                     ▁▁▁                       ▂
-  ████████████████▇▇▇▆▆▇▆▆▆▆▆▄▆▅▄▄▆▄▇█████▇▆▆▆▆▆▅▆▅▄▄▆▅▄▅▄▅▄▅▅▄ █
-  248 μs        Histogram: log(frequency) by time        835 μs <
-
- Memory estimate: 314.31 KiB, allocs estimate: 3.
+function chol!(a::AbstractMatrix)
+    n = size(a, 1)
+    @assert size(a, 2) == n
+    for k=1:n
+        a[k, k] = sqrt(a[k, k])
+        for i=k+1:n
+            a[i, k] = a[i, k] / a[k, k]
+        end
+        for j=k+1:n
+            for i=k+1:n
+                a[i,j] = a[i,j] - a[i, k] * a[j, k]
+            end
+        end
+    end
+    return a
+end
 ```
+
+```julia
+@testset "cholesky" begin
+    n = 10
+    Q, R = qr(randn(10, 10))
+    a = Q * Diagonal(rand(10)) * Q'
+    L = chol!(copy(a))
+    @test tril(L) * tril(L)' ≈ a
+end
+```
+
 
 = QR Factorization
 
@@ -618,7 +555,7 @@ end
 In this example, we define a `HouseholderMatrix` type, which is a subtype of `AbstractArray`. The `v` field is the vector $v$ and the `β` field is the scalar $beta$.
 To define the array interfaces, we need to define the `size` and `getindex` functions. Please check the [Julia manual](https://docs.julialang.org/en/v1/manual/interfaces/) for more details.
 
-```@repl qr
+```julia
 using LinearAlgebra, Test
 @testset "householder property" begin
     v = randn(3)
@@ -907,41 +844,6 @@ $
 A x = lambda x
 $
 
-== Power method
-
-The power method is an iterative method to find the largest eigenvalue of a matrix. Let $A$ be a symmetric matrix, and $x_0$ be a random vector. The power method is defined as
-
-$
-x_(k+1) = (A x_k)/(||A x_k||)
-$
-
-The power method converges to the eigenvector corresponding to the largest eigenvalue of $A$. Let us denote the largest two eigenvalues of $A$ as $lambda_1$ and $lambda_2$, the convergence rate of the power method is
-
-$
-abs(lambda_1\/lambda_2)^k
-$
-The following is an implementation of the power method.
-
-```julia
-function power_method(A::AbstractMatrix, k::Int)
-    @assert size(A, 1) == size(A, 2)
-    x = normalize!(randn(size(A, 2)))
-    for _ = 1:k
-        x = A * x
-        normalize!(x)
-    end
-    return x
-end
-```
-
-```julia
-matsize = 10
-A10 = randn(matsize, matsize); A10 += A10'  # random symmetric matrix
-vmax = eigen(A10).vectors[:,end]  # exact eigenvector
-x = power_method(A10, 20)  # 20 iterations of power method
-1-abs2(x' * vmax)  # the error
-```
-
 == Rayleigh Quotient Iteration
 
 The Rayleigh Quotient Iteration (RQI) is an iterative method to find the eigenvalue of a matrix. The RQI is defined as
@@ -1013,86 +915,6 @@ end
 ```
 
 The symmetric QR decomposition also includes a process to converge the tridiagonal matrix to a diagonal matrix. We refer the reader to Section 8.3 of the book "Matrix Computations" by Golub and Van Loan@Golub2016 for more details.
-
-== The SVD algorithm
-
-The Singular Value Decomposition (SVD) is an algorithm to decompose a matrix into three matrices. Let $A$ be a matrix, the SVD is defined as
-$
-A = U S V^dagger
-$
-where $U$ and $V$ are orthogonal matrices, and $S$ is a diagonal matrix. The algorithm to compute the SVD is
-1. Let $C = A^T A$,
-2. Use the symmetric QR algorithm to compute $V_1^T C V_1 = "diag"(sigma_i^2)$,
-3. Apply QR decomposition to $A V_1$ obtaining $U^dagger(A V_1) = R$. Then $V = V_1 R^dagger "diag"(sigma_i^(-1))$, and $S = "diag"(sigma_i)$.
-The following is an implementation of the SVD algorithm.
-```julia
-function simple_svd(A::AbstractMatrix)
-    m, n = size(A)
-    @assert m >= n "m must be greater than or equal to n"
-    C = A' * A
-    S2, V1 = eigen(C)
-    σ = sqrt.(S2)
-    AV1 = A * V1
-    qrres = qr(AV1)
-    U = qrres.Q
-    V = V1 * qrres.R' * Diagonal(inv.(σ))
-    return U, Diagonal(σ), V
-end
-```
-
-```julia
-@testset "simple SVD" begin
-    m, n = 5, 3
-    A = randn(m, n)
-    U, S, V = simple_svd(A)
-    @test U * S * V' ≈ A
-    @test isapprox(U' * U, I; atol=1e-8)
-    @test isapprox(V' * V, I; atol=1e-8)
-end
-```
-
-
-== Cholesky Decomposition
-
-Cholesky decomposition is a method of decomposing a positive-definite matrix into a product of a lower triangular matrix and its transpose. It is often used in solving systems of linear equations, computing the inverse of a matrix, and generating random numbers with a given covariance matrix. The Cholesky decomposition is computationally efficient and numerically stable, making it a popular choice in many applications.
-
-Given a positive definite symmetric matrix $A in RR^(n times n)$, the Cholesky decomposition is formally defined as
-$
-A = L L^T,
-$
-where $L$ is an upper triangular matrix.
-
-The implementation of Cholesky decomposition is similar to LU decomposition.
-
-```julia
-function chol!(a::AbstractMatrix)
-    n = size(a, 1)
-    @assert size(a, 2) == n
-    for k=1:n
-        a[k, k] = sqrt(a[k, k])
-        for i=k+1:n
-            a[i, k] = a[i, k] / a[k, k]
-        end
-        for j=k+1:n
-            for i=k+1:n
-                a[i,j] = a[i,j] - a[i, k] * a[j, k]
-            end
-        end
-    end
-    return a
-end
-```
-
-```julia
-@testset "cholesky" begin
-    n = 10
-    Q, R = qr(randn(10, 10))
-    a = Q * Diagonal(rand(10)) * Q'
-    L = chol!(copy(a))
-    @test tril(L) * tril(L)' ≈ a
-    # cholesky(a) in Julia
-end
-```
 
 == The Cooley-Tukey's Fast Fourier transformation (FFT)
 
@@ -1408,3 +1230,128 @@ The following table lists common LAPACK routines for matrix factorizations.
 )
 
 #bibliography("refs.bib")
+
+= Appendix
+== The elementary elimination matrix
+
+An elementary elimination matrix is a matrix that is used in the process of Gaussian elimination to transform a system of linear equations into an equivalent system that is easier to solve. It is a square matrix that is obtained by performing a single elementary row operation on the identity matrix.
+
+$
+(M_k)_(i j) = cases(
+  delta_(i j) & "if" i = j,
+  - a_(i k)\/a_(k k) & "if" i > j "and" j = k,
+  0 & "otherwise"
+)
+$
+
+Let $A = (a_(i j))$ be a square matrix of size $n times n$. The $k$th elementary elimination matrix for it is defined as
+
+$
+M_k = mat(
+  1, dots, 0, 0, 0, dots, 0;
+  dots.v, dots.down, dots.v, dots.v, dots.v, dots.down, dots.v;
+  0, dots, 1, 0, 0, dots, 0;
+  0, dots, 0, 1, 0, dots, 0;
+  0, dots, 0, -m_(k+1), 1, dots, 0;
+  dots.v, dots.down, dots.v, dots.v, dots.v, dots.down, dots.v;
+  0, dots, 0, -m_n, 0, dots, 1
+)
+$
+
+where $m_i = a_(i k)/a_(k k)$.
+
+By applying this elementary elimination matrix $M_1$ on $A$, we can obtain a new matrix with the $a'_(i 1) = 0$ for all $i>1$.
+$
+M_1 A = mat(
+  a_(1 1), a_(1 2), a_(1 3), dots.h, a_(1 n);
+  0, a'_(2 2), a'_(2 3), dots.h, a'_(2 n);
+  0, a'_(3 2), a'_(3 3), dots.h, a'_(3 n);
+  dots.v, dots.down, dots.v, dots.down, dots.v;
+  0, a'_(n 2), a'_(n 3), dots.h, a'_(n n)
+)
+$
+
+For $k=1,2,dots,n$, apply $M_k$ on $A$. We will have an upper triangular matrix.
+$
+U = M_(n-1) dots.h M_1 A
+$
+
+Since $M_k$ is reversible, we have
+$
+A = L U\
+L = M_1^(-1) M_2^(-1) dots.h M_(n-1)^(-1)
+$
+Elementary elimination matrices have the following properties that making the above process efficient:
+1. Its inverse can be computed in $O(n)$ time
+   $
+   M_k^(-1) = 2I - M_k
+   $
+2. The multiplication of two elementary matrices can be computed in $O(n)$ time
+   $
+   M_k M_(k' > k) = M_k + M_(k') - I
+   $
+
+== Code: Elementary Elimination Matrix
+
+```julia
+A3 = [1 2 2; 4 4 2; 4 6 4]
+
+function elementary_elimination_matrix(A::AbstractMatrix{T}, k::Int) where T
+    n = size(A, 1)
+    @assert size(A, 2) == n
+    # create Elementary Elimination Matrices
+    M = Matrix{Float64}(I, n, n)
+    for i=k+1:n
+        M[i, k] =  -A[i, k] ./ A[k, k]
+    end
+    return M
+end
+```
+
+The elementary elimination matrix for the above matrix `A3` eliminating the first column is
+
+```julia
+elementary_elimination_matrix(A3, 1)
+elementary_elimination_matrix(A3, 1) * A3
+```
+
+Verify the property 1
+
+```julia
+inv(elementary_elimination_matrix(A3, 1))
+```
+
+Verify the property 2
+
+```julia
+elementary_elimination_matrix(A3, 2)
+inv(elementary_elimination_matrix(A3, 1)) * inv(elementary_elimination_matrix(A3, 2))
+```
+
+A naive implementation of elimentary elimination matrix is as follows
+
+
+```julia
+function lufact_naive!(A::AbstractMatrix{T}) where T
+    n = size(A, 1)
+    @assert size(A, 2) == n
+    M = Matrix{T}(I, n, n)
+    for k=1:n-1
+        m = elementary_elimination_matrix(A, k)
+        M = M * inv(m)
+        A .= m * A
+    end
+    return M, A
+end
+
+lufact_naive!(copy(A3))
+
+@testset "naive LU factorization" begin
+    A = [1 2 2; 4 4 2; 4 6 4]
+    L, U = lufact_naive!(copy(A))
+    @test L * U ≈ A
+end
+```
+
+The above implementation has time complexity $O(n^4)$ since we did not use the sparsity of elimentary elimination matrix. A better implementation that gives $O(n^3)$ time complexity is as follows.
+
