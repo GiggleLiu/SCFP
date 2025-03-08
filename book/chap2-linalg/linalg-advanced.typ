@@ -115,6 +115,985 @@ julia> cond(A' * A)
 1217.9555821049864
 ```
 
+== Implement your own LU factorization
+
+== Forward-substitution
+Forward substitution is an algorithm used to solve a system of linear equations with a lower triangular matrix
+$L x = b$
+where $L in RR^(n times n)$ is a lower triangular matrix defined as
+$
+L = mat(
+  l_(1 1), 0, dots.h, 0;
+  l_(2 1), l_(2 2), dots.h, 0;
+  dots.v, dots.v, dots.down, dots.v;
+  l_(n 1), l_(n 2), dots.h, l_(n n)
+)
+$
+The forward substitution can be summarized to the following algorithm
+$
+x_1 = b_1\/l_(1 1), quad x_i = (b_i - sum_(j=1)^(i-1) l_(i j) x_j)\/l_(i i), quad i=2, ..., n
+$
+
+#exampleblock[
+*Example: forward substitution*
+
+Consider the following system of lower triangular linear equations
+$
+L = mat(
+  3, 0, 0;
+  2, 5, 0;
+  1, 4, 2
+) mat(
+  x_1;
+  x_2;
+  x_3
+) = mat(
+  9;
+  12;
+  13
+)
+$
+
+To solve for $x_1$, $x_2$, and $x_3$ using forward substitution, we start with the first equation:
+$
+3x_1 + 0x_2 + 0x_3 = 9
+$
+Solving for $x_1$, we get $x_1 = 3$. Substituting $x = 3$ into the second equation (row), we get:
+$
+2(3) + 5x_2 + 0x_3 = 12
+$
+Solving for $x_2$, we get $x_2 = (12 - 6) / 5 = 1.2$. Substituting $x = 3$ and $x_2 = 1.2$ into the third equation (row), we get:
+
+$
+1(3) + 4(1.2) + 2x_3 = 13
+$
+Solving for $x_3$, we get $x_3 = (13 - 3 - 4(1.2)) / 2 = 1.5$. Therefore, the solution to the system of equations is:
+$
+x = mat(
+  3;
+  1.2;
+  1.5
+)
+$
+])
+
+== Back-substitution
+
+Back substitution is an algorithm used to solve a system of linear equations with an upper triangular matrix
+$
+U x = b
+$
+where $U in RR^(n times n)$ is an upper triangular matrix defined as
+$
+U = mat(
+  u_(1 1), u_(1 2), dots.h, u_(1 n);
+  0, u_(2 2), dots.h, u_(2 n);
+  dots.v, dots.v, dots.down, dots.v;
+  0, 0, dots.h, u_(n n)
+)
+$
+
+The back substitution can be summarized to the following algorithm
+$
+x_n = b_n/u_(n n),quad x_i = (b_i - sum_(j=i+1)^(n) u_(i j) x_j)\/u_(i i),quad i=n-1, ..., 1
+$
+We implement the above algorithm in Julia language.
+
+```julia
+function back_substitution!(l::AbstractMatrix, b::AbstractVector)
+    n = length(b)
+    @assert size(l) == (n, n) "size mismatch"
+    x = zero(b)
+    # loop over columns
+    for j = 1:n
+        # stop if matrix is singular
+        if iszero(l[j, j])
+            error("The lower triangular matrix is singular!")
+        end
+        # compute solution component
+        x[j] = b[j] / l[j, j]
+        for i = j+1:n
+            # update right hand side
+            b[i] = b[i] - l[i, j] * x[j]
+        end
+    end
+    return x
+end
+```
+
+We can write a test for this algorithm.
+
+
+```julia
+using Test, LinearAlgebra
+
+@testset "back substitution" begin
+    # create a random lower triangular matrix
+    l = LinearAlgebra.tril(randn(4, 4))
+    # target vector
+    b = randn(4)
+    # solve the linear equation with our algorithm
+    x = back_substitution!(l, copy(b))
+    @test l * x ≈ b
+
+    # The Julia's standard library `LinearAlgebra` contains a native implementation.
+    x_native = LowerTriangular(l) \ b
+    @test l * x_native ≈ b
+end
+```
+
+== LU Factorization with Gaussian Elimination
+LU decomposition is a method for solving linear equations that involves breaking down a matrix into lower and upper triangular matrices. The $L U$ decomposition of a matrix $A$ is represented as $A = L U$, where $L$ is a lower triangular matrix and $U$ is an upper triangular matrix.
+
+== The elementary elimination matrix
+
+An elementary elimination matrix is a matrix that is used in the process of Gaussian elimination to transform a system of linear equations into an equivalent system that is easier to solve. It is a square matrix that is obtained by performing a single elementary row operation on the identity matrix.
+
+$
+(M_k)_(i j) = cases(
+  delta_(i j) & "if" i = j,
+  - a_(i k)\/a_(k k) & "if" i > j "and" j = k,
+  0 & "otherwise"
+)
+$
+
+Let $A = (a_(i j))$ be a square matrix of size $n times n$. The $k$th elementary elimination matrix for it is defined as
+
+$
+M_k = mat(
+  1, dots, 0, 0, 0, dots, 0;
+  dots.v, dots.down, dots.v, dots.v, dots.v, dots.down, dots.v;
+  0, dots, 1, 0, 0, dots, 0;
+  0, dots, 0, 1, 0, dots, 0;
+  0, dots, 0, -m_(k+1), 1, dots, 0;
+  dots.v, dots.down, dots.v, dots.v, dots.v, dots.down, dots.v;
+  0, dots, 0, -m_n, 0, dots, 1
+)
+$
+
+where $m_i = a_(i k)/a_(k k)$.
+
+By applying this elementary elimination matrix $M_1$ on $A$, we can obtain a new matrix with the $a'_(i 1) = 0$ for all $i>1$.
+$
+M_1 A = mat(
+  a_(1 1), a_(1 2), a_(1 3), dots.h, a_(1 n);
+  0, a'_(2 2), a'_(2 3), dots.h, a'_(2 n);
+  0, a'_(3 2), a'_(3 3), dots.h, a'_(3 n);
+  dots.v, dots.down, dots.v, dots.down, dots.v;
+  0, a'_(n 2), a'_(n 3), dots.h, a'_(n n)
+)
+$
+
+For $k=1,2,dots,n$, apply $M_k$ on $A$. We will have an upper triangular matrix.
+$
+U = M_(n-1) dots.h M_1 A
+$
+
+Since $M_k$ is reversible, we have
+$
+A = L U\
+L = M_1^(-1) M_2^(-1) dots.h M_(n-1)^(-1)
+$
+Elementary elimination matrices have the following properties that making the above process efficient:
+1. Its inverse can be computed in $O(n)$ time
+   $
+   M_k^(-1) = 2I - M_k
+   $
+2. The multiplication of two elementary matrices can be computed in $O(n)$ time
+   $
+   M_k M_(k' > k) = M_k + M_(k') - I
+   $
+== Code: Elementary Elimination Matrix
+
+```julia
+A3 = [1 2 2; 4 4 2; 4 6 4]
+
+function elementary_elimination_matrix(A::AbstractMatrix{T}, k::Int) where T
+    n = size(A, 1)
+    @assert size(A, 2) == n
+    # create Elementary Elimination Matrices
+    M = Matrix{Float64}(I, n, n)
+    for i=k+1:n
+        M[i, k] =  -A[i, k] ./ A[k, k]
+    end
+    return M
+end
+```
+
+The elementary elimination matrix for the above matrix `A3` eliminating the first column is
+
+```julia
+elementary_elimination_matrix(A3, 1)
+elementary_elimination_matrix(A3, 1) * A3
+```
+
+Verify the property 1
+
+```julia
+inv(elementary_elimination_matrix(A3, 1))
+```
+
+Verify the property 2
+
+```julia
+elementary_elimination_matrix(A3, 2)
+inv(elementary_elimination_matrix(A3, 1)) * inv(elementary_elimination_matrix(A3, 2))
+```
+
+== Code: LU Factorization by Gaussian Elimination
+
+A naive implementation of elimentary elimination matrix is as follows
+
+
+```julia
+function lufact_naive!(A::AbstractMatrix{T}) where T
+    n = size(A, 1)
+    @assert size(A, 2) == n
+    M = Matrix{T}(I, n, n)
+    for k=1:n-1
+        m = elementary_elimination_matrix(A, k)
+        M = M * inv(m)
+        A .= m * A
+    end
+    return M, A
+end
+
+lufact_naive!(copy(A3))
+
+@testset "naive LU factorization" begin
+    A = [1 2 2; 4 4 2; 4 6 4]
+    L, U = lufact_naive!(copy(A))
+    @test L * U ≈ A
+end
+```
+
+The above implementation has time complexity $O(n^4)$ since we did not use the sparsity of elimentary elimination matrix. A better implementation that gives $O(n^3)$ time complexity is as follows.
+
+```julia
+function lufact!(a::AbstractMatrix)
+    n = size(a, 1)
+    @assert size(a, 2) == n "size mismatch"
+    m = zero(a)
+    m[1:n+1:end] .+= 1
+    # loop over columns
+    for k=1:n-1
+        # stop if pivot is zero
+        if iszero(a[k, k])
+            error("Gaussian elimination fails!")
+        end
+        # compute multipliers for current column
+        for i=k+1:n
+            m[i, k] = a[i, k] / a[k, k]
+        end
+        # apply transformation to remaining sub-matrix
+        for j=k+1:n
+            for i=k+1:n
+                a[i,j] -= m[i,k] * a[k, j]
+            end
+        end
+    end
+    return m, triu!(a)
+end
+
+lufact(a::AbstractMatrix) = lufact!(copy(a))
+
+@testset "LU factorization" begin
+    a = randn(4, 4)
+    L, U = lufact(a)
+    @test istril(L)
+    @test istriu(U)
+    @test L * U ≈ a
+end
+```
+
+We can test the performance of our implementation.
+
+```julia
+A4 = randn(4, 4)
+
+lufact(A4)
+```
+
+Julia language has a much better implementation in the standard library `LinearAlgebra`.
+
+```julia
+julia_lures = lu(A4, NoPivot())  # the version we implemented above has no pivot
+
+julia_lures.U
+
+typeof(julia_lures)
+
+fieldnames(julia_lures |> typeof)
+```
+
+== Pivoting technique
+!!! note "How to handle small diagonal entries?"
+
+    The above Gaussian elimination process is not stable if any diagonal entry in $A$ has a value that close to zero.
+    ```julia
+    small_diagonal_matrix = [1e-8 1; 1 1]
+    lures = lufact(small_diagonal_matrix)
+    ```
+    This issue is can be resolved by permuting the rows of $A$ before factorizing it.
+    For example:
+    ```julia
+    lufact(small_diagonal_matrix[end:-1:1, :])
+    ```
+    This technique is called pivoting.
+
+== Partial pivoting
+LU factoriaztion (or Gaussian elimination) with row pivoting is defined as
+```math
+P A = L U
+```
+where $P$ is a permutation matrix.
+Pivoting in Gaussian elimination is the process of selecting a pivot element in a matrix and then using it to eliminate other elements in the same column or row. The pivot element is chosen as the largest absolute value in the column, and its row is swapped with the row containing the current element being eliminated if necessary. This is done to avoid division by zero or numerical instability, and to ensure that the elimination process proceeds smoothly. Pivoting is an important step in Gaussian elimination, as it ensures that the resulting matrix is in reduced row echelon form and that the solution to the system of equations is accurate.
+
+Let $A=(a_(i j))$ be a square matrix of size $n times n$. The Gaussian elimination process with partial pivoting can be represented as
+$
+M_(n-1)P_(n-1) dots.h M_2P_2M_1P_1 A = U
+$
+
+Here we emphsis that $P_{k}$ and $M_{j<k}$ commute.
+
+== Complete pivoting
+The complete pivoting also allows permuting columns. The LU factorization with complete pivoting is defined as
+$
+P A Q = L U.
+$
+Complete pivoting produces better numerical stability but is also harder to implement. In most practical using cases, partial pivoting is good enough.
+
+== Code: LU Factoriaztion by Gaussian Elimination with Partial Pivoting
+
+A Julia implementation of the Gaussian elimination with partial pivoting is
+
+```julia
+function lufact_pivot!(a::AbstractMatrix)
+    n = size(a, 1)
+    @assert size(a, 2) == n "size mismatch"
+    m = zero(a)
+    P = collect(1:n)
+    # loop over columns
+    @inbounds for k=1:n-1
+        # search for pivot in current column
+        val, p = findmax(x->abs(a[x, k]), k:n)
+        p += k-1
+        # find index p such that |a_{pk}| ≥ |a_{ik}| for k ≤ i ≤ n
+        if p != k
+            # swap rows k and p of matrix A
+            for col = 1:n
+                a[k, col], a[p, col] = a[p, col], a[k, col]
+            end
+            # swap rows k and p of matrix M
+            for col = 1:k-1
+                m[k, col], m[p, col] = m[p, col], m[k, col]
+            end
+            P[k], P[p] = P[p], P[k]
+        end
+        if iszero(a[k, k])
+            # skip current column if it's already zero
+            continue
+        end
+        # compute multipliers for current column
+        m[k, k] = 1
+        for i=k+1:n
+            m[i, k] = a[i, k] / a[k, k]
+        end
+        # apply transformation to remaining sub-matrix
+        for j=k+1:n
+            akj = a[k, j]
+            for i=k+1:n
+                a[i,j] -= m[i,k] * akj
+            end
+        end
+    end
+    m[n, n] = 1
+    return m, triu!(a), P
+end
+
+@testset "lufact with pivot" begin
+    n = 5
+    A = randn(n, n)
+    L, U, P = lufact_pivot!(copy(A))
+    pmat = zeros(Int, n, n)
+    setindex!.(Ref(pmat), 1, 1:n, P)
+    @test L ≈ lu(A).L
+    @test U ≈ lu(A).U
+    @test pmat * A ≈ L * U
+end
+```
+
+The performance of our implementation is as follows.
+
+```julia
+julia> using BenchmarkTools
+
+julia> n = 200
+200
+
+julia> A = randn(n, n);
+
+julia> @benchmark lufact_pivot!($A)
+BenchmarkTools.Trial: 7451 samples with 1 evaluation.
+ Range (min … max):  621.834 μs …  11.111 ms  ┊ GC (min … max): 0.00% … 0.00%
+ Time  (median):     643.541 μs               ┊ GC (median):    0.00%
+ Time  (mean ± σ):   668.927 μs ± 255.808 μs  ┊ GC (mean ± σ):  0.84% ± 2.57%
+
+     ▂█▂                                                        
+  ▄▄▂███▆▄▄▅▅▅▅▄▄▃▃▃▃▃▃▃▃▃▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▁▂▂▁▂▂▁▂▂ ▃
+  622 μs           Histogram: frequency by time          835 μs <
+
+ Memory estimate: 314.31 KiB, allocs estimate: 3.
+
+julia> n = 200
+200
+
+julia> A = randn(n, n);
+
+julia> @benchmark lu($A)
+BenchmarkTools.Trial: 10000 samples with 1 evaluation.
+ Range (min … max):  247.709 μs …  11.649 ms  ┊ GC (min … max): 0.00% … 96.82%
+ Time  (median):     269.583 μs               ┊ GC (median):    0.00%
+ Time  (mean ± σ):   318.077 μs ± 247.482 μs  ┊ GC (mean ± σ):  1.69% ±  2.69%
+
+  ▆██▄▂▃▅▅▄▃▂▂▁ ▁                     ▁▁▁                       ▂
+  ████████████████▇▇▇▆▆▇▆▆▆▆▆▄▆▅▄▄▆▄▇█████▇▆▆▆▆▆▅▆▅▄▄▆▅▄▅▄▅▄▅▅▄ █
+  248 μs        Histogram: log(frequency) by time        835 μs <
+
+ Memory estimate: 314.31 KiB, allocs estimate: 3.
+```
+
+= QR Factorization
+
+The QR factorization of a matrix $A in RR^(m times n)$ is a factorization of the form
+$
+A = Q R
+$
+where $Q in RR^(m times m)$ is an orthogonal matrix and $R in RR^(m times n)$ is an upper triangular matrix.
+
+== Householder Reflection
+Let $v in RR^m$ be nonzero, An $m$-by-$m$ matrix $P$ of the form
+$
+P = 1-beta v v^T, quad beta = (2)/(v^T v)
+$
+is a Householder reflection, which is both symmetric and orthogonal.
+Suppose we want to project a vector $x$ to $e_1$, i.e. $P x = beta e_1$. Then we can choose
+$
+v &= x plus.minus ||x||_2 e_1\
+H &= I - beta v v^T
+$
+Let us define a Householder matrix in Julia.
+
+```julia
+struct HouseholderMatrix{T} <: AbstractArray{T, 2}
+    v::Vector{T}
+    β::T
+end
+function HouseholderMatrix(v::Vector{T}) where T
+    HouseholderMatrix(v, 2/norm(v, 2)^2)
+end
+
+# array interfaces
+Base.size(A::HouseholderMatrix) = (length(A.v), length(A.v))
+Base.size(A::HouseholderMatrix, i::Int) = i == 1 || i == 2 ? length(A.v) : 1
+function Base.getindex(A::HouseholderMatrix, i::Int, j::Int)
+    (i == j ? 1 : 0) - A.β * A.v[i] * conj(A.v[j])
+end
+
+# Householder matrix is unitary
+Base.inv(A::HouseholderMatrix) = A
+# Householder matrix is Hermitian
+Base.adjoint(A::HouseholderMatrix) = A
+
+# Left and right multiplication
+function left_mul!(B, A::HouseholderMatrix)
+    B .-= (A.β .* A.v) * (A.v' * B)
+    return B
+end
+function right_mul!(A, B::HouseholderMatrix)
+    A .= A .- (A * (B.β .* B.v)) * B.v'
+    return A
+end
+```
+In this example, we define a `HouseholderMatrix` type, which is a subtype of `AbstractArray`. The `v` field is the vector $v$ and the `β` field is the scalar $beta$.
+To define the array interfaces, we need to define the `size` and `getindex` functions. Please check the [Julia manual](https://docs.julialang.org/en/v1/manual/interfaces/) for more details.
+
+```@repl qr
+using LinearAlgebra, Test
+@testset "householder property" begin
+    v = randn(3)
+    H = HouseholderMatrix(v)
+    # symmetric
+    @test H' ≈ H
+    # reflexive
+    @test H^2 ≈ I
+    # orthogonal
+    @test H' * H ≈ I
+end
+```
+
+Let us define a function to compute the Householder matrix that projects a vector to $e_1$.
+```julia
+function householder_e1(v::AbstractVector{T}) where T
+    v = copy(v)
+    v[1] -= norm(v, 2)
+    return HouseholderMatrix(v, 2/norm(v, 2)^2)
+end
+```
+```julia
+A = Float64[1 2 2; 4 4 2; 4 6 4]
+hm = householder_e1(view(A,:,1))
+hm * A
+```
+
+== QR factoriaztion by Householder reflection.
+
+Let $H_k$ be a Householder reflection that zeros out the $k$-th column below the diagonal. Then we have
+$
+H_n dots H_2H_1 A = R
+$
+where $R$ is an upper triangular matrix. Then we can define the $Q$ matrix as
+$
+Q = H_1^dagger H_2 ^dagger dots H_n^dagger,
+$
+which is a unitary matrix.
+
+```julia
+function householder_qr!(Q::AbstractMatrix{T}, a::AbstractMatrix{T}) where T
+    m, n = size(a)
+    @assert size(Q, 2) == m
+    if m == 1
+        return Q, a
+    else
+        # apply householder matrix
+        H = householder_e1(view(a, :, 1))
+        left_mul!(a, H)
+        # update Q matrix
+        right_mul!(Q, H')
+        # recurse
+        householder_qr!(view(Q, 1:m, 2:m), view(a, 2:m, 2:n))
+    end
+    return Q, a
+end
+```
+
+```julia
+@testset "householder QR" begin
+    A = randn(3, 3)
+    Q = Matrix{Float64}(I, 3, 3)
+    R = copy(A)
+    householder_qr!(Q, R)
+    @info R
+    @test Q * R ≈ A
+    @test Q' * Q ≈ I
+end
+
+A = randn(3, 3)
+g = givens_matrix(A, 2, 3)
+left_mul!(copy(A), g)
+```
+
+== Givens Rotations
+
+
+$
+G = mat(
+  cos theta, -sin theta;
+  sin theta, cos theta
+)
+$
+
+```julia
+rotation_matrix(angle) = [cos(angle) -sin(angle); sin(angle) cos(angle)]
+```
+
+```julia
+angle = π/4
+initial_vector = [1.0, 0.0]
+final_vector = rotation_matrix(angle) * initial_vector
+# eliminating the y element
+atan(0.1, 0.5)
+initial_vector = randn(2)
+angle = atan(initial_vector[2], initial_vector[1])
+final_vector = rotation_matrix(-angle) * initial_vector
+```
+
+$
+mat(
+  1, 0, 0, 0, 0;
+  0, c, 0, s, 0;
+  0, 0, 1, 0, 0;
+  0, -s, 0, c, 0;
+  0, 0, 0, 0, 1
+)
+mat(
+  a_1;
+  a_2;
+  a_3;
+  a_4;
+  a_5
+) =
+mat(
+  a_1;
+  alpha;
+  a_3;
+  0;
+  a_5
+)
+$
+where $s = sin(theta)$ and $c = cos(theta)$.
+
+== QR Factorization by Givens Rotations
+
+```julia
+struct GivensMatrix{T} <: AbstractArray{T, 2}
+    c::T
+    s::T
+    i::Int
+    j::Int
+    n::Int
+end
+
+Base.size(g::GivensMatrix) = (g.n, g.n)
+Base.size(g::GivensMatrix, i::Int) = i == 1 || i == 2 ? g.n : 1
+function Base.getindex(g::GivensMatrix{T}, i::Int, j::Int) where T
+    @boundscheck i <= g.n && j <= g.n
+    if i == j
+        return i == g.i || i == g.j ? g.c : one(T)
+    elseif i == g.i && j == g.j
+        return g.s
+    elseif i == g.j && j == g.i
+        return -g.s
+    else
+        return i == j ? one(T) : zero(T)
+    end
+end
+
+function left_mul!(A::AbstractMatrix, givens::GivensMatrix)
+    for col in 1:size(A, 2)
+        vi, vj = A[givens.i, col], A[givens.j, col]
+        A[givens.i, col] = vi * givens.c + vj * givens.s
+        A[givens.j, col] = -vi * givens.s + vj * givens.c
+    end
+    return A
+end
+function right_mul!(A::AbstractMatrix, givens::GivensMatrix)
+    for row in 1:size(A, 1)
+        vi, vj = A[row, givens.i], A[row, givens.j]
+        A[row, givens.i] = vi * givens.c + vj * givens.s
+        A[row, givens.j] = -vi * givens.s + vj * givens.c
+    end
+    return A
+end
+```
+
+```julia
+function givens_matrix(A, i, j)
+    x, y = A[i, 1], A[j, 1]
+    norm = sqrt(x^2 + y^2)
+    c = x/norm
+    s = y/norm
+    return GivensMatrix(c, s, i, j, size(A, 1))
+end
+```
+
+```julia
+function givens_qr!(Q::AbstractMatrix, A::AbstractMatrix)
+    m, n = size(A)
+    if m == 1
+        return Q, A
+    else
+        for k = m:-1:2
+            g = givens_matrix(A, k-1, k)
+            left_mul!(A, g)
+            right_mul!(Q, g)
+        end
+        givens_qr!(view(Q, :, 2:m), view(A, 2:m, 2:n))
+        return Q, A
+    end
+end
+```
+
+```julia
+@testset "givens QR" begin
+    n = 3
+    A = randn(n, n)
+    R = copy(A)
+    Q, R = givens_qr!(Matrix{Float64}(I, n, n), R)
+    @test Q * R ≈ A
+    @test Q * Q' ≈ I
+    @info R
+end
+```
+== Gram-Schmidt Orthogonalization
+The Gram-Schmidt orthogonalization is a method to compute the QR factorization of a matrix $A$ by constructing an orthogonal matrix $Q$ and an upper triangular matrix $R$.
+
+$
+q_k = (a_k - sum_(i=1)^(k-1) r_(i k)q_i)\/r_(k k)
+$
+```julia
+function classical_gram_schmidt(A::AbstractMatrix{T}) where T
+    m, n = size(A)
+    Q = zeros(T, m, n)
+    R = zeros(T, n, n)
+    R[1, 1] = norm(view(A, :, 1))
+    Q[:, 1] .= view(A, :, 1) ./ R[1, 1]
+    for k = 2:n
+        Q[:, k] .= view(A, :, k)
+        # project z to span(A[:, 1:k-1])⊥
+        for j = 1:k-1
+            R[j, k] = view(Q, :, j)' * view(A, :, k)
+            Q[:, k] .-= view(Q, :, j) .* R[j, k]
+        end
+        # normalize the k-th column
+        R[k, k] = norm(view(Q, :, k))
+        Q[:, k] ./= R[k, k]
+    end
+    return Q, R
+end
+
+@testset "classical GS" begin
+    n = 10
+    A = randn(n, n)
+    Q, R = classical_gram_schmidt(A)
+    @test Q * R ≈ A
+    @test Q * Q' ≈ I
+    @info R
+end
+```
+
+== Modified Gram-Schmidt Orthogonalization
+
+```julia
+function modified_gram_schmidt!(A::AbstractMatrix{T}) where T
+    m, n = size(A)
+    Q = zeros(T, m, n)
+    R = zeros(T, n, n)
+    for k = 1:n
+        R[k, k] = norm(view(A, :, k))
+        Q[:, k] .= view(A, :, k) ./ R[k, k]
+        for j = k+1:n
+            R[k, j] = view(Q, :, k)' * view(A, :, j)
+            A[:, j] .-= view(Q, :, k) .* R[k, j]
+        end
+    end
+    return Q, R
+end
+
+@testset "modified GS" begin
+    n = 10
+    A = randn(n, n)
+    Q, R = modified_gram_schmidt!(copy(A))
+    @test Q * R ≈ A
+    @test Q * Q' ≈ I
+    @info R
+end
+
+let
+    n = 100
+    A = randn(n, n)
+    Q1, R1 = classical_gram_schmidt(A)
+    Q2, R2 = modified_gram_schmidt!(copy(A))
+    @info norm(Q1' * Q1 - I)
+    @info norm(Q2' * Q2 - I)
+end
+```
+
+== Eigenvalue/Singular value decomposition problem
+
+The eigenvalue problem is to find the eigenvalues $lambda$ and eigenvectors $x$ of a matrix $A$ such that
+
+$
+A x = lambda x
+$
+
+== Power method
+
+The power method is an iterative method to find the largest eigenvalue of a matrix. Let $A$ be a symmetric matrix, and $x_0$ be a random vector. The power method is defined as
+
+$
+x_(k+1) = (A x_k)/(||A x_k||)
+$
+
+The power method converges to the eigenvector corresponding to the largest eigenvalue of $A$. Let us denote the largest two eigenvalues of $A$ as $lambda_1$ and $lambda_2$, the convergence rate of the power method is
+
+$
+abs(lambda_1\/lambda_2)^k
+$
+The following is an implementation of the power method.
+
+```julia
+function power_method(A::AbstractMatrix, k::Int)
+    @assert size(A, 1) == size(A, 2)
+    x = normalize!(randn(size(A, 2)))
+    for _ = 1:k
+        x = A * x
+        normalize!(x)
+    end
+    return x
+end
+```
+
+```julia
+matsize = 10
+A10 = randn(matsize, matsize); A10 += A10'  # random symmetric matrix
+vmax = eigen(A10).vectors[:,end]  # exact eigenvector
+x = power_method(A10, 20)  # 20 iterations of power method
+1-abs2(x' * vmax)  # the error
+```
+
+== Rayleigh Quotient Iteration
+
+The Rayleigh Quotient Iteration (RQI) is an iterative method to find the eigenvalue of a matrix. The RQI is defined as
+
+$
+x_(k+1) = (A - sigma_k I)^(-1) x_k / norm((A - sigma_k I)^(-1) x_k)
+$
+
+where $sigma_k = x_k^T A x_k$. The RQI converges to the eigenvector corresponding to the eigenvalue closest to $sigma_k$. The following is an implementation of the RQI.
+```julia
+function rayleigh_quotient_iteration(A::AbstractMatrix, k::Int)
+    @assert issymmetric(A) "A must be a symmetric matrix"
+    x = normalize!(randn(size(A, 2)))
+    for _ = 1:k
+        sigma = x' * A * x
+        y = (A - sigma * I) \ x
+        x = normalize!(y)
+    end
+    return x
+end
+```
+
+```julia
+x = rayleigh_quotient_iteration(A10, 5)  # 5 iterations of RQI
+U = eigen(A10).vectors
+(x' * U)'  # one should see a one-hot vector
+```
+
+== Symmetric QR decomposition
+
+The symmetric QR decomposition is an iterative method to decompose a symmetric matrix into a tridiagonal matrix. Let $A$ be a symmetric matrix, the symmetric QR decomposition is defined as
+
+$
+A = Q T Q^T
+$
+
+where $Q$ is an orthogonal matrix and $T$ is a tridiagonal matrix. The following is an implementation of the symmetric QR decomposition.
+
+```julia
+# Q is an identity matrix
+function householder_trid!(Q, a)
+    m, n = size(a)
+    @assert m==n && size(Q, 2) == n
+    if m == 2
+        return Q, a
+    else
+        # apply householder matrix
+        H = householder_e1(view(a, 2:n, 1))
+        left_mul!(view(a, 2:n, :), H)
+        right_mul!(view(a, :, 2:n), H')
+        # update Q matrix
+        right_mul!(view(Q, :, 2:n), H')
+        # recurse
+        householder_trid!(view(Q, :, 2:n), view(a, 2:m, 2:n))
+    end
+    return Q, a
+end
+```
+
+```julia
+@testset "householder tridiagonal" begin
+    n = 5
+    a = randn(n, n)
+    a = a + a'
+    Q = Matrix{Float64}(I, n, n)
+    Q, T = householder_trid!(Q, copy(a))
+    @test Q * T * Q' ≈ a
+end
+```
+
+The symmetric QR decomposition also includes a process to converge the tridiagonal matrix to a diagonal matrix. We refer the reader to Section 8.3 of the book "Matrix Computations" by Golub and Van Loan@Golub2016 for more details.
+
+== The SVD algorithm
+
+The Singular Value Decomposition (SVD) is an algorithm to decompose a matrix into three matrices. Let $A$ be a matrix, the SVD is defined as
+$
+A = U S V^dagger
+$
+where $U$ and $V$ are orthogonal matrices, and $S$ is a diagonal matrix. The algorithm to compute the SVD is
+1. Let $C = A^T A$,
+2. Use the symmetric QR algorithm to compute $V_1^T C V_1 = "diag"(sigma_i^2)$,
+3. Apply QR decomposition to $A V_1$ obtaining $U^dagger(A V_1) = R$. Then $V = V_1 R^dagger "diag"(sigma_i^(-1))$, and $S = "diag"(sigma_i)$.
+The following is an implementation of the SVD algorithm.
+```julia
+function simple_svd(A::AbstractMatrix)
+    m, n = size(A)
+    @assert m >= n "m must be greater than or equal to n"
+    C = A' * A
+    S2, V1 = eigen(C)
+    σ = sqrt.(S2)
+    AV1 = A * V1
+    qrres = qr(AV1)
+    U = qrres.Q
+    V = V1 * qrres.R' * Diagonal(inv.(σ))
+    return U, Diagonal(σ), V
+end
+```
+
+```julia
+@testset "simple SVD" begin
+    m, n = 5, 3
+    A = randn(m, n)
+    U, S, V = simple_svd(A)
+    @test U * S * V' ≈ A
+    @test isapprox(U' * U, I; atol=1e-8)
+    @test isapprox(V' * V, I; atol=1e-8)
+end
+```
+
+
+== Cholesky Decomposition
+
+Cholesky decomposition is a method of decomposing a positive-definite matrix into a product of a lower triangular matrix and its transpose. It is often used in solving systems of linear equations, computing the inverse of a matrix, and generating random numbers with a given covariance matrix. The Cholesky decomposition is computationally efficient and numerically stable, making it a popular choice in many applications.
+
+Given a positive definite symmetric matrix $A in RR^(n times n)$, the Cholesky decomposition is formally defined as
+$
+A = L L^T,
+$
+where $L$ is an upper triangular matrix.
+
+The implementation of Cholesky decomposition is similar to LU decomposition.
+
+```julia
+function chol!(a::AbstractMatrix)
+    n = size(a, 1)
+    @assert size(a, 2) == n
+    for k=1:n
+        a[k, k] = sqrt(a[k, k])
+        for i=k+1:n
+            a[i, k] = a[i, k] / a[k, k]
+        end
+        for j=k+1:n
+            for i=k+1:n
+                a[i,j] = a[i,j] - a[i, k] * a[j, k]
+            end
+        end
+    end
+    return a
+end
+```
+
+```julia
+@testset "cholesky" begin
+    n = 10
+    Q, R = qr(randn(10, 10))
+    a = Q * Diagonal(rand(10)) * Q'
+    L = chol!(copy(a))
+    @test tril(L) * tril(L)' ≈ a
+    # cholesky(a) in Julia
+end
+```
+
 == The Cooley-Tukey's Fast Fourier transformation (FFT)
 
 The Fast Fourier Transform, developed by Cooley and Tukey, provides an efficient algorithm for computing the Discrete Fourier Transform. The key insight is to recursively divide the problem into smaller subproblems, leading to a significant reduction in computational complexity from $O(n^2)$ to $O(n log n)$.
@@ -201,3 +1180,231 @@ end
     @test fft!(copy(x)) ≈ dft_matrix(8) * x
 end
 ```
+
+= Basic Linear Algebra Subprograms (BLAS)
+
+== Matrix types in BLAS and LAPACK - By Shape
+
+#let h(it) = table.cell(fill: silver, align: center)[#it]
+#let c(it) = table.cell(fill: white, align: center)[#it]
+#table(columns: (1fr, 1fr, 1fr, 1fr),
+h[#text(red)[ge]neral], h[#text(red)[tr]iangular], h[upper #text(red)[H]ei#text(red)[s]enberg], h[#text(red)[t]rape#text(red)[z]oidal],
+c[#canvas({
+  import draw: *
+  rect((0, 0), (3, 3), fill: red)
+})],
+c[#canvas({
+  import draw: *
+  rect((0, 0), (3, 3), fill: none)
+  line((3, 0), (0, 3), (3, 3), close: true, fill: red)
+})],
+
+c[#canvas({
+  import draw: *
+  rect((0, 0), (3, 3), fill: none)
+  line((3, 0),(2, 0),  (0, 2), (0, 3), (3, 3), close: true, fill: red)
+})],
+
+c[#canvas({
+  import draw: *
+  rect((0, 0), (4, 3), fill: none)
+  line((4, 0), (3, 0), (0, 3), (4, 3), close: true, fill: red)
+})],
+
+
+h[#text(red)[di]agonal],h[#text(red)[b]i#text(red)[d]iagonal],h[],h[],
+c[#canvas({
+  import draw: *
+  rect((0, 0), (3, 3), fill: none)
+  let n = 20
+  let delta = 3 / n
+  for i in range(n){
+    rect((3 - i * delta, i * delta), (3 - (i+1) * delta, (i+1) * delta), fill: red)
+  }
+})],
+
+c[#canvas({
+  import draw: *
+  rect((0, 0), (3, 3), fill: none)
+  let n = 20
+  let delta = 3 / n
+  for i in range(n){
+    rect((3 - i * delta, i * delta), (3 - (i+1) * delta, (i+1) * delta), fill: red)
+  }
+  for i in range(n - 1){
+    rect((3 - (i+1) * delta, i * delta), (3 - (i+2) * delta, (i+1) * delta), fill: red)
+    //rect((3 - i * delta, (i+1) * delta), (3 - (i+1) * delta, (i+2) * delta), fill: red)
+  }
+})],
+)
+
+Note: More general sparse matrix types will be introduced later.
+
+== Matrix types in BLAS and LAPACK - By Symmetry
+
+For a real matrix $A in RR^(n times n)$
+#table(columns: (1fr, 1fr, 1fr),
+h[#text(red)[s]ymmetric], h[#text(red)[o]rthogonal],  h[S#text(red)[P]D],
+c[$A = A^T$], c[$A^T A = I$], c[$forall_(x!=0) x^T A x > 0$],
+)
+For a complex matrix $A in CC^(n times n)$
+#table(columns: (1fr, 1fr, 1fr),
+h[#text(red)[H]ermitian], h[#text(red)[u]nitary], h[H#text(red)[P]D],
+c[$A = A^dagger$], c[$A^dagger A = I$], c[$forall_(x != 0) x^dagger A x > 0$],
+)
+
+
+== Level 1 BLAS
+Level 1 BLAS operations involve vector-vector operations. Here are some common Level 1 BLAS routines:
+
+#figure(
+  table(
+    columns: (auto, auto),
+    inset: 5pt,
+    align: left,
+    h[*Routine*], h[*Operation*],
+    [`asum`], [$sum_i |x_i|$],
+    [`axpy!`], [$y <- alpha x + y$],
+    [`blascopy!`], [$y <- x$],
+    [`dot`], [$x^T y$],
+    [`dotc`], [$x^dagger y$], 
+    [`nrm2`], [$sqrt(sum_i |x_i|^2)$],
+    [`rot!`], [$vec(x_i, y_i) <- mat(c, s; -s^*, c) vec(x_i, y_i)$],
+    [`scal!`], [$x <- alpha x$],
+  ),
+  caption: [Common Level 1 BLAS routines. The exclamation mark (!) indicates the function modifies its arguments in-place.]
+)
+
+== Level 2 BLAS
+Level 2 BLAS operations involve matrix-vector operations. Here are some common Level 2 BLAS routines:
+
+#figure(
+  table(
+    columns: (auto, auto),
+    inset: 5pt,
+    align: left,
+    h[*Routine*], h[*Operation*],
+    [`gbmv!`], [$y <- alpha A x + beta y$ (banded)],
+    [`gemv!`], [$y <- alpha A x + beta y$],
+    [`ger!`], [$A <- alpha x y^dagger + A$],
+    [`sbmv!`], [$y <- alpha A x + beta y$ (symmetric banded)],
+    [`spmv!`], [$y <- alpha A x + beta y$ (symmetric packed)],
+    [`symv!`], [$y <- alpha A x + beta y$ (symmetric)],
+    [`trmv!`], [$x <- A x$ (triangular)],
+    [`trsv!`], [$x <- A^(-1) x$ (triangular)],
+  ),
+  caption: [Common Level 2 BLAS routines. The exclamation mark (!) indicates the function modifies its arguments in-place.]
+)
+
+== Level 3 BLAS
+Level 3 BLAS operations involve matrix-matrix operations. Here are some common Level 3 BLAS routines:
+#figure(
+  table(
+    columns: (auto, auto),
+    inset: 5pt,
+    align: left,
+    h[*Routine*], h[*Operation*],
+    [`gemm!`], [$C <- alpha A B + beta C$],
+    [`symm!`], [$C <- alpha A B + beta C$ (A symmetric)],
+    [`hemm!`], [$C <- alpha A B + beta C$ (A Hermitian)],
+    [`syrk!`], [$C <- alpha A A^T + beta C$ (symmetric rank-k update)],
+    [`herk!`], [$C <- alpha A A^H + beta C$ (Hermitian rank-k update)],
+    [`syr2k!`], [$C <- alpha (A B^T + B A^T) + beta C$ (symmetric rank-2k update)],
+    [`her2k!`], [$C <- alpha (A B^H + B A^H) + beta C$ (Hermitian rank-2k update)],
+    [`trmm!`], [$B <- alpha A B$ (A triangular)],
+    [`trsm!`], [$B <- alpha A^(-1) B$ (A triangular)],
+  ),
+  caption: [Common Level 3 BLAS routines. The exclamation mark (!) indicates the function modifies its arguments in-place.]
+)
+
+= LAPACK
+
+== Linear solvers
+
+The following table lists common LAPACK routines for solving linear equations.
+
+#figure(
+  table(
+    columns: (auto, auto),
+    inset: 5pt,
+    align: left,
+    h[*Function*], h[*Description*],
+    [`gesv!`], [Solve $A X = B$ using LU factorization with partial pivoting],
+    [`gtsv!`], [Solve tridiagonal $A X = B$ using LU factorization with partial pivoting],
+    [`posv!`], [Solve symmetric/Hermitian positive definite $A X = B$ using Cholesky factorization],
+    [`ptsv!`], [Solve symmetric/Hermitian positive definite tridiagonal $A X = B$],
+    [`sysv!`], [Solve symmetric $A X = B$ using Bunch-Kaufman factorization],
+    [`hesv!`], [Solve Hermitian $A X = B$ using Bunch-Kaufman factorization],
+    [`gels!`], [Solve overdetermined/underdetermined $A X = B$ using QR or LQ factorization],
+    [`gelsy!`], [Solve overdetermined/underdetermined $A X = B$ using QR factorization with complete pivoting],
+    [`gelsd!`], [Solve overdetermined/underdetermined $A X = B$ using SVD with divide-and-conquer],
+  ),
+  caption: [Common LAPACK linear solvers. The exclamation mark (!) indicates the function modifies its arguments in-place.]
+)
+
+The following table lists common LAPACK routines for matrix factorizations.
+
+#figure(
+  table(
+    columns: (auto, auto),
+    inset: 5pt,
+    align: left,
+    h[*Function*], h[*Description*],
+    [`getrf!`], [LU factorization with partial pivoting],
+    [`gbtrf!`], [LU factorization of banded matrix with partial pivoting],
+    [`gttrf!`], [LU factorization of tridiagonal matrix],
+    [`potrf!`], [Cholesky factorization of symmetric/Hermitian positive definite matrix],
+    [`pttrf!`], [Factorization of symmetric/Hermitian positive definite tridiagonal matrix],
+    [`sytrf!`], [Bunch-Kaufman factorization of symmetric matrix],
+    [`hetrf!`], [Bunch-Kaufman factorization of Hermitian matrix],
+    [`geqrf!`], [QR factorization],
+    [`gelqf!`], [LQ factorization],
+    [`gerqf!`], [RQ factorization],
+    [`gesvd!`], [Singular Value Decomposition (SVD)],
+    [`gesdd!`], [SVD using divide-and-conquer],
+    [`syev!`], [Eigenvalue decomposition of symmetric matrix],
+    [`geev!`], [Eigenvalue decomposition of general matrix],
+  ),
+  caption: [Common LAPACK matrix factorization routines. The exclamation mark (!) indicates the function modifies its arguments in-place.]
+)
+== Naming scheme
+
+#figure(
+  table(
+    columns: (auto, auto),
+    inset: 5pt,
+    align: left,
+    h[*Matrix type*], h[*Description*],
+    [BD], [bidiagonal],
+    [DI], [diagonal],
+    [GB], [general band],
+    [GE], [general (i.e., unsymmetric, in some cases rectangular)],
+    [GG], [general matrices, generalized problem (i.e., a pair of general matrices)],
+    [GT], [general tridiagonal],
+    [HB], [complex Hermitian band],
+    [HE], [complex Hermitian],
+    [HG], [upper Hessenberg matrix, generalized problem (i.e a Hessenberg and a triangular matrix)],
+    [HP], [complex Hermitian, packed storage],
+    [HS], [upper Hessenberg],
+    [OP], [real orthogonal, packed storage],
+    [OR], [real orthogonal],
+    [PB], [symmetric or Hermitian positive definite band],
+    [PO], [symmetric or Hermitian positive definite],
+    [PP], [symmetric or Hermitian positive definite, packed storage],
+    [PT], [symmetric or Hermitian positive definite tridiagonal],
+    [SB], [real symmetric band],
+    [SP], [symmetric, packed storage],
+    [ST], [real symmetric tridiagonal],
+    [SY], [symmetric],
+    [TB], [triangular band],
+    [TG], [triangular matrices, generalized problem (i.e., a pair of triangular matrices)],
+    [TP], [triangular, packed storage],
+    [TR], [triangular (or in some cases quasi-triangular)],
+    [TZ], [trapezoidal],
+    [UN], [complex unitary],
+    [UP], [complex unitary, packed storage]
+  ),
+  caption: [Matrix types in the LAPACK naming scheme]
+)
+
+#bibliography("refs.bib")
