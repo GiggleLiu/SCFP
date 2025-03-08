@@ -610,16 +610,19 @@ hm * A
 
 == QR factoriaztion by Householder reflection.
 
-Let $H_k$ be a Householder reflection that zeros out the $k$-th column below the diagonal. Then we have
-$
-H_n dots H_2H_1 A = R
-$
-where $R$ is an upper triangular matrix. Then we can define the $Q$ matrix as
-$
-Q = H_1^dagger H_2 ^dagger dots H_n^dagger,
-$
-which is a unitary matrix.
+The QR factorization using Householder reflections works by successively applying Householder matrices to transform A into an upper triangular matrix R. Let $H_k$ be a Householder reflection that zeros out all elements below the diagonal in column k. The complete transformation can be written as:
 
+$
+H_n H_(n-1) dots H_2 H_1 A = R
+$
+
+where $R$ is upper triangular. The orthogonal matrix $Q$ is then defined as the product of the Householder reflections:
+
+$
+Q = H_1 H_2 dots H_n
+$
+
+Since each $H_k$ is both orthogonal and self-adjoint ($H_k = H_k^dagger$), $Q$ is orthogonal and $A = Q R$ gives the desired QR factorization.
 ```julia
 function householder_qr!(Q::AbstractMatrix{T}, a::AbstractMatrix{T}) where T
     m, n = size(a)
@@ -656,15 +659,31 @@ left_mul!(copy(A), g)
 ```
 
 == Givens Rotations
-
+Given's rotation is another way to perform QR factorization.
+A Givens rotation is a rotation in a plane spanned by two coordinate axes. It can be used to selectively zero out individual elements in a matrix. For a 2D rotation in the $(i,j)$ plane by angle $theta$, the Givens matrix has the form:
 
 $
-G = mat(
+G_(i j)(theta) = mat(
+  1, dots.h, 0, dots.h, 0, dots.h, 0;
+  dots.v, dots.down, dots.v, dots.v, dots.v, dots.v, dots.v;
+  0, dots.h, c, dots.h, -s, dots.h, 0;
+  dots.v, dots.v, dots.v, dots.down, dots.v, dots.v, dots.v;
+  0, dots.h, s, dots.h, c, dots.h, 0;
+  dots.v, dots.v, dots.v, dots.v, dots.v, dots.down, dots.v;
+  0, dots.h, 0, dots.h, 0, dots.h, 1
+)
+$
+
+where $c = cos(theta)$ and $s = sin(theta)$ appear at the intersection of rows and columns $i$ and $j$. When applied to a vector, it performs a rotation in the $(i,j)$ plane:
+
+$
+g = mat(
   cos theta, -sin theta;
   sin theta, cos theta
 )
 $
 
+Let's implement the Givens rotation in Julia:
 ```julia
 rotation_matrix(angle) = [cos(angle) -sin(angle); sin(angle) cos(angle)]
 ```
@@ -678,42 +697,28 @@ atan(0.1, 0.5)
 initial_vector = randn(2)
 angle = atan(initial_vector[2], initial_vector[1])
 final_vector = rotation_matrix(-angle) * initial_vector
+# check if the element is zero
+@test final_vector[2] ≈ 0 atol=1e-8
 ```
-
-$
-mat(
-  1, 0, 0, 0, 0;
-  0, c, 0, s, 0;
-  0, 0, 1, 0, 0;
-  0, -s, 0, c, 0;
-  0, 0, 0, 0, 1
-)
-mat(
-  a_1;
-  a_2;
-  a_3;
-  a_4;
-  a_5
-) =
-mat(
-  a_1;
-  alpha;
-  a_3;
-  0;
-  a_5
-)
-$
-where $s = sin(theta)$ and $c = cos(theta)$.
 
 == QR Factorization by Givens Rotations
 
+QR factorization can be performed using a sequence of Givens rotations. The idea is to systematically eliminate elements below the diagonal, one at a time, working from left to right and bottom to top. For each element we want to zero out, we:
+
+1. Compute the appropriate Givens rotation that will zero out that element
+2. Apply the rotation to the matrix
+3. Keep track of the product of all rotations to form Q
+
+Here's how we can implement QR factorization using Givens rotations:
+
 ```julia
+# the Givens rotation in the (i, j) plane
 struct GivensMatrix{T} <: AbstractArray{T, 2}
-    c::T
-    s::T
-    i::Int
-    j::Int
-    n::Int
+    c::T   # cos(theta)
+    s::T   # sin(theta)
+    i::Int # row index
+    j::Int # column index
+    n::Int # size of the matrix
 end
 
 Base.size(g::GivensMatrix) = (g.n, g.n)
@@ -731,6 +736,7 @@ function Base.getindex(g::GivensMatrix{T}, i::Int, j::Int) where T
     end
 end
 
+# left multiplication by a Givens matrix
 function left_mul!(A::AbstractMatrix, givens::GivensMatrix)
     for col in 1:size(A, 2)
         vi, vj = A[givens.i, col], A[givens.j, col]
@@ -739,6 +745,8 @@ function left_mul!(A::AbstractMatrix, givens::GivensMatrix)
     end
     return A
 end
+
+# right multiplication by a Givens matrix
 function right_mul!(A::AbstractMatrix, givens::GivensMatrix)
     for row in 1:size(A, 1)
         vi, vj = A[row, givens.i], A[row, givens.j]
@@ -747,9 +755,8 @@ function right_mul!(A::AbstractMatrix, givens::GivensMatrix)
     end
     return A
 end
-```
 
-```julia
+# the Givens matrix that rotates the j-th elements of A to zero
 function givens_matrix(A, i, j)
     x, y = A[i, 1], A[j, 1]
     norm = sqrt(x^2 + y^2)
@@ -757,9 +764,8 @@ function givens_matrix(A, i, j)
     s = y/norm
     return GivensMatrix(c, s, i, j, size(A, 1))
 end
-```
 
-```julia
+# QR factorization using Givens rotations
 function givens_qr!(Q::AbstractMatrix, A::AbstractMatrix)
     m, n = size(A)
     if m == 1
