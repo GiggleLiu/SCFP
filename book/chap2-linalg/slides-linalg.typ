@@ -395,7 +395,7 @@ julia> x = R \ (Matrix(Q)' * y)
 == Alternative approach: LU Decomposition
 #timecounter(2)
 
-The LU decomposition of a matrix $A in bb(C)^(m times n)$ is a factorization of the form
+The LU decomposition of a matrix $A in bb(C)^(n times n)$ is a factorization of the form
 $
 A = L U
 $
@@ -417,7 +417,7 @@ julia> forward = LowerTriangular(lures.L) \ (lures.P * b)
 julia> x = UpperTriangular(lures.U) \ forward
 ```])
 
-- _Remark_: pivoting can improve the stability of the LU decomposition.
+- _Remark_: _pivoting_ can improve the stability of the LU decomposition.
 - _Remark_: for symmetric _positive definite matrices_ (i.e. $A = A^T$ and $x^T A x > 0$ for any $x != 0$), we have the Cholesky decomposition $A = L L^dagger$, which is a special case of the LU decomposition.
 
 = Eigenvalues and eigenvectors
@@ -464,6 +464,7 @@ julia> res.vectors
   line("svd", "eigen", name: "svd-eigen", mark: (end: "straight"))
 }))
 
+= Hands-on
 == Hands-on: eigenmodes of a vibrating string (or atomic chain)
 
 #figure(canvas({
@@ -521,44 +522,11 @@ where $
         C = mat(-c, c, 0, dots, 0, 0; c, -2c, c, dots, 0, 0; dots.v, dots.v, dots.v, dots.down, dots.v, dots.v; 0, 0, 0, dots, 0, c; 0, 0, 0, dots, c, -c)
       $
 
-== 5-atom vibrating string
-#box(text(16pt)[```julia
-julia> M = C = 1.0;
+== Tasks
+Run and play with the simulation: https://github.com/GiggleLiu/ScientificComputingDemos/tree/main/SpringSystem
 
-julia> C_matrix = [-C C 0 0 0; C -2C C 0 0; 0 C -2C C 0; 0 0 C -2C C; 0 0 0 C -C];
-
-julia> evals, evecs = LinearAlgebra.eigen(C_matrix);
-```])
-
-#box(text(16pt)[```julia
-julia> second_omega = sqrt(-evals[2]/M)
-1.618033988749894
-
-julia> second_mode = evecs[:, 2]
-5-element Vector{Float64}:
-  0.37174803446018484
- -0.6015009550075462
-  1.4023804401251382e-15
-  0.601500955007545
- -0.3717480344601845
-```])
-
-== Example: eigenmodes of a vibrating string
-
-#box(text(16pt)[```julia
-julia> u(t) = second_mode .* cos.(-second_omega .* t) # (ϕi=0)
-u (generic function with 1 method)
-
-julia> u(1.0)  # atom locations offsets at t=1.0
-5-element Vector{Float64}:
- -0.017553977969578697
-  0.028402932992545194
- -6.622053936793937e-17
- -0.028402932992545135
-  0.01755397796957868
-```])
-
-#figure(image("images/springs-demo.gif"))
+1. Reproduce the following result:
+#figure(image("images/springs-demo.gif", width: 300pt))
 
 ==
 
