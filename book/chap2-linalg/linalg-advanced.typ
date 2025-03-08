@@ -502,25 +502,47 @@ end
 
 = QR Factorization
 
-The QR factorization of a matrix $A in RR^(m times n)$ is a factorization of the form
+The QR factorization is a fundamental matrix decomposition that expresses a matrix $A in RR^(m times n)$ as a product
 $
 A = Q R
 $
-where $Q in RR^(m times m)$ is an orthogonal matrix and $R in RR^(m times n)$ is an upper triangular matrix.
+where $Q in RR^(m times m)$ is an orthogonal matrix (meaning $Q^T Q = Q Q^T = I$) and $R in RR^(m times n)$ is an upper triangular matrix. This factorization has important applications in solving linear systems, least squares problems, and eigenvalue computations.
 
 == Householder Reflection
-Let $v in RR^m$ be nonzero, An $m$-by-$m$ matrix $P$ of the form
-$
-P = 1-beta v v^T, quad beta = (2)/(v^T v)
-$
-is a Householder reflection, which is both symmetric and orthogonal.
-Suppose we want to project a vector $x$ to $e_1$, i.e. $P x = beta e_1$. Then we can choose
-$
-v &= x plus.minus ||x||_2 e_1\
-H &= I - beta v v^T
-$
-Let us define a Householder matrix in Julia.
 
+A key building block for computing QR factorization is the Householder reflection. For any nonzero vector $v in RR^m$, a Householder reflection matrix $P$ takes the form:
+$
+P = I - beta v v^T, quad beta = (2)/(v^T v)
+$
+where $I$ is the identity matrix. This matrix has two important properties:
+- It is symmetric: $P = P^T$ 
+- It is orthogonal: $P^T P = P P^T = I$
+
+#figure(canvas({
+    import draw: *
+    let theta = 2*calc.pi/3
+    let nm = 3
+    circle((0, 0), radius: 2)
+    line((0, 0), (2, 0), mark: (end: "straight"))
+    line((0, 0), (nm, 0), mark: (end: "straight"))
+    content((1, 0.3), [$e_1$])
+    content((nm, 0.3), [$H x$])
+    line((0, 0), (calc.cos(theta) * nm, nm * calc.sin(theta)), mark: (end: "straight"), name: "x")
+    line((0, 0), (calc.cos(theta/2) * nm, nm * calc.sin(theta/2)), stroke: (dash: "dashed"), mark: (end: "straight"), name: "y")
+    content((rel : (0.4, -0.1), to: "x.end"), [$x$])
+    content((rel : (0.2, 0.1), to: "y.end"), [$v$])
+    bezier((rel : (-0.4 * calc.sin(theta/2), 0.4 * calc.cos(theta/2)), to: "y.mid"), (rel : (0.4 * calc.sin(theta/2), -0.4 * calc.cos(theta/2)), to: "y.mid"), (rel : (0.4 * calc.cos(theta/2), 0.4 * calc.sin(theta/2)), to: "y.mid"), name: "H", mark: (end: "straight", start: "straight"))
+    content((rel : (0.1, -0.2), to: "H.end"), [Mirror])
+}))
+
+A particularly useful application is using a Householder reflection to zero out elements of a vector. Given a vector $x$, we can construct a Householder matrix $H$ that maps $x$ to a multiple of $e_1 = (1, 0, dots, 0)^T$ via:
+$
+v &= x plus.minus ||x||_2 e_1 \
+H &= I - beta v v^T, quad beta = (2)/(v^T v)
+$
+where the sign is chosen to avoid cancellation errors. By reflecting $x$ onto $e_1$, we can zero out the elements of $x$ below the first entry.
+
+Let's implement the Householder reflection in Julia:
 ```julia
 struct HouseholderMatrix{T} <: AbstractArray{T, 2}
     v::Vector{T}
@@ -552,9 +574,12 @@ function right_mul!(A, B::HouseholderMatrix)
     return A
 end
 ```
-In this example, we define a `HouseholderMatrix` type, which is a subtype of `AbstractArray`. The `v` field is the vector $v$ and the `β` field is the scalar $beta$.
-To define the array interfaces, we need to define the `size` and `getindex` functions. Please check the [Julia manual](https://docs.julialang.org/en/v1/manual/interfaces/) for more details.
+The `HouseholderMatrix` type defined above is a custom implementation of a Householder reflection matrix. It inherits from `AbstractArray` to leverage Julia's array interface. The type contains two fields:
 
+- `v`: The reflection vector $v$ that defines the hyperplane of reflection
+- `β`: The scaling factor $beta = 2\/(v^T v)$ used in the reflection formula
+
+To make this type work seamlessly with Julia's array operations, we implement the required array interface methods `size` and `getindex`. These methods allow the type to behave like a standard matrix while maintaining an efficient implicit representation. For more details on implementing array interfaces in Julia, see the #link("https://docs.julialang.org/en/v1/manual/interfaces/", "interfaces documentation").
 ```julia
 using LinearAlgebra, Test
 @testset "householder property" begin
