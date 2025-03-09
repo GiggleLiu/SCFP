@@ -435,8 +435,8 @@ Any initial condition can be expressed as a linear combination of these eigenmod
 The Fourier transform is a *linear transformation* widely used in signal processing, image processing and physics.
 It transforms a function in the time/space domain into a representation in the _frequency domain_. For a complex-valued function $f(x)$, the Fourier transform and its inverse transform are defined as:
 
-$ g(u) = cal(F)(f(x)) = integral_(-infinity)^infinity e^(-2 pi i u x) f(x) diff x\
-f(x) = cal(F)^(-1)(g(u)) = integral_(-infinity)^infinity e^(2 pi i u x) g(u) diff u/(2pi)
+$ g(u) = cal(F)(f(x)) = integral_(-infinity)^infinity e^(-2 pi i u x) f(x) dif x\
+f(x) = cal(F)^(-1)(g(u)) = 1/(2pi) integral_(-infinity)^infinity e^(2 pi i u x) g(u) dif u
 $
 Here, $u$ represents frequency in the _frequency domain_, while $x$ represents position/time in the _physical domain_.
 

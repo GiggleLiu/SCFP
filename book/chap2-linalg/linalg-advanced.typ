@@ -128,10 +128,7 @@ $
 A = mat(
   a_(1 1), a_(1 2);
   a_(2 1), a_(2 2)
-)
-$
-
-$
+), quad
 B = mat(
   b_(1 1), b_(1 2);
   b_(2 1), b_(2 2)
@@ -172,9 +169,8 @@ Here's a simple implementation of Strassen's algorithm in Julia:
 ```julia
 function strassen(A::AbstractMatrix{T}, B::AbstractMatrix{T}) where T
     n = size(A, 1)
-    if n == 1
-        return A * B
-    end
+    @assert iseven(n) && size(A) == size(B) "matrix sizes must be even and equal"
+    n == 1 && return A * B
 
     m = div(n, 2)
     A11, A12 = A[1:m, 1:m], A[1:m, m+1:n]
@@ -396,7 +392,7 @@ $
 x_n = b_n\/u_(n n),quad x_i = (b_i - sum_(j=i+1)^(n) u_(i j) x_j)\/u_(i i),quad i=n-1, ..., 1
 $
 
-= Stabilize the Linear Solver
+= General linear systems
 == Gaussian Elimination
 LU decomposition is a method for solving linear equations that involves breaking down a matrix into lower and upper triangular matrices. The $L U$ decomposition of a matrix $A$ is represented as
 $
@@ -755,17 +751,18 @@ where $I$ is the identity matrix. This matrix has two important properties:
     import draw: *
     let theta = 2*calc.pi/3
     let nm = 3
+    let s(it) = text(12pt)[#it]
     circle((0, 0), radius: 2)
     line((0, 0), (2, 0), mark: (end: "straight"))
     line((0, 0), (nm, 0), mark: (end: "straight"))
-    content((1, 0.3), [$e_1$])
-    content((nm, 0.3), [$H x$])
+    content((1, 0.3), s[$e_1$])
+    content((nm, 0.3), s[$H x$])
     line((0, 0), (calc.cos(theta) * nm, nm * calc.sin(theta)), mark: (end: "straight"), name: "x")
     line((0, 0), (calc.cos(theta/2) * nm, nm * calc.sin(theta/2)), stroke: (dash: "dashed"), mark: (end: "straight"), name: "y")
-    content((rel : (0.4, -0.1), to: "x.end"), [$x$])
-    content((rel : (0.2, 0.1), to: "y.end"), [$v$])
+    content((rel : (0.4, -0.1), to: "x.end"), s[$x$])
+    content((rel : (0.2, 0.1), to: "y.end"), s[$v$])
     bezier((rel : (-0.4 * calc.sin(theta/2), 0.4 * calc.cos(theta/2)), to: "y.mid"), (rel : (0.4 * calc.sin(theta/2), -0.4 * calc.cos(theta/2)), to: "y.mid"), (rel : (0.4 * calc.cos(theta/2), 0.4 * calc.sin(theta/2)), to: "y.mid"), name: "H", mark: (end: "straight", start: "straight"))
-    content((rel : (0.1, -0.2), to: "H.end"), [Mirror])
+    content((rel : (0.1, -0.2), to: "H.end"), s[Mirror])
 }))
 
 A particularly useful application is using a Householder reflection to zero out elements of a vector. Given a vector $x$, we can construct a Householder matrix $H$ that maps $x$ to a multiple of $e_1 = (1, 0, dots, 0)^T$ via:
@@ -917,6 +914,26 @@ g = mat(
   sin theta, cos theta
 )
 $
+
+Similar to the Householder reflection, the Givens rotation can also be used to zero out elements of a vector by rotating (instead of reflecting) it onto the $e_1$ vector. Unlike the Householder reflection, the Givens rotation only zeros out one element at a time.
+#figure(canvas({
+    import draw: circle, line, content, bezier
+    let theta = 2*calc.pi/3
+    let nm = 3
+    let s(it) = text(12pt)[#it]
+    circle((0, 0), radius: 2)
+    line((0, 0), (2, 0), mark: (end: "straight"))
+    line((0, 0), (nm, 0), mark: (end: "straight"))
+    content((1, 0.3), s[$e_1$])
+    content((nm+0.2, 0.4), s[$g(-\u{2220} x e_1) x$])
+    line((0, 0), (calc.cos(theta) * nm, nm * calc.sin(theta)), mark: (end: "straight"), name: "x")
+    circle((calc.cos(theta/2) * 0.2, calc.sin(theta/2) * 0.2), radius: 0.0, name: "y")
+    content((rel : (0.4, -0.1), to: "x.end"), s[$x$])
+    bezier((rel : (-0.4 * calc.sin(theta/2), 0.4 * calc.cos(theta/2)), to: "y"), (rel : (0.4 * calc.sin(theta/2), -0.4 * calc.cos(theta/2)), to: "y"), (rel : (0.4 * calc.cos(theta/2), 0.4 * calc.sin(theta/2)), to: "y"), name: "H", mark: (end: "straight"))
+}))
+
+
+
 
 Let's implement the Givens rotation in Julia:
 ```julia
