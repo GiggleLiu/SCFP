@@ -115,6 +115,162 @@ julia> cond(A' * A)
 1217.9555821049864
 ```
 
+= Compute Matrix Multiplication Faster
+== Strassen's algorithm
+
+Strassen's algorithm@Strassen1969 is a divide-and-conquer algorithm for matrix multiplication that is more efficient than the standard matrix multiplication algorithm. It reduces the number of multiplications required to compute the product of two matrices, resulting in a lower computational complexity.
+The standard matrix multiplication algorithm has a time complexity of $O(n^3)$ for multiplying two $n times n$ matrices. Strassen's algorithm reduces this complexity to approximately $O(n^2.81)$.
+
+The key idea behind Strassen's algorithm is to divide each matrix into four submatrices and then recursively compute the product of these submatrices using fewer multiplications.
+Consider two $2 times 2$ matrices $A$ and $B$:
+
+$
+A = mat(
+  a_(1 1), a_(1 2);
+  a_(2 1), a_(2 2)
+)
+$
+
+$
+B = mat(
+  b_(1 1), b_(1 2);
+  b_(2 1), b_(2 2)
+)
+$
+
+The product $C = A times B$ can be computed using the following steps:
+
+1. Compute the following seven products:
+   $
+   &M_1 = (a_(1 1) + a_(2 2))(b_(1 1) + b_(2 2))\
+   &M_2 = (a_(2 1) + a_(2 2))b_(1 1)\
+   &M_3 = a_(1 1)(b_(1 2) - b_(2 2))\
+   &M_4 = a_(2 2)(b_(2 1) - b_(1 1))\
+   &M_5 = (a_(1 1) + a_(1 2))b_(2 2)\
+   &M_6 = (a_(2 1) - a_(1 1))(b_(1 1) + b_(1 2))\
+   &M_7 = (a_(1 2) - a_(2 2))(b_(2 1) + b_(2 2))
+   $
+
+2. Compute the submatrices of $C$:
+   $
+   &c_(1 1) = M_1 + M_4 - M_5 + M_7\
+   &c_(1 2) = M_3 + M_5\
+   &c_(2 1) = M_2 + M_4\
+   &c_(2 2) = M_1 - M_2 + M_3 + M_6
+   $
+
+3. Combine the submatrices to form the final product matrix $C$:
+   $
+   C = mat(
+     c_(1 1), c_(1 2);
+     c_(2 1), c_(2 2)
+   )
+   $
+
+Here's a simple implementation of Strassen's algorithm in Julia:
+
+```julia
+function strassen(A::AbstractMatrix{T}, B::AbstractMatrix{T}) where T
+    n = size(A, 1)
+    if n == 1
+        return A * B
+    end
+
+    m = div(n, 2)
+    A11, A12 = A[1:m, 1:m], A[1:m, m+1:n]
+    A21, A22 = A[m+1:n, 1:m], A[m+1:n, m+1:n]
+    B11, B12 = B[1:m, 1:m], B[1:m, m+1:n]
+    B21, B22 = B[m+1:n, 1:m], B[m+1:n, m+1:n]
+
+    M1 = strassen(A11 + A22, B11 + B22)
+    M2 = strassen(A21 + A22, B11)
+    M3 = strassen(A11, B12 - B22)
+    M4 = strassen(A22, B21 - B11)
+    M5 = strassen(A11 + A12, B22)
+    M6 = strassen(A21 - A11, B11 + B12)
+    M7 = strassen(A12 - A22, B21 + B22)
+
+    C11 = M1 + M4 - M5 + M7
+    C12 = M3 + M5
+    C21 = M2 + M4
+    C22 = M1 - M2 + M3 + M6
+
+    C = similar(A)
+    C[1:m, 1:m] = C11
+    C[1:m, m+1:n] = C12
+    C[m+1:n, 1:m] = C21
+    C[m+1:n, m+1:n] = C22
+
+    return C
+end
+
+@testset "Strassen's Algorithm" begin
+    A = rand(4, 4)
+    B = rand(4, 4)
+    C = strassen(A, B)
+    @test C ≈ A * B
+end
+```
+
+Following this approach, multiple algorithms with smaller time complexity has been proposed, and the state of the art algorithm has a time complexity of $O(n^2.37286)$@Alman2024. However, the practically favorable one is still the $O(n^3)$ one due to the small overhead.
+
+== The Cooley-Tukey's Fast Fourier transformation (FFT)
+
+The Discrete Fourier Transform (DFT) is a linear transformation that can be computed by multiplying a vector with the DFT matrix. While direct matrix multiplication takes $O(n^2)$ operations, the Fast Fourier Transform (FFT) algorithm developed by Cooley and Tukey@Cooley1965 provides a much more efficient approach with $O(n log n)$ complexity.
+
+Similar to the divide-and-conquer strategy in Strassen's algorithm, the FFT algorithm recursively decomposes the problem by splitting the input vector into even and odd indices. For an input vector of length $n$, the DFT can be expressed as:
+
+$ F_n x = mat(
+  I_(n/2), D_(n/2);
+  I_(n/2), -D_(n/2)
+) mat(
+  F_(n/2), 0;
+  0, F_(n/2)
+) vec(x_("odd"), x_("even")) $
+
+where:
+- $F_n$ is the DFT matrix of size n
+- $D_n = "diag"(1, omega, omega^2, ..., omega^(n-1))$ is a diagonal matrix
+- $omega = e^(-2pi i\/n)$ is the primitive nth root of unity
+- $x_("odd")$ and $x_("even")$ contain the odd and even indexed elements of x
+
+This decomposition leads to the recurrence relation $T(n) = 2T(n/2) + O(n)$, which solves to $O(n log n)$ total operations.
+Here's an implementation of the Cooley-Tukey FFT algorithm:
+
+```julia
+function fft!(x::AbstractVector{T}) where T
+    N = length(x)
+    @inbounds if N <= 1
+        return x
+    end
+ 
+    # divide
+    odd  = x[1:2:N]
+    even = x[2:2:N]
+ 
+    # conquer
+    fft!(odd)
+    fft!(even)
+ 
+    # combine
+    @inbounds for i=1:N÷2
+       t = exp(T(-2im*π*(i-1)/N)) * even[i]
+       oi = odd[i]
+       x[i]     = oi + t
+       x[i+N÷2] = oi - t
+    end
+    return x
+end
+```
+
+```julia
+@testset "fft" begin
+    x = randn(ComplexF64, 8)
+    @test fft!(copy(x)) ≈ dft_matrix(8) * x
+end
+```
+
+
 = Triangular linear systems
 
 Triangular linear systems are a type of linear system where the coefficient matrix is either upper or lower triangular.
@@ -240,7 +396,7 @@ $
 x_n = b_n\/u_(n n),quad x_i = (b_i - sum_(j=i+1)^(n) u_(i j) x_j)\/u_(i i),quad i=n-1, ..., 1
 $
 
-= LU Factorization
+= Stabilize the Linear Solver
 == Gaussian Elimination
 LU decomposition is a method for solving linear equations that involves breaking down a matrix into lower and upper triangular matrices. The $L U$ decomposition of a matrix $A$ is represented as
 $
@@ -499,13 +655,7 @@ where $P$ and $Q$ are permutation matrices that reorder both rows and columns. A
 
 While complete pivoting provides superior numerical stability compared to partial pivoting, its implementation is more complex and computationally expensive. In practice, partial pivoting usually provides sufficient numerical stability for most applications while being simpler and faster to compute.
 
-= QR Factorization
-
-The QR factorization is a fundamental matrix decomposition that expresses a matrix $A in RR^(m times n)$ as a product
-$
-A = Q R
-$
-where $Q in RR^(m times m)$ is an orthogonal matrix (meaning $Q^T Q = Q Q^T = I$) and $R in RR^(m times n)$ is an upper triangular matrix. This factorization has important applications in solving linear systems, least squares problems, and eigenvalue computations.
+= Avoid Loss of Orthogonality
 
 == (Modified) Gram-Schmidt Orthogonalization
 The Gram-Schmidt orthogonalization is the simplest method to compute the QR factorization of a matrix $A$ by iteratively constructing orthonormal columns of $Q$ and the corresponding entries of the upper triangular matrix $R$. 
@@ -876,83 +1026,12 @@ end
     @info R
 end
 ```
-== The Cooley-Tukey's Fast Fourier transformation (FFT)
 
-The Fast Fourier Transform, developed by Cooley and Tukey, provides an efficient algorithm for computing the Discrete Fourier Transform. The key insight is to recursively divide the problem into smaller subproblems, leading to a significant reduction in computational complexity from $O(n^2)$ to $O(n log n)$.
+= Do not Implement Your Own Linear Algebra
 
-The algorithm works by decomposing the DFT matrix as:
+== Basic Linear Algebra Subprograms (BLAS)
 
-$ F_n x = mat(
-  I_(n/2), D_(n/2);
-  I_(n/2), -D_(n/2)
-) mat(
-  F_(n/2), 0;
-  0, F_(n/2)
-) vec(x_("odd"), x_("even")) $
-
-where $D_n = "diag"(1, omega, omega^2, ..., omega^(n-1))$ and $omega = e^(-2pi i/n)$
-
-$T(n) = 2 T(n/2) + O(n)$.
-
-```julia
-using SparseArrays
-
-@testset "fft decomposition" begin
-    n = 4
-    Fn = dft_matrix(n)
-    F2n = dft_matrix(2n)
-
-    # the permutation matrix to permute elements at 1:2:n (odd) to 1:n÷2 (top half)
-    pm = sparse([iseven(j) ? (j÷2+n) : (j+1)÷2 for j=1:2n], 1:2n, ones(2n), 2n, 2n)
-
-    # construct the D matrix
-    ω = exp(-π*im/n)
-    d1 = Diagonal([ω^(i-1) for i=1:n])
-
-    # construct F_{2n} from F_n
-    F2n_ = [Fn d1 * Fn; Fn -d1 * Fn]
-    @test F2n * pm' ≈ F2n_
-end
-```
-
-We implement the $O(n log(n))$ time Cooley-Tukey FFT algorithm.
-
-```julia
-function fft!(x::AbstractVector{T}) where T
-    N = length(x)
-    @inbounds if N <= 1
-        return x
-    end
- 
-    # divide
-    odd  = x[1:2:N]
-    even = x[2:2:N]
- 
-    # conquer
-    fft!(odd)
-    fft!(even)
- 
-    # combine
-    @inbounds for i=1:N÷2
-       t = exp(T(-2im*π*(i-1)/N)) * even[i]
-       oi = odd[i]
-       x[i]     = oi + t
-       x[i+N÷2] = oi - t
-    end
-    return x
-end
-```
-
-```julia
-@testset "fft" begin
-    x = randn(ComplexF64, 8)
-    @test fft!(copy(x)) ≈ dft_matrix(8) * x
-end
-```
-
-= Basic Linear Algebra Subprograms (BLAS)
-
-== Matrix types in BLAS and LAPACK - By Shape
+=== Matrix types in BLAS and LAPACK - By Shape
 
 #let h(it) = table.cell(fill: silver, align: center)[#it]
 #let c(it) = table.cell(fill: white, align: center)[#it]
@@ -1009,7 +1088,7 @@ c[#canvas({
 
 Note: More general sparse matrix types will be introduced later.
 
-== Matrix types in BLAS and LAPACK - By Symmetry
+=== Matrix types in BLAS and LAPACK - By Symmetry
 
 For a real matrix $A in RR^(n times n)$
 #table(columns: (1fr, 1fr, 1fr),
@@ -1023,7 +1102,7 @@ c[$A = A^dagger$], c[$A^dagger A = I$], c[$forall_(x != 0) x^dagger A x > 0$],
 )
 
 
-== Level 1 BLAS
+=== Level 1 BLAS
 Level 1 BLAS operations involve vector-vector operations. Here are some common Level 1 BLAS routines:
 
 #figure(
@@ -1044,7 +1123,7 @@ Level 1 BLAS operations involve vector-vector operations. Here are some common L
   caption: [Common Level 1 BLAS routines. The exclamation mark (!) indicates the function modifies its arguments in-place.]
 )
 
-== Level 2 BLAS
+=== Level 2 BLAS
 Level 2 BLAS operations involve matrix-vector operations. Here are some common Level 2 BLAS routines:
 
 #figure(
@@ -1065,7 +1144,7 @@ Level 2 BLAS operations involve matrix-vector operations. Here are some common L
   caption: [Common Level 2 BLAS routines. The exclamation mark (!) indicates the function modifies its arguments in-place.]
 )
 
-== Level 3 BLAS
+=== Level 3 BLAS
 Level 3 BLAS operations involve matrix-matrix operations. Here are some common Level 3 BLAS routines:
 #figure(
   table(
@@ -1086,9 +1165,9 @@ Level 3 BLAS operations involve matrix-matrix operations. Here are some common L
   caption: [Common Level 3 BLAS routines. The exclamation mark (!) indicates the function modifies its arguments in-place.]
 )
 
-= LAPACK
+== LAPACK
 
-== Linear solvers
+=== Linear solvers
 
 The following table lists common LAPACK routines for solving linear equations.
 
@@ -1136,7 +1215,8 @@ The following table lists common LAPACK routines for matrix factorizations.
   ),
   caption: [Common LAPACK matrix factorization routines. The exclamation mark (!) indicates the function modifies its arguments in-place.]
 )
-== Naming scheme
+
+=== Naming scheme
 
 #figure(
   table(

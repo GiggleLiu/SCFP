@@ -432,21 +432,33 @@ Any initial condition can be expressed as a linear combination of these eigenmod
 
 == Fast Fourier Transform
 
-The Fourier transform is a *linear transformation* that widely used in signal process, image processing and physics.
-It can transform a continuous function to peak-like functions in the _frequency domain_. For a complex-valued function $f(x)$, the Fourier transform and its inverse transform are defined as:
+The Fourier transform is a *linear transformation* widely used in signal processing, image processing and physics.
+It transforms a function in the time/space domain into a representation in the _frequency domain_. For a complex-valued function $f(x)$, the Fourier transform and its inverse transform are defined as:
 
 $ g(u) = cal(F)(f(x)) = integral_(-infinity)^infinity e^(-2 pi i u x) f(x) diff x\
-f(x) = cal(F)^(-1)(g(u)) = 1/(2pi)integral_(-infinity)^infinity e^(2 pi i u x) g(u) diff u
+f(x) = cal(F)^(-1)(g(u)) = integral_(-infinity)^infinity e^(2 pi i u x) g(u) diff u/(2pi)
 $
-Here, $u$ represents frequency in the _momentum space_, while $x$ represents position in the _physical space_.
+Here, $u$ represents frequency in the _frequency domain_, while $x$ represents position/time in the _physical domain_.
 
-When limiting the function to a finite domain, the Fourier transform can be computed by a discrete Fourier transform (DFT). Let $bold(x) = (x_0, x_1, dots, x_(n-1))$ be a vector of length $n$, then the Fourier transformation on $bold(x)$ is defined as
-$ y_i = sum_(j=0)^(n-1) x_j e^(-(i 2 pi\/n) i j). $
+#figure(canvas({
+  import draw: *
+  let s(it) = text(12pt)[#it]
+  let r = 1.5
+  circle((0, 0), radius: r, name: "circle")
+  let n = 8
+  for i in range(n){
+    let (x, y) = (calc.cos(i * 2 * calc.pi/n), calc.sin(i * 2 * calc.pi/n))
+    line((x*r, y*r), (1.1*x*r, 1.1*y*r), name: "line" + str(i))
+  }
+  content((0, r + 0.4), s[$0 = 2 pi$])
+  content((0, 0), s[$omega = e^(-2pi i\/n)$])
+}),
+)
+When working with discrete data over a finite domain, we use the discrete Fourier transform (DFT). For a vector $bold(x) = (x_0, x_1, dots, x_(n-1))$ of length $n$, the DFT is defined as:
+$ y_k = sum_(j=0)^(n-1) x_j e^(-2pi i k j\/n) = sum_(j=0)^(n-1) x_j omega^(k j) = F_n bold(x) $ 
 
-Since any linear transformation can be represented as a matrix, the DFT can be represented as a matrix:
-
+where $omega = e^(-2pi i\/n)$ is the primitive $n$th root of unity. $F_n$ is the _DFT matrix_:
 $
-bold(y) = F_n bold(x),\
 F_n = mat(
 1 , 1 , 1 , dots , 1;
 1 , omega , omega^2 , dots , omega^(n-1);
@@ -456,9 +468,7 @@ dots.v , dots.v , dots.v , dots.down , dots.v;
 ).
 $
 
-where $omega = e^(-2 pi i\/n)$.  This matrix $F_n$ is called the _DFT matrix_, and the inverse transformation is defined as $F_n^dagger x\/n$. We have $F_n F_n^dagger = I$.
-
-DFT is extremely fast to compute. It can be evaluated in $O(n log n)$ time using the Fast Fourier Transform (FFT) algorithm, first proposed by Cooley and Tukey in 1965 @Cooley1965. It does not construct the DFT matrix explicitly, but instead uses a divide-and-conquer strategy.
+The inverse transformation is given by $F_n^dagger x\/n$. The DFT matrix is unitary up to a scale factor: $F_n F_n^dagger = n I$.
 The Julia package `FFTW.jl` contains an extremely efficient implementation of FFT.
 
 ```julia
@@ -489,32 +499,32 @@ julia> y ≈ dft_matrix(n) * x  # output: true
 
 == Application 1: Fast polynomial multiplication
 
-Given two polynomials $p(x)$ and $q(x)$:
+Given two polynomials $p(x)$ and $q(x)$ of degree $n-1$:
 
 $ p(x) = sum_(k=0)^(n-1) a_k x^k, quad q(x) = sum_(k=0)^(n-1) b_k x^k $
 
-Their multiplication is defined as:
+Their product is a polynomial of degree $2n-2$:
 
 $ p(x)q(x) = sum_(k=0)^(2n-2) c_k x^k $
 
-Fourier transformation enables computing this product in $O(n log n)$ time, significantly faster than the naive $O(n^2)$ algorithm.
+The naive approach to compute the coefficients $c_k$ requires $O(n^2)$ operations. However, using the Fast Fourier Transform (FFT), we can compute this product in $O(n log n)$ time by leveraging a fundamental property: multiplication in the frequency domain corresponds to convolution in the time domain.
 
 #exampleblock[
 *Algorithm: Fast Polynomial Multiplication*
 
-1. Evaluate $p(x)$ and $q(x)$ at $2n$ points $omega^0, dots, omega^(2n-1)$ using DFT.
-2. Compute pointwise multiplication:
+1. Evaluate $p(x)$ and $q(x)$ at $2n$ roots of unity $omega^0, dots, omega^(2n-1)$ using FFT, where $omega = e^(-2pi i\/2n)$.
+2. Multiply the values pointwise:
     $ (p compose q)(omega^j) = p(omega^j) q(omega^j) $ for $j = 0, dots, 2n-1$.
-3. Interpolate $p compose q$ using inverse DFT to obtain coefficients $c_0, c_1, dots, c_(2n-2)$.
+3. Use the inverse FFT to recover the coefficients $c_0, c_1, dots, c_(2n-2)$ of the product polynomial.
 
-The first and third steps take $O(n log n)$ time, and the second step takes $O(n)$ time.
+The FFT and inverse FFT each take $O(n log n)$ time, while the pointwise multiplication takes $O(n)$ time, giving a total complexity of $O(n log n)$.
 ]
 
-This algorithm can also compute vector convolutions. For vectors $a = (a_0, dots, a_(n-1))$ and $b = (b_0, dots, b_(n-1))$, their convolution $c = (c_0, dots, c_(n-1))$ is:
+This algorithm generalizes to computing vector convolutions. For vectors $a = (a_0, dots, a_(n-1))$ and $b = (b_0, dots, b_(n-1))$, their convolution $c = (c_0, dots, c_(2n-2))$ is:
 
-$ c_j = sum_(k=0)^j a_k b_(j-k), quad j = 0,dots,n-1 $
+$ c_j = sum_(k=0)^j a_k b_(j-k), quad j = 0,dots,2n-2 $
 
-In the following example, we use the `Polynomials` package to define the polynomial and use the FFT algorithm to compute the product of two polynomials.
+Here's an implementation using Julia's FFTW package:
 
 ```julia
 using Polynomials
@@ -522,54 +532,49 @@ p = Polynomial([1, 3, 2, 5, 6])
 q = Polynomial([3, 1, 6, 2, 2])
 ```
 
-Step 1: evaluate $p(x)$ at $2n-1$ different points.
-
-```julia
-pvals = fft(vcat(p.coeffs, zeros(4)))
-```
-
-which is equivalent to computing:
-
+Step 1: Evaluate polynomials at roots of unity. We need $2n-1$ points for a product of degree $2n-2$.
 ```julia
 n = 5
-ω = exp(-2π*im/(2n-1))
-map(k->p(ω^k), 0:(2n-1))
-```
-
-The same for $q(x)$.
-
-```julia
+pvals = fft(vcat(p.coeffs, zeros(4)))  # Pad with zeros to length 2n-1
 qvals = fft(vcat(q.coeffs, zeros(4)))
+
+# This FFT is equivalent to evaluating at roots of unity:
+ω = exp(-2π*im/(2n-1))
+# pvals ≈ map(k->p(ω^k), 0:(2n-1))
 ```
 
-Step 2: Compute $p(x) q(x)$ at $2n-1$ points.
-
-```julia
+Step 2: Multiply values pointwise
+```julia 
 pqvals = pvals .* qvals
-ifft(pqvals)
 ```
 
-Summarize:
+Step 3: Inverse FFT to recover coefficients
+```julia
+coeffs = real.(ifft(pqvals))  # Result should be real for real polynomials
+```
 
+Putting it all together in a reusable function:
 ```julia
 function fast_polymul(p::AbstractVector, q::AbstractVector)
+    # Pad inputs with zeros to handle full product
     pvals = fft(vcat(p, zeros(length(q)-1)))
     qvals = fft(vcat(q, zeros(length(p)-1)))
+    
+    # Multiply pointwise and inverse transform
     pqvals = pvals .* qvals
     return real.(ifft(pqvals))
 end
 
+# Convenience method for Polynomial types
 function fast_polymul(p::Polynomial, q::Polynomial)
     Polynomial(fast_polymul(p.coeffs, q.coeffs))
 end
+
+# Verify correctness against built-in multiplication
+@assert p * q ≈ fast_polymul(p, q)
 ```
 
-A similar algorithm has already been implemented in package `Polynomials`. One can easily verify the correctness.
 
-```julia
-p * q
-fast_polymul(p, q)
-```
 
 == Application 2: Image compression
 (TBD)
