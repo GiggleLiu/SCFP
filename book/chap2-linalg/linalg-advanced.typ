@@ -372,6 +372,47 @@ A4 = randn(4, 4)
 lufact(A4)
 ```
 
+== Cholesky Decomposition
+
+Given a positive definite symmetric matrix $A in RR^(n times n)$, the Cholesky decomposition is formally defined as
+$
+A = L L^T,
+$
+where $L$ is an upper triangular matrix.
+
+The implementation of Cholesky decomposition is similar to LU decomposition.
+
+```julia
+function chol!(a::AbstractMatrix)
+    n = size(a, 1)
+    @assert size(a, 2) == n
+    for k=1:n
+        a[k, k] = sqrt(a[k, k])
+        for i=k+1:n
+            a[i, k] = a[i, k] / a[k, k]
+        end
+        for j=k+1:n
+            for i=k+1:n
+                a[i,j] = a[i,j] - a[i, k] * a[j, k]
+            end
+        end
+    end
+    return a
+end
+```
+
+```julia
+@testset "cholesky" begin
+    n = 10
+    Q, R = qr(randn(10, 10))
+    a = Q * Diagonal(rand(10)) * Q'
+    L = chol!(copy(a))
+    @test tril(L) * tril(L)' ≈ a
+end
+```
+
+
+
 == Pivoting technique
 
 The above Gaussian elimination process is numerically unstable if $A$ has a diagonal entry that is close to zero. The small diagonal element will be a divisor in the elimination process, which will introduce extremely large numbers in the computed solution.
@@ -458,48 +499,6 @@ where $P$ and $Q$ are permutation matrices that reorder both rows and columns. A
 
 While complete pivoting provides superior numerical stability compared to partial pivoting, its implementation is more complex and computationally expensive. In practice, partial pivoting usually provides sufficient numerical stability for most applications while being simpler and faster to compute.
 
-== Cholesky Decomposition
-
-Cholesky decomposition is a method of decomposing a positive-definite matrix into a product of a lower triangular matrix and its transpose. It is often used in solving systems of linear equations, computing the inverse of a matrix, and generating random numbers with a given covariance matrix. The Cholesky decomposition is computationally efficient and numerically stable, making it a popular choice in many applications.
-
-Given a positive definite symmetric matrix $A in RR^(n times n)$, the Cholesky decomposition is formally defined as
-$
-A = L L^T,
-$
-where $L$ is an upper triangular matrix.
-
-The implementation of Cholesky decomposition is similar to LU decomposition.
-
-```julia
-function chol!(a::AbstractMatrix)
-    n = size(a, 1)
-    @assert size(a, 2) == n
-    for k=1:n
-        a[k, k] = sqrt(a[k, k])
-        for i=k+1:n
-            a[i, k] = a[i, k] / a[k, k]
-        end
-        for j=k+1:n
-            for i=k+1:n
-                a[i,j] = a[i,j] - a[i, k] * a[j, k]
-            end
-        end
-    end
-    return a
-end
-```
-
-```julia
-@testset "cholesky" begin
-    n = 10
-    Q, R = qr(randn(10, 10))
-    a = Q * Diagonal(rand(10)) * Q'
-    L = chol!(copy(a))
-    @test tril(L) * tril(L)' ≈ a
-end
-```
-
-
 = QR Factorization
 
 The QR factorization is a fundamental matrix decomposition that expresses a matrix $A in RR^(m times n)$ as a product
@@ -507,6 +506,90 @@ $
 A = Q R
 $
 where $Q in RR^(m times m)$ is an orthogonal matrix (meaning $Q^T Q = Q Q^T = I$) and $R in RR^(m times n)$ is an upper triangular matrix. This factorization has important applications in solving linear systems, least squares problems, and eigenvalue computations.
+
+== (Modified) Gram-Schmidt Orthogonalization
+The Gram-Schmidt orthogonalization is the simplest method to compute the QR factorization of a matrix $A$ by iteratively constructing orthonormal columns of $Q$ and the corresponding entries of the upper triangular matrix $R$. 
+
+For each column $k$, we:
+1. Take the $k$-th column of $A$, denoted as $a_k$
+2. Subtract its projections onto all previous orthonormal vectors $q_1,dots,q_(k-1)$
+3. Normalize the result to get $q_k$
+
+This can be expressed mathematically as:
+
+$
+q_k = (a_k - sum_(i=1)^(k-1) r_(i k)q_i)\/r_(k k)
+$
+
+where $r_(i k) = q_i^T a_k$ represents the projection coefficients that become entries of $R$, and $r_(k k)$ is the normalization factor.
+```julia
+function classical_gram_schmidt(A::AbstractMatrix{T}) where T
+    m, n = size(A)
+    Q = zeros(T, m, n)
+    R = zeros(T, n, n)
+    R[1, 1] = norm(view(A, :, 1))
+    Q[:, 1] .= view(A, :, 1) ./ R[1, 1]
+    for k = 2:n
+        Q[:, k] .= view(A, :, k)
+        # project z to span(A[:, 1:k-1])⊥
+        for j = 1:k-1
+            R[j, k] = view(Q, :, j)' * view(A, :, k)
+            Q[:, k] .-= view(Q, :, j) .* R[j, k]
+        end
+        # normalize the k-th column
+        R[k, k] = norm(view(Q, :, k))
+        Q[:, k] ./= R[k, k]
+    end
+    return Q, R
+end
+
+@testset "classical GS" begin
+    n = 10
+    A = randn(n, n)
+    Q, R = classical_gram_schmidt(A)
+    @test Q * R ≈ A
+    @test Q * Q' ≈ I
+    @info R
+end
+```
+
+However, the classical Gram-Schmidt process suffers from the loss of orthogonality due to the accumulation of roundoff errors. The modified Gram-Schmidt orthogonalization is a numerically more stable variant of the classical Gram-Schmidt process. While mathematically equivalent, the modified version performs the orthogonalization in a different order that helps reduce the accumulation of roundoff errors.
+The algorithm proceeds as follows:
+
+For each column $k = 1,dots,n$:
+1. Compute the normalization factor $r_(k k) = norm(a_k)$
+2. Normalize to obtain $q_k = a_k \/ r_(k k)$
+3. For remaining columns $j = k+1,dots,n$:
+   - Compute projection coefficient $r_(k j) = q_k^T a_j$ 
+   - Update column $a_j = a_j - r_(k j)q_k$ to remove $q_k$ component
+
+The modified Gram-Schmidt process can be implemented as follows:
+```julia
+function modified_gram_schmidt!(A::AbstractMatrix{T}) where T
+    m, n = size(A)
+    Q = zeros(T, m, n)
+    R = zeros(T, n, n)
+    for k = 1:n
+        R[k, k] = norm(view(A, :, k))
+        Q[:, k] .= view(A, :, k) ./ R[k, k]
+        for j = k+1:n
+            R[k, j] = view(Q, :, k)' * view(A, :, j)
+            A[:, j] .-= view(Q, :, k) .* R[k, j]
+        end
+    end
+    return Q, R
+end
+
+@testset "modified GS" begin
+    n = 10
+    A = randn(n, n)
+    Q, R = modified_gram_schmidt!(copy(A))
+    @test Q * R ≈ A
+    @test Q * Q' ≈ I
+    @info R
+end
+```
+
 
 == Householder Reflection
 
@@ -608,7 +691,7 @@ hm = householder_e1(view(A,:,1))
 hm * A
 ```
 
-== QR factoriaztion by Householder reflection.
+== QR factorization with Householder reflections
 
 The QR factorization using Householder reflections works by successively applying Householder matrices to transform A into an upper triangular matrix R. Let $H_k$ be a Householder reflection that zeros out all elements below the diagonal in column k. The complete transformation can be written as:
 
@@ -701,7 +784,7 @@ final_vector = rotation_matrix(-angle) * initial_vector
 @test final_vector[2] ≈ 0 atol=1e-8
 ```
 
-== QR Factorization by Givens Rotations
+== QR Factorization with Givens Rotations
 
 QR factorization can be performed using a sequence of Givens rotations. The idea is to systematically eliminate elements below the diagonal, one at a time, working from left to right and bottom to top. For each element we want to zero out, we:
 
@@ -793,160 +876,6 @@ end
     @info R
 end
 ```
-== Gram-Schmidt Orthogonalization
-The Gram-Schmidt orthogonalization is a method to compute the QR factorization of a matrix $A$ by constructing an orthogonal matrix $Q$ and an upper triangular matrix $R$.
-
-$
-q_k = (a_k - sum_(i=1)^(k-1) r_(i k)q_i)\/r_(k k)
-$
-```julia
-function classical_gram_schmidt(A::AbstractMatrix{T}) where T
-    m, n = size(A)
-    Q = zeros(T, m, n)
-    R = zeros(T, n, n)
-    R[1, 1] = norm(view(A, :, 1))
-    Q[:, 1] .= view(A, :, 1) ./ R[1, 1]
-    for k = 2:n
-        Q[:, k] .= view(A, :, k)
-        # project z to span(A[:, 1:k-1])⊥
-        for j = 1:k-1
-            R[j, k] = view(Q, :, j)' * view(A, :, k)
-            Q[:, k] .-= view(Q, :, j) .* R[j, k]
-        end
-        # normalize the k-th column
-        R[k, k] = norm(view(Q, :, k))
-        Q[:, k] ./= R[k, k]
-    end
-    return Q, R
-end
-
-@testset "classical GS" begin
-    n = 10
-    A = randn(n, n)
-    Q, R = classical_gram_schmidt(A)
-    @test Q * R ≈ A
-    @test Q * Q' ≈ I
-    @info R
-end
-```
-
-== Modified Gram-Schmidt Orthogonalization
-
-```julia
-function modified_gram_schmidt!(A::AbstractMatrix{T}) where T
-    m, n = size(A)
-    Q = zeros(T, m, n)
-    R = zeros(T, n, n)
-    for k = 1:n
-        R[k, k] = norm(view(A, :, k))
-        Q[:, k] .= view(A, :, k) ./ R[k, k]
-        for j = k+1:n
-            R[k, j] = view(Q, :, k)' * view(A, :, j)
-            A[:, j] .-= view(Q, :, k) .* R[k, j]
-        end
-    end
-    return Q, R
-end
-
-@testset "modified GS" begin
-    n = 10
-    A = randn(n, n)
-    Q, R = modified_gram_schmidt!(copy(A))
-    @test Q * R ≈ A
-    @test Q * Q' ≈ I
-    @info R
-end
-
-let
-    n = 100
-    A = randn(n, n)
-    Q1, R1 = classical_gram_schmidt(A)
-    Q2, R2 = modified_gram_schmidt!(copy(A))
-    @info norm(Q1' * Q1 - I)
-    @info norm(Q2' * Q2 - I)
-end
-```
-
-== Eigenvalue/Singular value decomposition problem
-
-The eigenvalue problem is to find the eigenvalues $lambda$ and eigenvectors $x$ of a matrix $A$ such that
-
-$
-A x = lambda x
-$
-
-== Rayleigh Quotient Iteration
-
-The Rayleigh Quotient Iteration (RQI) is an iterative method to find the eigenvalue of a matrix. The RQI is defined as
-
-$
-x_(k+1) = (A - sigma_k I)^(-1) x_k / norm((A - sigma_k I)^(-1) x_k)
-$
-
-where $sigma_k = x_k^T A x_k$. The RQI converges to the eigenvector corresponding to the eigenvalue closest to $sigma_k$. The following is an implementation of the RQI.
-```julia
-function rayleigh_quotient_iteration(A::AbstractMatrix, k::Int)
-    @assert issymmetric(A) "A must be a symmetric matrix"
-    x = normalize!(randn(size(A, 2)))
-    for _ = 1:k
-        sigma = x' * A * x
-        y = (A - sigma * I) \ x
-        x = normalize!(y)
-    end
-    return x
-end
-```
-
-```julia
-x = rayleigh_quotient_iteration(A10, 5)  # 5 iterations of RQI
-U = eigen(A10).vectors
-(x' * U)'  # one should see a one-hot vector
-```
-
-== Symmetric QR decomposition
-
-The symmetric QR decomposition is an iterative method to decompose a symmetric matrix into a tridiagonal matrix. Let $A$ be a symmetric matrix, the symmetric QR decomposition is defined as
-
-$
-A = Q T Q^T
-$
-
-where $Q$ is an orthogonal matrix and $T$ is a tridiagonal matrix. The following is an implementation of the symmetric QR decomposition.
-
-```julia
-# Q is an identity matrix
-function householder_trid!(Q, a)
-    m, n = size(a)
-    @assert m==n && size(Q, 2) == n
-    if m == 2
-        return Q, a
-    else
-        # apply householder matrix
-        H = householder_e1(view(a, 2:n, 1))
-        left_mul!(view(a, 2:n, :), H)
-        right_mul!(view(a, :, 2:n), H')
-        # update Q matrix
-        right_mul!(view(Q, :, 2:n), H')
-        # recurse
-        householder_trid!(view(Q, :, 2:n), view(a, 2:m, 2:n))
-    end
-    return Q, a
-end
-```
-
-```julia
-@testset "householder tridiagonal" begin
-    n = 5
-    a = randn(n, n)
-    a = a + a'
-    Q = Matrix{Float64}(I, n, n)
-    Q, T = householder_trid!(Q, copy(a))
-    @test Q * T * Q' ≈ a
-end
-```
-
-The symmetric QR decomposition also includes a process to converge the tridiagonal matrix to a diagonal matrix. We refer the reader to Section 8.3 of the book "Matrix Computations" by Golub and Van Loan@Golub2016 for more details.
-
 == The Cooley-Tukey's Fast Fourier transformation (FFT)
 
 The Fast Fourier Transform, developed by Cooley and Tukey, provides an efficient algorithm for computing the Discrete Fourier Transform. The key insight is to recursively divide the problem into smaller subproblems, leading to a significant reduction in computational complexity from $O(n^2)$ to $O(n log n)$.
@@ -963,20 +892,7 @@ $ F_n x = mat(
 
 where $D_n = "diag"(1, omega, omega^2, ..., omega^(n-1))$ and $omega = e^(-2pi i/n)$
 
-#let quiz(body) = {
-  block(
-    fill: rgb("#f6f6f6"),
-    inset: 1em,
-    radius: 4pt,
-    [*Quiz:* #body]
-  )
-}
-
-#quiz[
-  What is the computational complexity of evaluating $F_n x$? 
-  
-  Hint: $T(n) = 2 T(n/2) + O(n)$.
-]
+$T(n) = 2 T(n/2) + O(n)$.
 
 ```julia
 using SparseArrays
