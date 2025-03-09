@@ -359,13 +359,13 @@ We can write a test for this algorithm.
 ```julia
 using Test, LinearAlgebra
 
-@testset "back substitution" begin
+@testset "forward substitution" begin
     # create a random lower triangular matrix
     l = LinearAlgebra.tril(randn(4, 4))
     # target vector
     b = randn(4)
     # solve the linear equation with our algorithm
-    x = back_substitution!(l, copy(b))
+    x = forward_substitution!(l, copy(b))
     @test l * x ≈ b
 
     # The Julia's standard library `LinearAlgebra` contains a native implementation.
@@ -1031,15 +1031,29 @@ end
 
 = Do not Implement Your Own Linear Algebra
 
+While implementing linear algebra algorithms from scratch is educational, in production code you should use established libraries like BLAS (Basic Linear Algebra Subprograms) and LAPACK (Linear Algebra Package). These libraries provide:
+
+1. Highly optimized implementations that leverage hardware capabilities
+2. Numerically stable algorithms tested across many platforms
+3. Standardized interfaces used throughout scientific computing
+
 == Basic Linear Algebra Subprograms (BLAS)
 
-=== Matrix types in BLAS and LAPACK - By Shape
+BLAS provides fundamental building blocks for linear algebra operations, organized into three levels based on computational complexity:
+
+- Level 1: Vector-vector operations ($O(n)$ complexity)
+- Level 2: Matrix-vector operations ($O(n^2)$ complexity) 
+- Level 3: Matrix-matrix operations ($O(n^3)$ complexity)
+
+The library uses a consistent naming scheme to identify matrix types and operations. By shape, the matrices can be typed as follows:
 
 #let h(it) = table.cell(fill: silver, align: center)[#it]
 #let c(it) = table.cell(fill: white, align: center)[#it]
-#table(columns: (1fr, 1fr, 1fr, 1fr),
-h[#text(red)[ge]neral], h[#text(red)[tr]iangular], h[upper #text(red)[H]ei#text(red)[s]enberg], h[#text(red)[t]rape#text(red)[z]oidal],
-c[#canvas({
+#figure(
+table(
+    columns: (1fr, 1fr, 1fr, 1fr),
+    h[#text(red)[ge]neral], h[#text(red)[tr]iangular], h[upper #text(red)[H]ei#text(red)[s]enberg], h[#text(red)[t]rape#text(red)[z]oidal],
+    c[#canvas({
   import draw: *
   rect((0, 0), (3, 3), fill: red)
 })],
@@ -1086,26 +1100,26 @@ c[#canvas({
     //rect((3 - i * delta, (i+1) * delta), (3 - (i+1) * delta, (i+2) * delta), fill: red)
   }
 })],
+), caption: [Matrix types in BLAS and LAPACK - By Shape]
 )
 
-Note: More general sparse matrix types will be introduced later.
-
-=== Matrix types in BLAS and LAPACK - By Symmetry
-
-For a real matrix $A in RR^(n times n)$
-#table(columns: (1fr, 1fr, 1fr),
+By symmetry, we can classify the matrix types as follows:
+#figure(table(columns: (1fr, 1fr, 1fr),
 h[#text(red)[s]ymmetric], h[#text(red)[o]rthogonal],  h[S#text(red)[P]D],
 c[$A = A^T$], c[$A^T A = I$], c[$forall_(x!=0) x^T A x > 0$],
+), caption: [Matrix types in BLAS and LAPACK - By Symmetry (real)]
 )
-For a complex matrix $A in CC^(n times n)$
-#table(columns: (1fr, 1fr, 1fr),
+
+#figure(table(columns: (1fr, 1fr, 1fr),
 h[#text(red)[H]ermitian], h[#text(red)[u]nitary], h[H#text(red)[P]D],
 c[$A = A^dagger$], c[$A^dagger A = I$], c[$forall_(x != 0) x^dagger A x > 0$],
+), caption: [Matrix types in BLAS and LAPACK - By Symmetry (complex)]
 )
 
 
-=== Level 1 BLAS
-Level 1 BLAS operations involve vector-vector operations. Here are some common Level 1 BLAS routines:
+=== BLAS operations by level
+
+*Level 1 BLAS* operations involve vector-vector operations. Here are some common Level 1 BLAS routines:
 
 #figure(
   table(
@@ -1125,8 +1139,7 @@ Level 1 BLAS operations involve vector-vector operations. Here are some common L
   caption: [Common Level 1 BLAS routines. The exclamation mark (!) indicates the function modifies its arguments in-place.]
 )
 
-=== Level 2 BLAS
-Level 2 BLAS operations involve matrix-vector operations. Here are some common Level 2 BLAS routines:
+*Level 2 BLAS* operations involve matrix-vector operations. Here are some common Level 2 BLAS routines:
 
 #figure(
   table(
@@ -1146,8 +1159,7 @@ Level 2 BLAS operations involve matrix-vector operations. Here are some common L
   caption: [Common Level 2 BLAS routines. The exclamation mark (!) indicates the function modifies its arguments in-place.]
 )
 
-=== Level 3 BLAS
-Level 3 BLAS operations involve matrix-matrix operations. Here are some common Level 3 BLAS routines:
+*Level 3 BLAS* operations involve matrix-matrix operations. Here are some common Level 3 BLAS routines:
 #figure(
   table(
     columns: (auto, auto),
@@ -1218,7 +1230,14 @@ The following table lists common LAPACK routines for matrix factorizations.
   caption: [Common LAPACK matrix factorization routines. The exclamation mark (!) indicates the function modifies its arguments in-place.]
 )
 
-=== Naming scheme
+=== LAPACK Naming Convention
+
+LAPACK routine names follow the pattern: `XYYZZZ`, where:
+- `X`: Data type (S=single real, D=double real, C=single complex, Z=double complex)
+- `YY`: Matrix type (see table below)
+- `ZZZ`: Operation type
+
+*Matrix Type Codes:*
 
 #figure(
   table(
@@ -1226,161 +1245,36 @@ The following table lists common LAPACK routines for matrix factorizations.
     inset: 5pt,
     align: left,
     h[*Matrix type*], h[*Description*],
-    [BD], [bidiagonal],
-    [DI], [diagonal],
-    [GB], [general band],
-    [GE], [general (i.e., unsymmetric, in some cases rectangular)],
-    [GG], [general matrices, generalized problem (i.e., a pair of general matrices)],
-    [GT], [general tridiagonal],
-    [HB], [complex Hermitian band],
-    [HE], [complex Hermitian],
-    [HG], [upper Hessenberg matrix, generalized problem (i.e a Hessenberg and a triangular matrix)],
-    [HP], [complex Hermitian, packed storage],
-    [HS], [upper Hessenberg],
-    [OP], [real orthogonal, packed storage],
-    [OR], [real orthogonal],
-    [PB], [symmetric or Hermitian positive definite band],
-    [PO], [symmetric or Hermitian positive definite],
-    [PP], [symmetric or Hermitian positive definite, packed storage],
-    [PT], [symmetric or Hermitian positive definite tridiagonal],
-    [SB], [real symmetric band],
-    [SP], [symmetric, packed storage],
-    [ST], [real symmetric tridiagonal],
-    [SY], [symmetric],
-    [TB], [triangular band],
-    [TG], [triangular matrices, generalized problem (i.e., a pair of triangular matrices)],
-    [TP], [triangular, packed storage],
-    [TR], [triangular (or in some cases quasi-triangular)],
-    [TZ], [trapezoidal],
-    [UN], [complex unitary],
-    [UP], [complex unitary, packed storage]
+    [`bd`], [bidiagonal],
+    [`di`], [diagonal],
+    [`gb`], [general band],
+    [`ge`], [general (i.e., unsymmetric, in some cases rectangular)],
+    [`gg`], [general matrices, generalized problem (i.e., a pair of general matrices)],
+    [`gt`], [general tridiagonal],
+    [`hb`], [complex Hermitian band],
+    [`he`], [complex Hermitian],
+    [`hg`], [upper Hessenberg matrix, generalized problem (i.e a Hessenberg and a triangular matrix)],
+    [`hp`], [complex Hermitian, packed storage],
+    [`hs`], [upper Hessenberg],
+    [`op`], [real orthogonal, packed storage],
+    [`or`], [real orthogonal],
+    [`pb`], [symmetric or Hermitian positive definite band],
+    [`po`], [symmetric or Hermitian positive definite],
+    [`pp`], [symmetric or Hermitian positive definite, packed storage],
+    [`pt`], [symmetric or Hermitian positive definite tridiagonal],
+    [`sb`], [real symmetric band],
+    [`sp`], [symmetric, packed storage],
+    [`st`], [real symmetric tridiagonal],
+    [`sy`], [symmetric],
+    [`tb`], [triangular band],
+    [`tg`], [triangular matrices, generalized problem (i.e., a pair of triangular matrices)],
+    [`tp`], [triangular, packed storage],
+    [`tr`], [triangular (or in some cases quasi-triangular)],
+    [`tz`], [trapezoidal],
+    [`un`], [complex unitary],
+    [`up`], [complex unitary, packed storage]
   ),
-  caption: [Matrix types in the LAPACK naming scheme]
+  caption: [Matrix types in the LAPACK naming convention]
 )
 
 #bibliography("refs.bib")
-
-= Appendix
-== The elementary elimination matrix
-
-An elementary elimination matrix is a matrix that is used in the process of Gaussian elimination to transform a system of linear equations into an equivalent system that is easier to solve. It is a square matrix that is obtained by performing a single elementary row operation on the identity matrix.
-
-$
-(M_k)_(i j) = cases(
-  delta_(i j) & "if" i = j,
-  - a_(i k)\/a_(k k) & "if" i > j "and" j = k,
-  0 & "otherwise"
-)
-$
-
-Let $A = (a_(i j))$ be a square matrix of size $n times n$. The $k$th elementary elimination matrix for it is defined as
-
-$
-M_k = mat(
-  1, dots, 0, 0, 0, dots, 0;
-  dots.v, dots.down, dots.v, dots.v, dots.v, dots.down, dots.v;
-  0, dots, 1, 0, 0, dots, 0;
-  0, dots, 0, 1, 0, dots, 0;
-  0, dots, 0, -m_(k+1), 1, dots, 0;
-  dots.v, dots.down, dots.v, dots.v, dots.v, dots.down, dots.v;
-  0, dots, 0, -m_n, 0, dots, 1
-)
-$
-
-where $m_i = a_(i k)/a_(k k)$.
-
-By applying this elementary elimination matrix $M_1$ on $A$, we can obtain a new matrix with the $a'_(i 1) = 0$ for all $i>1$.
-$
-M_1 A = mat(
-  a_(1 1), a_(1 2), a_(1 3), dots.h, a_(1 n);
-  0, a'_(2 2), a'_(2 3), dots.h, a'_(2 n);
-  0, a'_(3 2), a'_(3 3), dots.h, a'_(3 n);
-  dots.v, dots.down, dots.v, dots.down, dots.v;
-  0, a'_(n 2), a'_(n 3), dots.h, a'_(n n)
-)
-$
-
-For $k=1,2,dots,n$, apply $M_k$ on $A$. We will have an upper triangular matrix.
-$
-U = M_(n-1) dots.h M_1 A
-$
-
-Since $M_k$ is reversible, we have
-$
-A = L U\
-L = M_1^(-1) M_2^(-1) dots.h M_(n-1)^(-1)
-$
-Elementary elimination matrices have the following properties that making the above process efficient:
-1. Its inverse can be computed in $O(n)$ time
-   $
-   M_k^(-1) = 2I - M_k
-   $
-2. The multiplication of two elementary matrices can be computed in $O(n)$ time
-   $
-   M_k M_(k' > k) = M_k + M_(k') - I
-   $
-
-== Code: Elementary Elimination Matrix
-
-```julia
-A3 = [1 2 2; 4 4 2; 4 6 4]
-
-function elementary_elimination_matrix(A::AbstractMatrix{T}, k::Int) where T
-    n = size(A, 1)
-    @assert size(A, 2) == n
-    # create Elementary Elimination Matrices
-    M = Matrix{Float64}(I, n, n)
-    for i=k+1:n
-        M[i, k] =  -A[i, k] ./ A[k, k]
-    end
-    return M
-end
-```
-
-The elementary elimination matrix for the above matrix `A3` eliminating the first column is
-
-```julia
-elementary_elimination_matrix(A3, 1)
-elementary_elimination_matrix(A3, 1) * A3
-```
-
-Verify the property 1
-
-```julia
-inv(elementary_elimination_matrix(A3, 1))
-```
-
-Verify the property 2
-
-```julia
-elementary_elimination_matrix(A3, 2)
-inv(elementary_elimination_matrix(A3, 1)) * inv(elementary_elimination_matrix(A3, 2))
-```
-
-A naive implementation of elimentary elimination matrix is as follows
-
-
-```julia
-function lufact_naive!(A::AbstractMatrix{T}) where T
-    n = size(A, 1)
-    @assert size(A, 2) == n
-    M = Matrix{T}(I, n, n)
-    for k=1:n-1
-        m = elementary_elimination_matrix(A, k)
-        M = M * inv(m)
-        A .= m * A
-    end
-    return M, A
-end
-
-lufact_naive!(copy(A3))
-
-@testset "naive LU factorization" begin
-    A = [1 2 2; 4 4 2; 4 6 4]
-    L, U = lufact_naive!(copy(A))
-    @test L * U ≈ A
-end
-```
-
-The above implementation has time complexity $O(n^4)$ since we did not use the sparsity of elimentary elimination matrix. A better implementation that gives $O(n^3)$ time complexity is as follows.
-
