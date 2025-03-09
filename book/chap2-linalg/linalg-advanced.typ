@@ -891,6 +891,8 @@ g = givens_matrix(A, 2, 3)
 left_mul!(copy(A), g)
 ```
 
+The Householder reflection is numerically stable, we have $||Q^dagger Q - I||_2 approx u$ for $u$ the machine precision. While for the Modified Gram-Schmidt process, it is $u kappa(A)$ for $kappa(A)$ the condition number of $A$.
+
 == Givens Rotations
 Given's rotation is another way to perform QR factorization.
 A Givens rotation is a rotation in a plane spanned by two coordinate axes. It can be used to selectively zero out individual elements in a matrix. For a 2D rotation in the $(i,j)$ plane by angle $theta$, the Givens matrix has the form:
