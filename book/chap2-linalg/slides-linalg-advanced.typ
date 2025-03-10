@@ -66,8 +66,6 @@ Question (Review): Consider $m = n = p$, what is the time complexity of matrix m
   numbering: "A.",
 )
 
-(If we have time, I will show you a faster algorithm for matrix multiplication.)
-
 == Floating-point operations
 Q: How many _floating-point operations_ ($+$, $-$, $*$ and $\/$) are needed to compute the product of two $n times n$ matrices?
 
@@ -227,6 +225,8 @@ dots.v , dots.v , dots.v , dots.down , dots.v;
 $
 
 The inverse transformation is given by $F_n^dagger x\/n$. The DFT matrix is unitary up to a scale factor: $F_n F_n^dagger = n I$.
+
+(TODO: show Cooley-Tukey FFT)
 
 == Implementation
 The Julia package `FFTW.jl` contains an extremely efficient implementation of FFT.

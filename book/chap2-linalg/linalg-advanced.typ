@@ -262,6 +262,10 @@ end
 ```julia
 @testset "fft" begin
     x = randn(ComplexF64, 8)
+    function dft_matrix(n::Int)  # define the DFT matrix
+        ω = exp(-2π*im/n)
+        return [ω^((i-1)*(j-1)) for i=1:n, j=1:n]
+    end
     @test fft!(copy(x)) ≈ dft_matrix(8) * x
 end
 ```
@@ -1062,7 +1066,21 @@ BLAS provides fundamental building blocks for linear algebra operations, organiz
 - Level 2: Matrix-vector operations ($O(n^2)$ complexity) 
 - Level 3: Matrix-matrix operations ($O(n^3)$ complexity)
 
-The library uses a consistent naming scheme to identify matrix types and operations. By shape, the matrices can be typed as follows:
+BLAS functions are fast. For example, the `axpy!` function for computing $y <- alpha x + y$ is much faster than the naive implementation:
+```julia
+julia> using BenchmarkTools, LinearAlgebra
+julia> x, y = randn(1000), randn(1000);
+
+julia> @btime y + 3.0 * x;
+479.375 ns (6 allocations: 15.88 KiB)
+
+julia> @btime BLAS.axpy!(3.0, x, y);
+125.322 ns (0 allocations: 0 bytes)
+```
+This is because the BLAS functions are optimized for performance and use hardware features like SIMD (Single Instruction, Multiple Data) instructions.
+It also uses efficient memory access patterns and caches.
+
+BLAS uses a consistent naming scheme to identify matrix types and operations. By shape, the matrices can be typed as follows:
 
 #let h(it) = table.cell(fill: silver, align: center)[#it]
 #let c(it) = table.cell(fill: white, align: center)[#it]

@@ -537,10 +537,6 @@ Step 1: Evaluate polynomials at roots of unity. We need $2n-1$ points for a prod
 n = 5
 pvals = fft(vcat(p.coeffs, zeros(4)))  # Pad with zeros to length 2n-1
 qvals = fft(vcat(q.coeffs, zeros(4)))
-
-# This FFT is equivalent to evaluating at roots of unity:
-ω = exp(-2π*im/(2n-1))
-# pvals ≈ map(k->p(ω^k), 0:(2n-1))
 ```
 
 Step 2: Multiply values pointwise
@@ -571,7 +567,7 @@ function fast_polymul(p::Polynomial, q::Polynomial)
 end
 
 # Verify correctness against built-in multiplication
-@assert p * q ≈ fast_polymul(p, q)
+@test p * q ≈ fast_polymul(p, q)
 ```
 
 
