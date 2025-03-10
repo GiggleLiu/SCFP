@@ -56,6 +56,8 @@ In the following, we compute $p - sqrt(p^2 + q)$ for $p = 12345678$ and $q = 1$ 
 
 - Method 1:
 ```julia
+p = 12345678
+q = 1
 p - sqrt(p^2 + q)       # -4.0978193283081055e-8
 ```
 - Method 2:
@@ -108,11 +110,10 @@ Since $A^dagger A$ is symmetric positive semidefinite, its singular values are t
 In Julia, we can compute the condition number of a matrix using the `cond` function.
 
 ```julia
+julia> using LinearAlgebra
+julia> A = rand(5, 5)
 julia> cond(A)
-34.899220365288556
-
 julia> cond(A' * A)
-1217.9555821049864
 ```
 
 = Compute Matrix Multiplication Faster
@@ -169,8 +170,8 @@ Here's a simple implementation of Strassen's algorithm in Julia:
 ```julia
 function strassen(A::AbstractMatrix{T}, B::AbstractMatrix{T}) where T
     n = size(A, 1)
-    @assert iseven(n) && size(A) == size(B) "matrix sizes must be even and equal"
     n == 1 && return A * B
+    @assert iseven(n) && size(A) == size(B) "matrix sizes must be even and equal"
 
     m = div(n, 2)
     A11, A12 = A[1:m, 1:m], A[1:m, m+1:n]
@@ -260,6 +261,7 @@ end
 ```
 
 ```julia
+using Test
 @testset "fft" begin
     x = randn(ComplexF64, 8)
     function dft_matrix(n::Int)  # define the DFT matrix
@@ -357,8 +359,6 @@ We can write a test for this algorithm.
 
 
 ```julia
-using Test, LinearAlgebra
-
 @testset "forward substitution" begin
     # create a random lower triangular matrix
     l = LinearAlgebra.tril(randn(4, 4))
@@ -815,7 +815,7 @@ The `HouseholderMatrix` type defined above is a custom implementation of a House
 
 To make this type work seamlessly with Julia's array operations, we implement the required array interface methods `size` and `getindex`. These methods allow the type to behave like a standard matrix while maintaining an efficient implicit representation. For more details on implementing array interfaces in Julia, see the #link("https://docs.julialang.org/en/v1/manual/interfaces/", "interfaces documentation").
 ```julia
-using LinearAlgebra, Test
+using LinearAlgebra
 @testset "householder property" begin
     v = randn(3)
     H = HouseholderMatrix(v)
@@ -877,6 +877,7 @@ end
 ```
 
 ```julia
+using LinearAlgebra
 @testset "householder QR" begin
     A = randn(3, 3)
     Q = Matrix{Float64}(I, 3, 3)
@@ -886,10 +887,6 @@ end
     @test Q * R ≈ A
     @test Q' * Q ≈ I
 end
-
-A = randn(3, 3)
-g = givens_matrix(A, 2, 3)
-left_mul!(copy(A), g)
 ```
 
 The Householder reflection is numerically stable, we have $||Q^dagger Q - I||_2 approx u$ for $u$ the machine precision. While for the Modified Gram-Schmidt process, it is $u kappa(A)$ for $kappa(A)$ the condition number of $A$.
