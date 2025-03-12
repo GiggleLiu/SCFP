@@ -370,11 +370,11 @@ Let us consider a system with $n$ atoms connected by springs. The potential ener
 $
 V(bold(u)) = c/2 sum_(i=1)^(n-1) (u_i - u_(i+1))^2
 $
-where $c$ is the stiffness, and $u_i$ is the displacement of the $i$-th atom. The end atoms are fixed, so we have $u_0 = u_(n+1) = 0$. Its dynamics can be described by the Newton's second law
+where $c$ is the stiffness, and $u_i$ is the displacement of the $i$-th atom. The boundary of the spring system is opened, and the dynamics of the system can be described by the Newton's second law:
 $
 m dot.double(u)_i = c (u_(i+1) - u_i) - c (u_i - u_(i-1))
 $ <eq:spring-dynamics>
-where $m$ is the mass of the atom.
+where $m$ is the mass of the atom, and there is only one term on the boundary atoms.
 
 It is known that a spring system has the eigenmodes of the form
 $
