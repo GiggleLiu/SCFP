@@ -3,6 +3,7 @@
 
 #show: book-page.with(title: "Sparse Matrices and Graphs")
 #let exampleblock(it) = block(fill: rgb("#ffffff"), inset: 1em, radius: 4pt, width: 100%, stroke: black, it)
+#set math.equation(numbering: "(1)")
 
 #let show-graph(vertices, edges, radius:0.2) = {
   import draw: *
@@ -200,8 +201,7 @@ The `m`, `n`, `rowval` and `nzval` have the same meaning as those in the COO for
 - `rowval[colptr[j]:colptr[j+1]-1]`, the row indices of the nonzero elements in the $j$-th column,
 - `nzval[colptr[j]:colptr[j+1]-1]`, the nonzero values in the $j$-th column.
 
-This column-oriented structure makes CSC format particularly efficient for column-wise operations and matrix-vector multiplication.
-Julia's `SparseArrays` standard library uses CSC as its primary sparse matrix format.
+This column-oriented structure makes CSC format particularly efficient for column-wise operations and matrix-vector multiplication. Julia's `SparseArrays` standard library uses CSC as its primary sparse matrix format.
 A CSC format sparse matrix can be constructed from the COO format with the `SparseArrays.sparse` function:
 ```julia
 using SparseArrays
@@ -474,164 +474,241 @@ where $lambda_1(A)$ denotes the largest eigenvalue of $A$. The equality holds if
 Whenever, we have $B y_1 = lambda_1(B) y_1$, we have $y_1^dagger Q^dagger A Q y_1 = lambda_1(B) y_1^dagger y_1 = lambda_1(A)$. Then, either $Q y_1$ is the largest eigenvector of $A$, or $A$ has an eigenvalue $lambda_1(A)$ such that $lambda_1(A) > lambda_1(B)$.
 
 The $Q$ can be generated from the *Krylov subspace* generated from a random initial vector $q_1$:
-$ cal(K)(A, q_1, k) = op("span"){q_1, A q_1, A^2 q_1, dots, A^(k-1) q_1}. $
+$ cal(K)(A, q_1, k) = op("span"){q_1, A q_1, A^2 q_1, dots, A^(k-1) q_1}. $ <eq:krylov-subspace>
 Unlike the power method, the Krylov subspace method generates an orthogonal matrix $Q$ by orthonormalizing the Krylov vectors, rather than just using the last vector. Hence, it is strictly better than the power method.
 
 == The Lanczos algorithm
 
-The Lanczos algorithm is used to solve the symmetric eigenvalue problem. Given a symmetric matrix $A in RR^(n times n)$, the Lanczos algorithm generates an orthogonal matrix $Q in RR^(n times k)$, such that
+The Lanczos algorithm is a special case of the Krylov subspace method that designed for symmetric linear operators. It is an iterative process to generate the subspace spanned by the Krylov vectors in @eq:krylov-subspace. Given a symmetric linear operator $A$ on $RR^n$, the the Lanczos algorithm generates an orthogonal matrix $Q$ such that
 
-$ Q^T A Q = T $
+$ Q^dagger A Q = T $
 
-where $T$ is a tridiagonal matrix
+where $T$ is a symmetric tridiagonal matrix
 
 $ T = mat(
   alpha_1, beta_1, 0, dots, 0;
-  beta_1, alpha_2, 0, dots, 0;
-  0, beta_2, alpha_3, dots, 0;
+  beta_1^*, alpha_2, beta_2, dots, 0;
+  0, beta_2^*, alpha_3, dots, 0;
   dots.v, dots.v, dots.v, dots.down, dots.v;
-  0, 0, 0, beta_(k-1), alpha_k
-) $
+  0, 0, 0, beta_(k-1)^*, alpha_k
+), $
+where $Q = (q_1 | q_2 | dots | q_k)$, and $op("span")({q_1, q_2, dots, q_k}) = cal(K)(A, q_1, k)$.
 
-Let $Q = [q_1 | q_2 | dots | q_n],$ and $op("span")({q_1, q_2, dots, q_k}) = cal(K)(A, q_1, k)$. We have $A q_k = beta_(k-1)q_(k-1) + alpha_k q_k + beta_k q_(k+1)$, or equivalently in the recursive style
+The Lanczos algorithm is basically a Gram-Schmidt orthogonalization process applied to the Krylov subspace:
+1. We start with a normalized vector $q_1$ and compute $A q_1$ (the second vector in the Krylov subspace).
+2. To find $alpha_1$, we project $A q_1$ onto $q_1$ by computing the inner product:
+   $ alpha_1 = q_1^dagger A q_1 $
+3. The remainder $r_1 = A q_1 - alpha_1 q_1$ is orthogonal to $q_1$. We set $beta_1 = ||r_1||_2$ and $q_2 = r_1\/beta_1$ (if $beta_1 != 0$).
+4. For subsequent steps, we compute $A q_k$ and make it orthogonal to both $q_k$ and $q_(k-1)$ by subtracting their projections:
+   $ r_k = A q_k - alpha_k q_k - beta_(k-1) q_(k-1) $
 
-$ q_(k+1) = (A q_k - beta_(k-1)q_(k-1) - alpha_k q_k)/beta_k. $
+The key insight is that, for symmetric matrices, $r_k$ is automatically orthogonal to $q_1, q_2, dots, q_(k-2)$ due to the properties of the Krylov subspace. This is why we only need to explicitly orthogonalize against the two most recent vectors.
 
-By multiplying $q_k^T$ on the left, we have
+The iteration terminates when $beta_k = 0$, it means the residual vector is zero, indicating that the Krylov subspace has become invariant under $A$. In this case, we have found an exact invariant subspace, and the algorithm terminates. The resulting tridiagonal matrix takes a block-diagonal form:
 
-$ alpha_k = q_k^T A q_k. $
-
-Since $q_(k+1)$ is normalized, we have
-
-$ beta_k = norm(A q_k - beta_(k-1)q_(k-1) - alpha_k q_k)_2 $
-
-If at any moment, $beta_k = 0$, the interation stops due to convergence of a subspace. We have the following reducible form
-
-$ T(beta_2 = 0) = mat(
+$ T( "when " beta_j = 0) = mat(
   alpha_1, beta_1, 0, dots, 0;
-  beta_1, alpha_2, 0, dots, 0;
-  delim: "|",
-  0, 0, alpha_3, dots, 0;
+  beta_1^*, alpha_2, beta_2, dots, 0;
+  0, beta_2^*, alpha_3, dots, 0;
   dots.v, dots.v, dots.v, dots.down, dots.v;
-  0, 0, 0, beta_(k-1), alpha_k
-) $
+  0, 0, 0, beta_(j-1)^*, alpha_j
+), $
+
+This block structure reflects the fact that the Krylov subspace has split into invariant subspaces of $A$.
+
+In practice, the Gram-Schmidt process is numerically unstable, and the orthogonalization process is often replaced by a more numerically stable process, such as the modified Gram-Schmidt process or iterative reorthogonalization.
 
 === A Julia implementation
 
 ```julia
 function lanczos(A, q1::AbstractVector{T}; abstol, maxiter) where T
-    # normalize the input vector
+    # Normalize the initial vector
     q1 = normalize(q1)
-    # the first iteration
-    q = [q1]
+    
+    # Initialize storage for basis vectors and tridiagonal matrix elements
+    q = [q1]                # Orthonormal basis vectors
+    α = [q1' * (A * q1)]    # Diagonal elements of tridiagonal matrix
+    
+    # Compute first residual: r₁ = Aq₁ - α₁q₁
     Aq1 = A * q1
-    α = [q1' * Aq1]
     rk = Aq1 .- α[1] .* q1
-    β = [norm(rk)]
+    β = [norm(rk)]          # Off-diagonal elements of tridiagonal matrix
+    
+    # Main Lanczos iteration
     for k = 2:min(length(q1), maxiter)
-        # the k-th orthonormal vector in Q
+        # Compute next basis vector: q_k = r_{k-1}/β_{k-1}
         push!(q, rk ./ β[k-1])
+        
+        # Compute A*q_k
         Aqk = A * q[k]
-        # compute the diagonal element as αₖ = qₖᵀ A qₖ
+        
+        # Compute diagonal element: α_k = q_k' * A * q_k
         push!(α, q[k]' * Aqk)
+        
+        # Compute residual: r_k = A*q_k - α_k*q_k - β_{k-1}*q_{k-1}
+        # This enforces orthogonality to the previous two vectors
         rk = Aqk .- α[k] .* q[k] .- β[k-1] * q[k-1]
-        # compute the off-diagonal element as βₖ = |rₖ|
+        
+        # Compute the norm of the residual for the off-diagonal element
         nrk = norm(rk)
-        # break if βₖ is smaller than abstol or the maximum number of iteration is reached
+        
+        # Check for convergence or maximum iterations
         if abs(nrk) < abstol || k == length(q1)
             break
         end
+        
         push!(β, nrk)
     end
-    # returns T and Q
+    
+    # Return the tridiagonal matrix T and orthogonal matrix Q
     return SymTridiagonal(α, β), hcat(q...)
 end
 ```
 
 === Reorthogonalization
 
-Let $r_0, dots, r_(k-1) in CC_n$ be linearly independent vectors and the corresponding Householder matrices $H_0, dots, H_(k-1)$ such that $(H_0 dots H_(k-1))^T [r_0|dots|r_(k-1)]$ is an upper triangular matrix. Let $[q_1 | dots | q_k]$ denote the first $k$ columns of the Householder product $(H_0 dots H_(k-1))$, then $q_1, dots, q_k$ are orthonormal vectors up to machine precision.
+In the Lanczos algorithm, numerical errors can accumulate and cause the orthogonality of the basis vectors to deteriorate. Reorthogonalization is a technique to maintain orthogonality among these vectors.
 
+One effective approach uses Householder transformations. Let's understand how this works:
+
+1. Consider linearly independent vectors $r_0, dots, r_(k-1) in CC^n$.
+
+2. For each vector $r_i$, we can construct a Householder matrix $H_i$ that reflects vectors across a hyperplane.
+
+3. When we apply the sequence of Householder matrices $H_0, dots, H_(k-1)$ to the matrix $(r_0|dots|r_(k-1))$, we get:
+   $(H_0 dots H_(k-1))^T (r_0|dots|r_(k-1)) = R$
+   where $R$ is an upper triangular matrix.
+
+4. If we denote the first $k$ columns of the matrix product $(H_0 dots H_(k-1))$ as $(q_1 | dots | q_k)$, then these vectors $q_1, dots, q_k$ form an orthonormal basis.
+
+This approach is numerically stable and ensures that orthogonality is maintained to machine precision, which is crucial for the convergence and accuracy of the Lanczos algorithm.
 ```julia
+# Lanczos algorithm with explicit reorthogonalization using Householder transformations
 function lanczos_reorthogonalize(A, q1::AbstractVector{T}; abstol, maxiter) where T
     n = length(q1)
-    # normalize the input vector
+    
+    # Normalize the initial vector
     q1 = normalize(q1)
-    # the first iteration
-    q = [q1]
+    
+    # Initialize storage
+    q = [q1]                # Orthonormal basis vectors
+    α = [q1' * (A * q1)]    # Diagonal elements of tridiagonal matrix
     Aq1 = A * q1
-    α = [q1' * Aq1]
     rk = Aq1 .- α[1] .* q1
-    β = [norm(rk)]
+    β = [norm(rk)]          # Off-diagonal elements of tridiagonal matrix
+    
+    # Store Householder transformations for reorthogonalization
     householders = [householder_matrix(q1)]
+    
+    # Main Lanczos iteration with reorthogonalization
     for k = 2:min(n, maxiter)
-        # reorthogonalize rk: 1. compute the k-th householder matrix
+        # Step 1: Apply all previous Householder transformations to residual vector
+        # This ensures full orthogonality to all previous vectors
         for j = 1:k-1
             left_mul!(view(rk, j:n), householders[j])
         end
+        
+        # Create new Householder transformation for the current residual
         push!(householders, householder_matrix(view(rk, k:n)))
-        # reorthogonalize rk: 2. compute the k-th orthonormal vector in Q
-        qk = zeros(T, n); qk[k] = 1  # qₖ = H₁H₂…Hₖeₖ
+        
+        # Step 2: Compute the k-th orthonormal vector by applying Householder transformations
+        # Start with unit vector e_k and apply all Householder transformations in reverse
+        qk = zeros(T, n)
+        qk[k] = 1  # qₖ = H₁H₂…Hₖeₖ
         for j = k:-1:1
             left_mul!(view(qk, j:n), householders[j])
         end
         push!(q, qk)
+        
+        # Compute A*q_k
         Aqk = A * q[k]
-        # compute the diagonal element as αₖ = qₖᵀ A qₖ
+        
+        # Compute diagonal element: α_k = q_k' * A * q_k
         push!(α, q[k]' * Aqk)
+        
+        # Compute residual: r_k = A*q_k - α_k*q_k - β_{k-1}*q_{k-1}
         rk = Aqk .- α[k] .* q[k] .- β[k-1] * q[k-1]
-        # compute the off-diagonal element as βₖ = |rₖ|
+        
+        # Compute the norm of the residual
         nrk = norm(rk)
-        # break if βₖ is smaller than abstol or the maximum number of iteration is reached
+        
+        # Check for convergence or maximum iterations
         if abs(nrk) < abstol || k == n
             break
         end
+        
         push!(β, nrk)
     end
+    
+    # Return the tridiagonal matrix T and orthogonal matrix Q
     return SymTridiagonal(α, β), hcat(q...)
 end
+
+# Householder transformation matrix representation
 struct HouseholderMatrix{T} <: AbstractArray{T, 2}
-    v::Vector{T}
-    β::T
+    v::Vector{T}    # Householder vector
+    β::T            # Scaling factor
 end
 
-# the `mul!` interfaces can take two extra factors.
+# Apply Householder transformation: B = (I - β*v*v')*B
 function left_mul!(B, A::HouseholderMatrix)
-    B .-= (A.β .* A.v) * (A.v' * B)
+    # Compute v'*B
+    vB = A.v' * B
+    # Apply transformation: B = B - β*v*(v'*B)
+    B .-= (A.β .* A.v) * vB
     return B
 end
 
+# Create a Householder matrix that transforms v to a multiple of e₁
 function householder_matrix(v::AbstractVector{T}) where T
     v = copy(v)
+    # Modify first element to ensure numerical stability
     v[1] -= norm(v, 2)
+    # Compute scaling factor β = 2/||v||²
     return HouseholderMatrix(v, 2/norm(v, 2)^2)
 end
 ```
 
+In the following example, we use the Lanczos algorithm to find the eigenvalues of a graph Laplacian.
 ```julia
 using Graphs
+
+# Create a random 3-regular graph with 1000 vertices
 n = 1000
 graph = random_regular_graph(n, 3)
-A = laplacian_matrix(graph)
-q1 = randn(n)
-tr, Q = lanczos_reorthogonalize(A, q1; abstol=1e-5, maxiter=100)
-eigen(tr)
 
+# Get the Laplacian matrix of the graph
+A = laplacian_matrix(graph)
+
+# Generate a random initial vector
+q1 = randn(n)
+
+# Apply our Lanczos implementation
+T, Q = lanczos_reorthogonalize(A, q1; abstol=1e-5, maxiter=100)
+
+# Compute eigenvalues of the resulting tridiagonal matrix
+eigenvalues = eigen(T).values
+
+# Compare with KrylovKit.jl implementation
 using KrylovKit
-eigsolve(A, q1, 2, :SR)
+
+# Find the two smallest eigenvalues using KrylovKit
+# :SR means "smallest real part"
+vals, vecs, info = eigsolve(A, q1, 2, :SR)
+println("Two smallest eigenvalues: ", vals, ", compared with our implementation: ", eigenvalues[1:2])
+# output:
+# Two smallest eigenvalues: [3.1110528609336337e-15, 0.17548338667817945], compared with our implementation: [4.440892098500626e-15, 0.17548398110263008]
 ```
 
-=== Notes on Lanczos
-A sophisticated Lanczos implementation should consider the following aspects:
-1. In practice, storing all $q$ vectors is not necessary.
-2. Blocking technique can be used to improve the solution, especially when the matrix has degenerate eigenvalues.
-3. Restarting technique can be used to improve the solution without increasing the memory usage.
-
+=== Essential aspects of a professional Lanczos implementation
+A professional Lanczos implementation should also consider the following aspects:
+1. *Block Lanczos*: Used to compute degenerate eigenvalues. Instead of using a single vector, the block Lanczos method uses a block of $p$ vectors at each iteration. This approach is particularly effective for matrices with clustered or degenerate eigenvalues, as it can capture multiple eigenvectors in the same invariant subspace simultaneously. The algorithm generates a block tridiagonal matrix rather than a simple tridiagonal one.
+2. *Restarting*: Used to reduce the memory usage. When the Krylov subspace becomes too large, we can restart the algorithm by compressing the information from the current iteration into a smaller subspace. The technique of _implicit restarting_ allows us to focus on the most relevant part of the spectrum without increasing memory usage. The Implicitly Restarted Lanczos Method (IRLM) combines $m$ steps of the Lanczos process with implicit QR steps to enhance convergence toward desired eigenvalues. A variant of implicit restarting is _thick restarting_, where we keep a few (typically converged) Ritz vectors and restart the Lanczos process with these vectors plus a new starting vector. This approach maintains good approximations while exploring new directions in the Krylov subspace.
 These techniques could be found in @Golub2013.
 
 == The Arnoldi algorithm
 
-If $A$ is not symmetric, then the orthogonal tridiagonalization $Q^T A Q = T$ does not exist in general. The Arnoldi approach involves the column by column generation of an orthogonal $Q$ such that $Q^T A Q = H$ is a Hessenberg matrix.
+The Arnoldi algorithm is a generalization of the Lanczos algorithm to non-symmetric linear operators. Given a non-symmetric linear operator $A$ on $RR^n$, the Arnoldi algorithm generates an orthogonal matrix $Q$ such that $Q^T A Q = H$ is a Hessenberg matrix:
 
 
 $
@@ -649,50 +726,97 @@ That is, $h_(i j) = 0$ for $i>j+1$.
 
 ```julia
 function arnoldi_iteration(A::AbstractMatrix{T}, x0::AbstractVector{T}; maxiter) where T
+    # Storage for Hessenberg matrix entries (column by column)
     h = Vector{T}[]
+    # Storage for orthonormal basis vectors of the Krylov subspace
     q = [normalize(x0)]
     n = length(x0)
+    # Ensure A is a square matrix of appropriate dimensions
     @assert size(A) == (n, n)
+    
+    # Main Arnoldi iteration loop
     for k = 1:min(maxiter, n)
+        # Apply the matrix to the latest basis vector
         u = A * q[k]    # generate next vector
+        
+        # Initialize the k-th column of the Hessenberg matrix
         hk = zeros(T, k+1)
+        
+        # Orthogonalize against all previous basis vectors (Gram-Schmidt process)
         for j = 1:k # subtract from new vector its components in all preceding vectors
-            hk[j] = q[j]' * u
-            u = u - hk[j] * q[j]
+            hk[j] = q[j]' * u  # Calculate projection coefficient
+            u = u - hk[j] * q[j]  # Subtract projection
         end
+        
+        # Calculate the norm of the remaining vector
         hkk = norm(u)
-        hk[k+1] = hkk
-        push!(h, hk)
-        if abs(hkk) < 1e-8 || k >=n # stop if matrix is reducible
+        hk[k+1] = hkk  # This will be the subdiagonal entry
+        push!(h, hk)  # Store this column of coefficients
+        
+        # Check for convergence or breakdown
+        if abs(hkk) < 1e-8 || k >= n # stop if matrix is reducible
             break
         else
+            # Normalize the new basis vector and add to our collection
             push!(q, u ./ hkk)
         end
     end
 
-    # construct `h`
+    # Construct the Hessenberg matrix H from the stored coefficients
     kmax = length(h)
     H = zeros(T, kmax, kmax)
     for k = 1:length(h)
         if k == kmax
+            # Last column might be shorter if we had early termination
             H[1:k, k] .= h[k][1:k]
         else
+            # Standard case: copy the full column including subdiagonal entry
             H[1:k+1, k] .= h[k]
         end
     end
+    
+    # Return the Hessenberg matrix and the orthonormal basis matrix
     return H, hcat(q...)
 end
 ```
 
+In the following example, we use the Arnoldi algorithm to find the eigenvalues of a random matrix.
 ```julia
-import SparseArrays
+using SparseArrays, LinearAlgebra, KrylovKit
+
+# Create a sparse random matrix with 10% non-zero entries
 n = 100
-A = SparseArrays.sprand(n, n, 0.1)
+A = sprand(n, n, 0.1)
+
+# Create a random starting vector and normalize it
 q1 = randn(n)
+q1 = q1 / norm(q1)
+
+# Run our Arnoldi iteration implementation
 h, q = arnoldi_iteration(A, q1; maxiter=20)
-eigen(h).values   # naive implementation
-eigsolve(A, q1, 2, :LR)  # KrylovKit.eigsolve
+
+# Compare eigenvalues from our implementation with KrylovKit
+evals_arnoldi = eigen(h).values
+# output:
+# ComplexF64[..., 1.431963042798233 + 0.6076924727135001im, 4.715884744990036 + 0.0im]
+
+# Compare with KrylovKit.jl implementation
+evals_krylovkit, evecs, info = eigsolve(A, q1, 2, :LR)
+evals_krylovkit
+# output:
+# 3-element Vector{ComplexF64}:
+#   4.715884731681078 + 0.0im
+#  1.5643884820156855 + 0.10220803623279921im
+#  1.5643884820156855 - 0.10220803623279921im
+
+# Check the residual for the largest eigenvalue
+λ, v = evals_krylovkit[1], evecs[1]
+residual = norm(A*v - λ*v) / abs(λ)
+println("\nResidual for largest eigenvalue: $residual")
+# output:
+# Residual for largest eigenvalue: 1.8637188167771364e-15
 ```
+- _Remark_: Sometimes, the `KrylovKit.jl` returns more than the requested number of eigenvalues. Most of the time, the extra eigenvalues are due to the degeneracy of the eigenvalues. They converge simultaneously.
 
 == Graphs
 
@@ -790,6 +914,8 @@ To get the shortest path length between vertex 1 and other vertices, we simply r
 
 ```julia
 dijkstra_shortest_paths(g, 2)
+# output:
+# Graphs.DijkstraState{Int64, Int64}([2, 0, 2, 3, 1, 1, 2, 3, 7, 7], [1, 0, 1, 2, 2, 2, 1, 2, 2, 2], [Int64[], Int64[], Int64[], Int64[], Int64[], Int64[], Int64[], Int64[], Int64[], Int64[]], [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0], Int64[])
 ```
 
 #bibliography("refs.bib")
