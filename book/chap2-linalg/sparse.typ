@@ -2,6 +2,7 @@
 #import "@preview/cetz:0.2.2": *
 
 #show: book-page.with(title: "Sparse Matrices and Graphs")
+#let exampleblock(it) = block(fill: rgb("#ffffff"), inset: 1em, radius: 4pt, width: 100%, stroke: black, it)
 
 #let show-graph(vertices, edges, radius:0.2) = {
   import draw: *
@@ -17,10 +18,11 @@
 
 == Sparse Matrices
 
-Sparse matrices are ubiquitous in scientific computing. This section considers how to efficiently store and manipulate sparse matrices.
+Sparse matrices are ubiquitous in scientific computing. They arise naturally in many applications where most elements are zero, allowing for significant memory savings and computational efficiency. This section considers how to efficiently store and manipulate sparse matrices.
+
 == COOrdinate (COO) format
 
-The coordinate format means storing nonzero matrix elements into triples
+The coordinate format means storing nonzero matrix elements into triples of row index, column index, and value:
 
 $
   &(i_1, j_1, v_1)\
@@ -29,7 +31,7 @@ $
   &(i_k, j_k, v_k)
 $
 
-To store a sparse matrix $A$ in COO format, we only need to store $"nnz"(A)$ triples, where $"nnz"(A)$ is the number of nonzero elements in $A$. Julia does not have a native COO data type, since it is not a efficient data structure for operations on sparse matrices. In the following, we implement a COO matrix from scratch by implementing the #link("https://docs.julialang.org/en/v1/manual/interfaces/#man-interface-array")[`AbstractArray`] interface:
+To store a sparse matrix $A$ in COO format, we only need to store $"nnz"(A)$ triples, where $"nnz"(A)$ is the number of nonzero elements in $A$. Julia does not have a native COO data type, so we implement a COO matrix from scratch by implementing the #link("https://docs.julialang.org/en/v1/manual/interfaces/#man-interface-array")[`AbstractArray`] interface:
 - `size`: return the size of the matrix
 - `getindex`: return the element at the given index
 
@@ -43,38 +45,54 @@ struct COOMatrix{Tv, Ti} <: AbstractArray{Tv, 2}   # Julia does not have a COO d
     rowval::Vector{Ti}   # row indices
     nzval::Vector{Tv}    # values
     function COOMatrix(m::Ti, n::Ti, colval::Vector{Ti}, rowval::Vector{Ti}, nzval::Vector{Tv}) where {Tv, Ti}
+        # Check that all arrays have the same length
         @assert length(colval) == length(rowval) == length(nzval)
+        # Create a new COOMatrix with the given parameters
         new{Tv, Ti}(m, n, colval, rowval, nzval)
     end
 end
 
+# Return the dimensions of the matrix
 Base.size(coo::COOMatrix) = (coo.m, coo.n)
+# Return a specific dimension of the matrix
 Base.size(coo::COOMatrix, i::Int) = getindex((coo.m, coo.n), i)
-# the number of non-zero elements
+# Return the number of non-zero elements in the matrix
 nnz(coo::COOMatrix) = length(coo.nzval)
 
-# implement get index for COO matrix, call with A[i, j]
+# Implement indexing for COO matrix (A[i,j])
 function Base.getindex(coo::COOMatrix{Tv}, i::Integer, j::Integer) where Tv
+    # Check if indices are within bounds
     @boundscheck checkbounds(coo, i, j)
+    # Initialize return value to zero
     v = zero(Tv)
+    # Iterate through all stored elements
     for (i2, j2, v2) in zip(coo.rowval, coo.colval, coo.nzval)
+        # If we find a matching position
         if i == i2 && j == j2
+            # Add the value (accumulate in case of duplicates)
             v += v2  # accumulate the value, since repeated indices are allowed.
         end
     end
+    # Return the accumulated value (or zero if no matches found)
     return v
 end
 ```
 
-The indexing of a COO matrix is slow.
+The indexing of a COO matrix is slow, making it primarily useful as an input format rather than for computation.
 Unless we sort the nonzero elements and remove the duplicate indices, the indexing operation requires $O(op("nnz")(A))$ operations.
-
-With the required two interfaces implemented, we have a fallback implementation of many linear algebra operations for COO matrices, although it is not efficient. In the following, we implement a more efficient version of the matrix-vector and matrix-matrix multiplication for COO matrices.
+In the following, we implement a more efficient version of the matrix-vector and matrix-matrix multiplication for COO matrices.
 
 ```julia
-function Base.:*(A::COOMatrix{T1}, x::AbstractVector{T2}) where {T1, T2}
-    T = promote_type(T1, T2)
-    y = zeros(T, size(A, 1))
+# Matrix-vector multiplication using mul!
+function LinearAlgebra.mul!(y::AbstractVector{T}, A::COOMatrix, x::AbstractVector) where T
+    # Check dimensions
+    @assert size(A, 2) == length(x) "Dimension mismatch"
+    @assert size(A, 1) == length(y) "Dimension mismatch"
+    
+    # Zero out the result vector
+    fill!(y, zero(T))
+    
+    # Accumulate contributions from each non-zero element
     for (i, j, v) in zip(A.rowval, A.colval, A.nzval)
         y[i] += v * x[j]
     end
@@ -82,19 +100,30 @@ function Base.:*(A::COOMatrix{T1}, x::AbstractVector{T2}) where {T1, T2}
 end
 
 function Base.:*(A::COOMatrix{T1}, B::COOMatrix{T2}) where {T1, T2}
+    # Check that the inner dimensions match
     @assert size(A, 2) == size(B, 1)
+    
+    # Initialize empty arrays for the result matrix
     rowval = Int[]
     colval = Int[]
-    nzval = promote_type(T1, T2)[]
+    nzval = promote_type(T1, T2)[]  # Promote types to handle mixed precision
+    
+    # Iterate through all non-zero elements of A
     for (i, j, v) in zip(A.rowval, A.colval, A.nzval)
+        # For each non-zero element in A, find matching elements in B
         for (i2, j2, v2) in zip(B.rowval, B.colval, B.nzval)
+            # If the column index of A matches the row index of B
             if j == i2
+                # This creates a non-zero element in the result matrix
                 push!(rowval, i)
                 push!(colval, j2)
-                push!(nzval, v * v2)
+                push!(nzval, v * v2)  # Multiply the values
             end
         end
     end
+    
+    # Create and return the result matrix in COO format
+    # Note: This implementation doesn't combine duplicate entries
     return COOMatrix(size(A, 1), size(B, 2), colval, rowval, nzval)
 end
 ```
@@ -123,6 +152,13 @@ x = randn(size(matrix, 2))
 ```
 
 == Compressed Sparse Column (CSC) format
+
+The Compressed Sparse Column (CSC) format is one of the most widely used sparse matrix storage formats, especially in scientific computing. It provides efficient column-wise access and matrix operations while minimizing memory usage.
+
+In CSC format, a sparse matrix is represented by three arrays:
+- `colptr`: An array of column pointers (length n+1)
+- `rowval`: An array of row indices for each non-zero element
+- `nzval`: An array of non-zero values
 
 #figure(canvas({
   import draw: *
@@ -160,116 +196,180 @@ x = randn(size(matrix, 2))
   content((7, -0.5), text(16pt)[$mat(dot,3,dot, dot;1, dot, dot, dot;2, dot, dot, 5;dot, 4, dot,  6;dot, dot, dot, dot)$])
 }))
 
-The `m`, `n`, `rowval` and `nzval` have the same meaning as those in the COO format. `colptr` is an integer vector of size $n+1$, where `colptr[j]` is the index in `rowval` and `nzval` of the first nonzero element in the $j$-th column, and `colptr[j+1]` is the index of the first nonzero element in the $(j+1)$-th column. Hence the $j$-th column of the matrix is stored in `rowval[colptr[j]:colptr[j+1]-1]` and `nzval[colptr[j]:colptr[j+1]-1]`.
+The `m`, `n`, `rowval` and `nzval` have the same meaning as those in the COO format. `colptr` is an integer vector of size $n+1$, and `colptr[j]` points to the first nonzero element in the $j$-th column. Hence the $j$-th column of the matrix is stored as a tuple:
+- `rowval[colptr[j]:colptr[j+1]-1]`, the row indices of the nonzero elements in the $j$-th column,
+- `nzval[colptr[j]:colptr[j+1]-1]`, the nonzero values in the $j$-th column.
 
-
-A CSC format sparse matrix can be constructed with the `SparseArrays.sparse` function. However, here we will implement a simple CSC matrix from scratch.
-
+This column-oriented structure makes CSC format particularly efficient for column-wise operations and matrix-vector multiplication.
+Julia's `SparseArrays` standard library uses CSC as its primary sparse matrix format.
+A CSC format sparse matrix can be constructed from the COO format with the `SparseArrays.sparse` function:
+```julia
+using SparseArrays
+# the sparse matrix in the above figure.
+sparse([2, 3, 1, 4, 3, 4], [1, 1, 2, 2, 4, 4], [1, 2, 3, 4, 5, 6], 5, 4)
+# Output: 5×4 SparseMatrixCSC{Int64, Int64} with 6 stored entries:
+#  ⋅  3  ⋅  ⋅
+#  1  ⋅  ⋅  ⋅
+#  2  ⋅  ⋅  5
+#  ⋅  4  ⋅  6
+#  ⋅  ⋅  ⋅  ⋅
+```
+The output has data type `SparseMatrixCSC{Int64, Int64}`, where `Int64` is the type of the matrix elements. In the following, we implement a CSC matrix from scratch for better understanding:
 ```julia
 struct CSCMatrix{Tv,Ti} <: AbstractMatrix{Tv}
-    m::Int
-    n::Int
-    colptr::Vector{Ti}
-    rowval::Vector{Ti}
-    nzval::Vector{Tv}
+    m::Int              # Number of rows
+    n::Int              # Number of columns
+    colptr::Vector{Ti}  # Column pointers (length n+1)
+    rowval::Vector{Ti}  # Row indices of non-zero elements
+    nzval::Vector{Tv}   # Values of non-zero elements
     function CSCMatrix(m::Int, n::Int, colptr::Vector{Ti}, rowval::Vector{Ti}, nzval::Vector{Tv}) where {Tv, Ti}
+        # Validate that colptr has the correct length (n+1)
         @assert length(colptr) == n + 1
+        # Validate that rowval and nzval have the same length and match the last colptr entry
         @assert length(rowval) == length(nzval) == colptr[end] - 1
         new{Tv, Ti}(m, n, colptr, rowval, nzval)
     end
 end
+
+# Return the dimensions of the matrix
 Base.size(A::CSCMatrix) = (A.m, A.n)
+# Return a specific dimension of the matrix
 Base.size(A::CSCMatrix, i::Int) = getindex((A.m, A.n), i)
-# the number of non-zero elements
+# Return the number of non-zero elements in the matrix
 nnz(csc::CSCMatrix) = length(csc.nzval)
 
-# convert a COO matrix to a CSC matrix
+# Convert a COO matrix to a CSC matrix
 function CSCMatrix(coo::COOMatrix{Tv, Ti}) where {Tv, Ti}
     m, n = size(coo)
-    # sort the COO matrix by column
+    # Sort the COO matrix entries by column-major order (column first, then row)
     order = sortperm(1:nnz(coo); by=i->coo.rowval[i] + m * (coo.colval[i]-1))
+    # Initialize arrays for CSC format
     colptr, rowval, nzval = similar(coo.rowval, n+1), similar(coo.rowval), similar(coo.nzval)
-    k = 0
-    ipre, jpre = 0, 0
-    colptr[1] = 1
+    k = 0  # Counter for unique entries after accumulation
+    ipre, jpre = 0, 0  # Previous row and column indices
+    colptr[1] = 1  # First column starts at index 1
+    
+    # Process each entry in sorted order
     for idx in order
         i, j, v = coo.rowval[idx], coo.colval[idx], coo.nzval[idx]
-        # values with the same indices are accumulated
+        # If this entry has the same indices as the previous one, accumulate values
         if i == ipre && j == jpre
             nzval[k] += v
         else
+            # New unique entry
             k += 1
+            # If we've moved to a new column, update column pointers
             if j != jpre
-                # a new column starts
+                # Fill all column pointers from previous column up to current column
                 colptr[jpre+1:j+1] .= k
             end
+            # Store the row index and value
             rowval[k] = i
             nzval[k] = v
+            # Update previous indices
             ipre, jpre = i, j
         end
     end
+    
+    # Fill remaining column pointers
     colptr[jpre+1:end] .= k + 1
+    # Resize arrays to actual number of unique entries
     resize!(rowval, k)
     resize!(nzval, k)
+    
     return CSCMatrix(m, n, colptr, rowval, nzval)
 end
 
-# implement get index for CSC matrix, call with A[i, j]
+# Implement indexing for CSC matrix (A[i,j])
 function Base.getindex(A::CSCMatrix{T}, i::Int, j::Int) where T
+    # Check if indices are within bounds
     @boundscheck checkbounds(A, i, j)
+    # Search for the row index i in column j
     for k in nzrange(A, j)
         if A.rowval[k] == i
             return A.nzval[k]
         end
     end
+    # Return zero if element not found (sparse matrices return zero for missing elements)
     return zero(T)
 end
 
-# return the range of non-zero elements in the j-th column
+# Return the range of indices in nzval/rowval arrays for column j
 nzrange(A::CSCMatrix, j::Int) = A.colptr[j]:A.colptr[j+1]-1
 ```
 
 The row indices and values of nonzero elements in the 3rd column can be obtained by
 ```julia
-rows3 = csc_matrix.rowval[csc_matrix.colptr[3]:csc_matrix.colptr[4]-1]
-val3 = csc_matrix.nzval[csc_matrix.colptr[3]:csc_matrix.colptr[4]-1]
-csc_matrix.rowval[nzrange(csc_matrix, 3)] # or equivalently, we can use `nzrange`
+cscm = CSCMatrix(matrix)
+# Get row indices of nonzeros in column 3
+rows3 = cscm.rowval[cscm.colptr[3]:cscm.colptr[4]-1]
+# Get values of nonzeros in column 3
+val3 = cscm.nzval[cscm.colptr[3]:cscm.colptr[4]-1]
+# Alternatively, use the nzrange helper function
+cscm.rowval[nzrange(cscm, 3)] # equivalent to the first approach
 ```
 
+This demonstrates the core advantage of the CSC format: direct access to all nonzeros in a specific column.
+
 ```julia
-function Base.:*(A::CSCMatrix{T1}, x::AbstractVector{T2}) where {T1, T2}
-    T = promote_type(T1, T2)
-    y = zeros(T, size(A, 1))
+# Matrix-vector multiplication for CSC matrices
+# y = A*x where A is in CSC format
+function LinearAlgebra.mul!(y::AbstractVector{T}, A::CSCMatrix, x::AbstractVector{T}) where T
+    # Initialize result vector to zeros
+    fill!(y, zero(T))
+    
+    # Loop through each column of A
     for j in 1:size(A, 2)
+        # For each nonzero element in column j
         for k in nzrange(A, j)
+            # Add contribution to result vector: y[i] += A[i,j] * x[j]
+            # where i = A.rowval[k] is the row index of the nonzero element
             y[A.rowval[k]] += A.nzval[k] * x[j]
         end
     end
     return y
 end
 
+# Matrix-matrix multiplication for CSC matrices
+# C = A*B where both A and B are in CSC format
 function Base.:*(A::CSCMatrix{T1}, B::CSCMatrix{T2}) where {T1, T2}
+    # Determine the result type by promoting types of A and B
     T = promote_type(T1, T2)
+    
+    # Check that inner dimensions match
     @assert size(A, 2) == size(B, 1)
+    
+    # Initialize arrays to store result in COO format
     rowval, colval, nzval = Int[], Int[], T[]
+    
+    # Loop through each column of B
     for j2 in 1:size(B, 2)  # enumerate the columns of B
+        # For each nonzero element in column j2 of B
         for k2 in nzrange(B, j2)  # enumerate the rows of B
+            # Get the value of B[i2,j2] where i2 = B.rowval[k2]
             v2 = B.nzval[k2]
-            for k1 in nzrange(A, B.rowval[k2])  # enumerate the rows of A
+            i2 = B.rowval[k2]
+            
+            # For each nonzero element in column i2 of A
+            for k1 in nzrange(A, i2)  # enumerate the rows of A
+                # Add contribution to result: C[i1,j2] += A[i1,i2] * B[i2,j2]
+                # where i1 = A.rowval[k1]
                 push!(rowval, A.rowval[k1])
                 push!(colval, j2)
                 push!(nzval, A.nzval[k1] * v2)
             end
         end
     end
+    
+    # Convert from COO to CSC format and return
     return CSCMatrix(COOMatrix(size(A, 1), size(B, 2), colval, rowval, nzval))
 end
 ```
 
+Let's test the performance of the CSC matrix:
 ```julia
-csc_matrix = CSCMatrix(matrix)
-@btime csc_matrix * x             # 37.042 μs
-@btime csc_matrix * csc_matrix    # 3.349 ms
+@btime cscm * x      # 37.042 μs
+@btime cscm * cscm    # 3.349 ms
 ```
 While the matrix-vector multiplication has a similar performance as the COO matrix, the matrix-matrix multiplication is much faster than the COO matrix.
 This is because the time complexity of multiplying two CSC matrices $A$ and $B$ is $O(op("nnz")(A)op("nnz")(B)\/n)$, while the time complexity of multiplying two COO matrices is $O(op("nnz")(A)op("nnz")(B))$.
@@ -285,9 +385,9 @@ sp = sparse(matrix.rowval, matrix.colval, matrix.nzval, matrix.m, matrix.n)
 
 == Dominant eigenvalue problem
 
-Given a matrix $A in RR^(n times n)$, the dominant eigenvalue problem is to find the largest eigenvalue $lambda_1$ and its corresponding eigenvector $x_1$ such that
+Given a matrix $A in RR^(n times n)$, the dominant eigenvalue problem is to find the largest (or smallest) eigenvalue $lambda_1$ and its corresponding eigenvector $x_1$:
 
-$ A x_1 = lambda_1 x_1. $
+$ min_(x_1) lambda_1 quad "s.t." A x_1 = lambda_1 x_1. $
 
 The power method is a simple iterative algorithm to solve the dominant eigenvalue problem. The algorithm starts with a random vector $v_0$ and repeatedly multiplies it with the matrix $A$.
 
@@ -297,7 +397,7 @@ By representing the initial vector $v_0$ as a linear combination of eigenvectors
 
 $ v_k = sum_(i=1)^n lambda_i^k c_i x_i $
 
-where $lambda_1 > lambda_2 >= dots.h >= lambda_n$ are the eigenvalues of $A$ and $x_i$ are the corresponding eigenvectors. The power method converges to the eigenvector corresponding to the largest eigenvalue as $k -> infinity$. The rate of convergence is dedicated by $|lambda_2/lambda_1|^k$. The Julia code for the power method is as follows.
+where $lambda_1 > lambda_2 >= dots.h >= lambda_n$ are the eigenvalues of $A$ and $x_i$ are the corresponding eigenvectors. The power method converges to the eigenvector corresponding to the largest eigenvalue as $k -> infinity$. The rate of convergence is determined by $|lambda_2/lambda_1|^k$. The Julia code for the power method is as follows.
 
 ```julia
 function power_method(A::AbstractMatrix{T}, n::Int) where T
@@ -313,29 +413,7 @@ end
 
 By inverting the sign, $A -> -A$, we can use the same method to obtain the smallest eigenvalue.
 
-== The Krylov subspace method
-
-Let $A in CC^(n times n)$ be a large sparse matrix, the Arnoldi and Lanczos algorithms can be used to obtain its largest/smallest eigenvalue, with much faster convergence speed comparing with the power method.
-
-The key idea of these algorithms is to generate an orthogonal matrix $Q in CC^(n times k)$, $Q^dagger Q = I$, such that
-
-$ Q^dagger A Q = B. $
-
-We have the following property
-
-$ lambda_1(B) <= lambda_1(A), $
-
-where $lambda_1(A)$ is the largest eigenvalue of $A$. By chooing $Q$ carefully, such that $op("span")(Q)$ contains the dominant eigenvectors of $A$, then $lambda_1(B) = lambda_1(A)$. When the equality holds, we have
-
-$ B y_1 = lambda_1(B) y_1 $
-
-Inspired by the power method, we can define the $Q$ as the *Krylov subspace* that generated from a random initial vector $q_1$.
-
-$ cal(K)(A, q_1, k) = op("span"){q_1, A q_1, A^2 q_1, dots, A^(k-1) q_1} $
-
-The Arnoldi and Lanczos algorithm are two special cases of the Krylov subspace method. The Arnoldi algorithm is used to solve the eigenvalue problem, while the Lanczos algorithm is used to solve the symmetric eigenvalue problem.
-
-=== KrylovKit.jl
+== KrylovKit.jl
 The Julia package #link("https://github.com/Jutho/KrylovKit.jl")[`KrylovKit.jl`] contains many Krylov space based algorithms.
 `KrylovKit.jl` accepts general functions or callable objects as linear maps, and general Julia
 objects with vector like behavior (as defined in the docs) as vectors.
@@ -347,6 +425,57 @@ The high level interface of KrylovKit is provided by the following functions:
 - `exponentiate`: apply the exponential of a linear map to a vector
 - `expintegrator`: #link("https://en.wikipedia.org/wiki/Exponential_integrator")[exponential integrator]
     for a linear non-homogeneous ODE, computes a linear combination of the $phi_j$ functions which generalize $phi_0(z) = exp(z)$.
+
+#exampleblock[
+*Example*: Solve the slowest mode of the spring chain.
+
+We use the `KrylovKit.eigsolve` function. This function accepts a linear map, an initial vector, the number of eigenvalues to compute, and the target eigenvalue type.
+
+```julia
+julia> using KrylovKit
+
+julia> eigsolve(sp, randn(size(sp, 1)), 1, :SR)
+([-3.999996868663288], ..., ConvergenceInfo: no converged values after 100 iterations and 1218 applications of the linear map;
+norms of residuals are given by (6.611549984040687e-5,).
+```
+Here, we use the `:SR` target eigenvalue type, which means the "smallest" real part of the eigenvalue. The output contains three parts, the eigenvalues, the eigenvectors, and the convergence information. The eigenvalues are not the expected, since the smallest real part can be negative, but we want the one closest to zero.
+- _Remark_: Since this matrix is real symmetric, all eigenvalues and all eigenvectors are real. It calls into the Lanczos algorithm.
+
+Let us correct the target eigenvalue type using the `EigSorter`.
+```julia
+julia> eigsolve(sp, randn(size(sp, 1)), 1, EigSorter(abs; rev=false))
+([-3.148596175606358e-6], ..., ConvergenceInfo: no converged values after 100 iterations and 1218 applications of the linear map;
+norms of residuals are given by (8.144476258164312e-5,).
+)
+```
+It produces a value $~-3times 10^(-6)$, which is very close to 0 as expected. We do not know if it is a zero eigenvalue, or just being very small, since the residual is still large. Let us improve the precision by setting a larger tolerance and a larger maximum number of iterations:
+```julia
+julia> eigsolve(sp, randn(size(sp, 1)), 1, EigSorter(abs; rev=false), tol=1e-10, maxiter=5000)
+([-4.778184048570348e-8], ..., ConvergenceInfo: no converged values after 5000 iterations and 60018 applications of the linear map;
+norms of residuals are given by (1.0713185997288401e-6,).
+```
+Now the residual is much smaller, and the eigenvalue is also two orders of magnitude smaller.
+Hence, we are more confident that it is a zero eigenvalue.
+]
+
+== The Krylov subspace method
+
+The Krylov subspace method is the method that `KrylovKit.jl` uses to solve the large scale dominant eigenvalue problem. The input can be any kind of linear map that implements the `mul!` interface, which performs the matrix-vector multiplication. The linear map does not have to be a dense or sparse matrix, but can be any kind of linear operator $A$ satisfying:
+
+$ A (alpha x + beta y) = alpha A(x) + beta A(y). $
+
+The Krylov subspace method, such as the Arnoldi and Lanczos algorithms, have much faster convergence speed comparing with the power method.
+The key idea is to generate an orthogonal matrix $Q in CC^(n times k)$ with $k << n$, $Q^dagger Q = I$, such that
+$ Q^dagger A Q = B, $
+and the largest eigenvalue of $B$ best approximates the largest eigenvalue of $A$.
+Since $B$ has size $k times k$, the new eigenvalue problem is much easier to solve. The largest eigenvalue of $B$ upper bounds the largest eigenvalue of $A$:
+$ lambda_1(B) <= lambda_1(A), $
+where $lambda_1(A)$ denotes the largest eigenvalue of $A$. The equality holds if $Q$ is chosen such that $op("span")(Q)$ contains the dominant eigenvectors of $A$.
+Whenever, we have $B y_1 = lambda_1(B) y_1$, we have $y_1^dagger Q^dagger A Q y_1 = lambda_1(B) y_1^dagger y_1 = lambda_1(A)$. Then, either $Q y_1$ is the largest eigenvector of $A$, or $A$ has an eigenvalue $lambda_1(A)$ such that $lambda_1(A) > lambda_1(B)$.
+
+The $Q$ can be generated from the *Krylov subspace* generated from a random initial vector $q_1$:
+$ cal(K)(A, q_1, k) = op("span"){q_1, A q_1, A^2 q_1, dots, A^(k-1) q_1}. $
+Unlike the power method, the Krylov subspace method generates an orthogonal matrix $Q$ by orthonormalizing the Krylov vectors, rather than just using the last vector. Hence, it is strictly better than the power method.
 
 == The Lanczos algorithm
 
@@ -566,6 +695,7 @@ eigsolve(A, q1, 2, :LR)  # KrylovKit.eigsolve
 ```
 
 == Graphs
+
 A graph is a pair $G = (V, E)$, where $V$ is a set of vertices and $E$ is a set of edges. In Julia, the package #link("https://github.com/JuliaGraphs/Graphs.jl")[`Graphs.jl`] provides a simple graph data structure. The following code creates a simple graph with 10 vertices.
 
 ```julia
@@ -625,7 +755,7 @@ lap_matrix = laplacian_matrix(graph)
 ```
 
 === Shortest path problem - The tropical matrix multiplication approach
-The shortest path problem is to find the shortest path between two vertices in a graph. The tropical matrix multiplication approach is one of the most efficient ways to solve the shortest path problem.
+The shortest path problem is to find the shortest path between two vertices in a graph. The tropical matrix multiplication approach@Moore2011 is one of the most efficient ways to solve the shortest path problem.
 
 It can be solved directly with the Min-Plus Tropical matrix multiplication:
 
@@ -661,37 +791,5 @@ To get the shortest path length between vertex 1 and other vertices, we simply r
 ```julia
 dijkstra_shortest_paths(g, 2)
 ```
-
-=== The spectral graph theory
-
-*Theorem*: The number of connected components in the graph is the dimension of the nullspace of the Laplacian and the algebraic multiplicity of the 0 eigenvalue.
-
-```julia
-graphsize = 1000
-graph = random_regular_graph(graphsize, 3)
-lmat = laplacian_matrix(graph)
-q1 = randn(graphsize)
-tri, Q = lanczos(lmat, q1; abstol=1e-8, maxiter=100)
--eigen(-tri).values  # the eigenvalues of the tridiagonal matrix
-Q' * Q             # the orthogonality of the Krylov vectors
-eigsolve(lmat, q1, 2, :SR)  # using function `KrylovKit.eigsolve`
-```
-
-NOTE: with larger `graph_size`, you should see some "ghost" eigenvalues 
-
-=== Graph layout and clustering
-Given a graph, we can use the spectral graph theory to detect the number of connected components and the clustering of the graph. What if we are interested in the clustering of the graph? The spectral clustering algorithm is a popular method to partition a graph into clusters@Ng2001. The algorithm is as follows:
-
-Given a set of points $S = {s_1, dots, s_n}$ in $RR^l$ that we want to cluster into k subsets:
-1. Form the affinity matrix $A in RR^(n times n)$ defined by $A_(i j) = exp(-norm(s_i - s_j)_2/2sigma^2)$ if $i != j$, and $A_(i i) = 0$.
-2. Define $D$ to be the diagonal matrix whose $(i, i)$-element is the sum of $A$'s $i$-th row, and construct the matrix $L = D^(-1/2)A D^(-1/2)$.
-3. Find $x_1, x_2, dots, x_k$, the $k$ largest eigenvectors of $L$ (chosen to be orthogonal to each other in the case of repeated eigenvalues), and form the matrix $X = [x_1 x_2 dots x_k] in RR^(n times n)$ by stacking the eigenvectors in columns.
-4. Form the matrix $Y$ from $X$ by renormalizing each of $X$'s rows to have unit length (i.e. $Y_(i j) = X_(i j)/(sum_j X_(i,j)^2)^(1/2)$).
-5. Treating each row of $Y$ as a point in $RR^k$, cluster them into $k$ clusters via K-means or any other algorithm (that attempts to minimize distortion).
-6. Finally, assign the original point $S_i$ to cluster $j$ if and only if row $i$ of the matrix $Y$ was assigned to cluster $j$.
-
-Here, the scaling parameter $sigma^2$ controls how rapidly the affinity $A_(i j)$ falls off with the distance between $s_i$ and $s_j$, and we will later describe a method for choosing it automatically.
-
-For an implementation of the spectral clustering algorithm, please check the #link("https://github.com/GiggleLiu/ScientificComputingDemos/tree/main/GraphClustering")[demo].
 
 #bibliography("refs.bib")
