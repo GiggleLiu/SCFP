@@ -918,4 +918,18 @@ dijkstra_shortest_paths(g, 2)
 # Graphs.DijkstraState{Int64, Int64}([2, 0, 2, 3, 1, 1, 2, 3, 7, 7], [1, 0, 1, 2, 2, 2, 1, 2, 2, 2], [Int64[], Int64[], Int64[], Int64[], Int64[], Int64[], Int64[], Int64[], Int64[], Int64[]], [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0], Int64[])
 ```
 
+== Special matrices
+
+Some special matrices have special properties that can be exploited for efficient computation.
+
+=== (Block) Tridiagonal matrices
+
+#figure(table(columns: 2,
+    table.header([*Operation*], [*Time complexity*]),
+    [*Linear system solving*], [$O(n)$ (Thomas algorithm)],
+    [*Matrix inversion*], [$O(n^2)$@Ran2006],
+    [*Determinant*], [$O(n)$@Molinari2008],
+    [*Eigenvalue problem*], [$O(n^2)$@Dhillon2004 @Sandryhaila2013],
+))
+
 #bibliography("refs.bib")
