@@ -67,16 +67,17 @@
 == Example 1: The stiffness matrix of a spring chain
 
 $
-  mat(
+   mat(
     -C, C, 0, dots.h, 0;
     C, -2C, C, dots.h, 0;
     0, C, -2C, dots.h, 0;
     dots.v, dots.v, dots.v, dots.down, dots.v;
     0, 0, 0, C, -C
   )
+vec(u_1, u_2, u_3, dots.v, u_n) = -M omega^2 vec(u_1, u_2, u_3, dots.v, u_n)
 $
 
-- _Remark_: Most differential operators are sparse.
+- _Remark_: Many operators in linear differential equations are sparse.
 
 == Example 2: The adjacency matrix of a graph
 
@@ -420,6 +421,33 @@ sp = sparse(matrix.rowval, matrix.colval, matrix.nzval, matrix.m, matrix.n)
 ])
 
 = Dominant eigenvalue problem
+
+== Solving linear equations
+
+Routines in #link("https://github.com/JuliaLinearAlgebra/IterativeSolvers.jl")[`IterativeSolvers.jl`]:
+
+#table(columns: 2,
+  table.header([*Method*], [*When to use it*]),
+  [Conjugate Gradients], [Best choice for symmetric, positive-definite matrices],
+  [MINRES], [For symmetric, indefinite matrices],
+  [GMRES], [For nonsymmetric matrices when a good preconditioner is available],
+  [IDR(s)], [For nonsymmetric, strongly indefinite problems without a good preconditioner],
+  [BiCGStab(l)], [Otherwise for nonsymmetric problems]
+)
+
+== Example:
+
+#box(text(16pt)[```julia
+using IterativeSolvers, SparseArrays, LinearAlgebra
+A = sprandn(10000, 10000, 0.001) + Diagonal(1:10000)
+b = randn(10000)
+
+x = gmres(A, b; reltol=1e-10)
+norm(A * x - b)  # 9.99579999231606e-9
+```])
+
+- _Remark_: The `gmres` function uses the _Arnoldi process_ to solve the problem.
+
 == Dominant eigenvalue problem
 
 Given a matrix $A in RR^(n times n)$, the dominant eigenvalue problem is to find the largest (or smallest) eigenvalue $lambda_1$ and its corresponding eigenvector $x_1$:
