@@ -605,12 +605,21 @@ where $Q = (q_1 | q_2 | dots | q_k)$, and $op("span")({q_1, q_2, dots, q_k}) = c
 
 == The Lanczos algorithm
 The Lanczos algorithm is basically a Gram-Schmidt orthogonalization process applied to the Krylov subspace:
-1. We start with a normalized vector $q_1$ and compute $A q_1$ (the second vector in the Krylov subspace).
-2. To find $alpha_1$, we project $A q_1$ onto $q_1$ by computing the inner product:
-   $ alpha_1 = q_1^dagger A q_1 $
-3. The remainder $r_1 = A q_1 - alpha_1 q_1$ is orthogonal to $q_1$. We set $beta_1 = ||r_1||_2$ and $q_2 = r_1\/beta_1$ (if $beta_1 != 0$).
-4. For subsequent steps, we compute $A q_k$ and make it orthogonal to both $q_k$ and $q_(k-1)$ by subtracting their projections:
-   $ r_k = A q_k - alpha_k q_k - beta_(k-1) q_(k-1) $
+#algorithm({
+  import algorithmic: *
+  Function("Lanczos", args: ([$A$], [$q_1$], [$T$], [$Q$]), {
+    Assign([$k, beta_0, bold(q)_0, bold(r)_0$], [$0, 1, 0, bold(q)_1$])
+    While(cond: [$k = 0$ or $beta_k != 0$], {
+      Assign([$bold(q)_(k+1)$], [$bold(r)_(k) \/ beta_(k)$])
+      Assign([$k$], [$k+1$])
+      Assign([$alpha_k$], [$bold(q)_(k)^dagger A bold(q)_k$])
+      Assign([$bold(r)_k$], [$A bold(q)_k - alpha_k bold(q)_k - beta_(k-1) bold(q)_(k-1)$])
+      Assign([$beta_k$], [$||bold(r)_k||_2$])
+    })
+  })
+ })
+
+
 
 == Stop condition
 The key insight is that, for symmetric matrices, $r_k$ is automatically orthogonal to $q_1, q_2, dots, q_(k-2)$ due to the properties of the Krylov subspace. This is why we only need to explicitly orthogonalize against the two most recent vectors.
