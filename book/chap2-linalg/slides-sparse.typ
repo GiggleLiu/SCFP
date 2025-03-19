@@ -125,12 +125,24 @@ julia> using Yao; Yao.mat(EasyBuild.heisenberg(20))
 
 == The essential operations on sparse matrices
 
-- #highlight([Matrix-vector multiplication: $A v$ (essential)])
-- Solving linear systems: $A x = b$
-- Eigenvalues and eigenvectors: $A v = lambda v$, used in graph spectral theory, quantum physics, etc.
-- Expmv: $e^A v$, used in time-evolution simulation of a quantum system
-#v(30pt)
-- _Remark_: Usually, the above operations does not require the explicit use of the `getindex` function (or `A[i, j]` operator) on a sparse matrix. The matrix-vector multiplication is the essential operation.
+#figure(canvas({
+  import draw: *
+  let boxed(it) = box(stroke: black, inset: 0.5em, it)
+  let s(it) = text(16pt, it)
+  content((0, 0), boxed(s[Matmul: $x = A v$]), name: "mv")
+  content((-7, -2.5), boxed(s[Solve: $A x = b$]), name: "ls")
+  content((0, -2.5), boxed(s[Eigen: $A v = lambda v$]), name: "ev")
+  content((7, -2.5), boxed(s[Expmv: $x = e^A v$]), name: "expmv")
+  content((-7, -3.5), s[`IterativeSolvers.jl`], name: "iter")
+  content((0, -3.5), s[`KrylovKit.jl`], name: "krylov")
+  content((7, -3.5), s[`KrylovKit.jl`], name: "krylov2")
+  line("mv", "ls", mark: (end: "straight"))
+  line("mv", "ev", mark: (end: "straight"))
+  line("mv", "expmv", mark: (end: "straight"))
+}))
+
+- _Remark_: Explicit use of the `getindex` function (or `A[i, j]` operator) on a sparse matrix is not recommended.
+- _Remark_: Efficient implementation of matrix-vector multiplication is the key to the performance of sparse matrix operations.
 
 == COOrdinate (COO) format
 
@@ -420,7 +432,7 @@ sp = sparse(matrix.rowval, matrix.colval, matrix.nzval, matrix.m, matrix.n)
 ```
 ])
 
-= Dominant eigenvalue problem
+= Sparse matrix operations
 
 == Solving linear equations
 

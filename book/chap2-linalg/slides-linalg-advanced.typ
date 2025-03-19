@@ -893,7 +893,7 @@ rotation_matrix(angle) = [cos(angle) -sin(angle); sin(angle) cos(angle)]
 
 == QR Factorization with Givens Rotations
 
-= Do not Implement Your Own Linear Algebra
+= BLAS and LAPACK
 #timecounter(1)
 
 While implementing linear algebra algorithms from scratch is educational, in production code you should use established libraries like BLAS (Basic Linear Algebra Subprograms) and LAPACK (Linear Algebra Package). These libraries provide:
@@ -1236,7 +1236,7 @@ LAPACK routine names follow the pattern: `XYYZZZ`, where:
   ),
 ))
 
-= Hands-on: Implement your own linear algebra routines
+= Hands-on
 
 ==
 
