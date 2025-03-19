@@ -569,8 +569,20 @@ where $lambda_1(A)$ denotes the largest eigenvalue of $A$. The equality holds if
 == Why?
 Whenever, we have $B y_1 = lambda_1(B) y_1$, we have $y_1^dagger Q^dagger A Q y_1 = lambda_1(B) y_1^dagger y_1 = lambda_1(A)$. Then, either $Q y_1$ is the largest eigenvector of $A$, or $A$ has an eigenvalue $lambda_1(A)$ such that $lambda_1(A) > lambda_1(B)$.
 
+#figure(canvas({
+  import draw: *
+  let boxed(it) = align(center, box(stroke: black, inset: 0.5em, it))
+  let s(it) = text(16pt, it)
+  content((0, 0), boxed(s[Original space\ $A in RR^(n times n)$]), name: "original")
+  content((7, 0), boxed(s[Subspace (much smaller)\ $B in RR^(k times k)$]), name: "subspace")
+  bezier("original.north", "subspace.north", (3.5, 3), mark: (end: "straight"), name: "arrow")
+  content((rel: (0, 0.5), to: "arrow.mid"), s[$Q$])
+}))
+
+Q: How to generate the subspace $"span"(Q)$?
+
 == The Krylov subspace
-The $Q$ can be generated from the *Krylov subspace* generated from a random initial vector $q_1$:
+The $"span"(Q)$ can be the *Krylov subspace* generated from a random initial vector $q_1$:
 $ cal(K)(A, q_1, k) = op("span"){q_1, A q_1, A^2 q_1, dots, A^(k-1) q_1}. $ <eq:krylov-subspace>
 Unlike the power method, the Krylov subspace method generates an orthogonal matrix $Q$ by orthonormalizing the Krylov vectors, rather than just using the last vector. Hence, #highlight([it is strictly better than the power method.])
 
@@ -600,10 +612,10 @@ The Lanczos algorithm is basically a Gram-Schmidt orthogonalization process appl
 4. For subsequent steps, we compute $A q_k$ and make it orthogonal to both $q_k$ and $q_(k-1)$ by subtracting their projections:
    $ r_k = A q_k - alpha_k q_k - beta_(k-1) q_(k-1) $
 
-== The Lanczos algorithm
+== Stop condition
 The key insight is that, for symmetric matrices, $r_k$ is automatically orthogonal to $q_1, q_2, dots, q_(k-2)$ due to the properties of the Krylov subspace. This is why we only need to explicitly orthogonalize against the two most recent vectors.
 
-The iteration terminates when $beta_k = 0$, it means the residual vector is zero, indicating that the Krylov subspace has become invariant under $A$. In this case, we have found an exact invariant subspace, and the algorithm terminates. The resulting tridiagonal matrix takes a block-diagonal form:
+The iteration terminates when $beta_k = 0$, it means the residual vector is zero, indicating that the Krylov subspace has become invariant under $A$. In this case, we have found an exact invariant subspace, and the algorithm terminates. The resulting matrix takes the #highlight([tridiagonal form]):
 
 $ T( "when " beta_j = 0) = mat(
   alpha_1, beta_1, 0, dots, 0;
@@ -616,7 +628,7 @@ $ T( "when " beta_j = 0) = mat(
 == The Lanczos algorithm
 This block structure reflects the fact that the Krylov subspace has split into invariant subspaces of $A$.
 
-In practice, the Gram-Schmidt process is numerically unstable, and the orthogonalization process is often replaced by a more numerically stable process, such as the modified Gram-Schmidt process or iterative reorthogonalization.
+In practice, the Gram-Schmidt process is numerically unstable, and the orthogonalization process is often replaced by a more numerically stable process, such as the modified Gram-Schmidt process or iterative _reorthogonalization_.
 
 == Reorthogonalization
 
@@ -634,15 +646,24 @@ One effective approach uses Householder transformations. Let's understand how th
 
 4. If we denote the first $k$ columns of the matrix product $(H_0 dots H_(k-1))$ as $(q_1 | dots | q_k)$, then these vectors $q_1, dots, q_k$ form an orthonormal basis.
 
-== Essential aspects of a professional Lanczos implementation
-A professional Lanczos implementation should also consider the following aspects:
-1. *Block Lanczos*: Used to compute degenerate eigenvalues. Instead of using a single vector, the block Lanczos method uses a block of $p$ vectors at each iteration. This approach is particularly effective for matrices with clustered or degenerate eigenvalues, as it can capture multiple eigenvectors in the same invariant subspace simultaneously. The algorithm generates a block tridiagonal matrix rather than a simple tridiagonal one.
-2. *Restarting*: Used to reduce the memory usage. When the Krylov subspace becomes too large, we can restart the algorithm by compressing the information from the current iteration into a smaller subspace. The technique of _implicit restarting_ allows us to focus on the most relevant part of the spectrum without increasing memory usage. The Implicitly Restarted Lanczos Method (IRLM) combines $m$ steps of the Lanczos process with implicit QR steps to enhance convergence toward desired eigenvalues. A variant of implicit restarting is _thick restarting_, where we keep a few (typically converged) Ritz vectors and restart the Lanczos process with these vectors plus a new starting vector. This approach maintains good approximations while exploring new directions in the Krylov subspace.
+== Block Lanczos
+Useful when:
+
+$
+lambda_1 = lambda_2 = dots = lambda_p
+$
+
+Instead of using a single vector, the block Lanczos method uses a block of $p$ vectors at each iteration. This approach is particularly effective for matrices with clustered or degenerate eigenvalues, as it can capture multiple eigenvectors in the same invariant subspace simultaneously. The algorithm generates a block tridiagonal matrix rather than a simple tridiagonal one.
+
+== Restarting
+Used to *reduce the memory usage*.
+
+When the Krylov subspace becomes too large, we can restart the algorithm by compressing the information from the current iteration into a smaller subspace. The technique of _implicit restarting_ allows us to focus on the most relevant part of the spectrum without increasing memory usage. The Implicitly Restarted Lanczos Method (IRLM) combines $m$ steps of the Lanczos process with implicit QR steps to enhance convergence toward desired eigenvalues. A variant of implicit restarting is _thick restarting_, where we keep a few (typically converged) Ritz vectors and restart the Lanczos process with these vectors plus a new starting vector. This approach maintains good approximations while exploring new directions in the Krylov subspace.
 These techniques could be found in @Golub2013.
 
 == The Arnoldi algorithm
 
-The Arnoldi algorithm is a generalization of the Lanczos algorithm to non-symmetric linear operators. Given a non-symmetric linear operator $A$ on $RR^n$, the Arnoldi algorithm generates an orthogonal matrix $Q$ such that $Q^T A Q = H$ is a Hessenberg matrix:
+The Arnoldi algorithm is a generalization of the Lanczos algorithm to non-symmetric linear operators. Given a non-symmetric linear operator $A$ on $RR^n$, the Arnoldi algorithm generates an orthogonal matrix $Q$ such that $Q^T A Q = H$ is a #highlight([Hessenberg matrix]):
 
 
 $
@@ -658,16 +679,7 @@ $
 
 That is, $h_(i j) = 0$ for $i>j+1$.
 
-==
-```julia
-```
-
-In the following example, we use the Arnoldi algorithm to find the eigenvalues of a random matrix.
-```julia
-```
-- _Remark_: Sometimes, the `KrylovKit.jl` returns more than the requested number of eigenvalues. Most of the time, the extra eigenvalues are due to the degeneracy of the eigenvalues. They converge simultaneously.
-
-== Special matrices
+== Tridiagonal matrices
 
 Some special matrices have special properties that can be exploited for efficient computation.
 
@@ -689,7 +701,8 @@ Some special matrices have special properties that can be exploited for efficien
    $ make example-SimpleKrylov
    ```
 2. Explain the inconsistency between the results of `SimpleKrylov` and the exact results.
-3. Verify the following property for the Laplacian matrix of a graph:
+3. Estimate the approximate number of iterations required to reach the machine precision in the Arnoldi iteration example.
+4. Verify the following property for the Laplacian matrix of a graph:
    The number of connected components in the graph is the dimension of the nullspace of the Laplacian and the algebraic multiplicity of the 0 eigenvalue. The Laplacian matrix is defined as $L = D - A$, where $D$ is the diagonal degree matrix and $A$ is the adjacency matrix.
 
 ==
