@@ -117,13 +117,42 @@ For the ferromagnetic Ising model, the ground state is two fold degenerate, they
 
 == The spirit of importance sampling
 
-Given a function $f(x)$, we want to calculate the integral
+Given a positive function $f(x)$, we want to calculate the integral
 $
-integral f(x) p(x) d x
+integral f(x) d x
 $
-where $p(x)$ is the probability distribution of $x$. We can sample $x$ with probability $p(x)$ and calculate the average of $f(x)$.
+Intead of evaluating the integral directly, the importance sampling can sample $x$ with probability $p(x)$ and estimate the integral as the statistical average of $f(x)\/p(x)$. To see how it works, we consider the example in @fig:importance-sampling.
+#figure(canvas({
+  import draw: *
+  let s(it) = text(12pt, it)
+  rect((-2, -2), (2, 2), stroke: (paint: black, thickness: 1pt), fill: blue.lighten(80%))
+  circle((0, 0), radius: 0.1, fill: red, stroke: none)
+  content((0, 0.5), s[$f(x) = cases(1/(pi r^2)\, &|x| < r, 0\, &"otherwise")$])
+  content((0, -2.5), s[Uniform sampling])
 
-Key: important configurations are sampled more frequently.
+  set-origin((6, 0))
+  rect((-2, -2), (2, 2), stroke: (paint: black, thickness: 1pt), fill: blue.lighten(90%))
+  rect((-0.5, -0.5), (0.5, 0.5), stroke: none, fill: blue.lighten(50%))
+  circle((0, 0), radius: 0.1, fill: red, stroke: none)
+  content((0, -0.8), s[$10 times$])
+  content((0, -2.5), s[Importance sampling])
+})) <fig:importance-sampling>
+
+The function is a peak-like function defined on a unit square, which is zero everywhere except a very small region (the red circle of radius $r << 1$) at the origin. The integral of $f(x)$ is 1. If your sampling is uniform, you will spend most of the time sampling the region far away from the origin.
+However, if you sample $x$ with $10 times$ more probability near the origin (in the dark blue region), as shown in the right panel, you can have $10 times$ more chance to find a sample in the peak region. So, whenever you find a sample in the dark blue region, you only count it as $0.1$ sample as a compensation. With this small change, the statistical average will be $sqrt(10)$ times more accurate. In a even more extreme case, if the sampled probability $p(x)$ is proportional to $f(x)$, the number of sample to reach exact result is $1$.
+
+For bad sampling probability $p(x)$, the function $f(x)$ may never have a good estimate even if you have infinite samples. This happens when the *ergodicity* is broken, i.e. the system can not reach the whole configuration space with non-zero probability. For example, in @fig:ergodicity, the function $f(x)$ has two peaks, but only one peak is accessible to the sampler.
+#figure(canvas({
+  import draw: *
+  let s(it) = text(12pt, it)
+  rect((-2, -2), (2, 2), stroke: (paint: black, thickness: 1pt), fill: blue.lighten(100%))
+  rect((-1.5, -1.5), (0.5, 0.5), stroke: none, fill: blue.lighten(50%))
+  circle((0, 0), radius: 0.1, fill: red, stroke: none)
+  circle((0.8, 0.8), radius: 0.1, fill: red, stroke: none)
+  content((0, -2.5), s[Ergodicity is broken])
+  content((-0.5, -0.7), s[Accessible\ region])
+})) <fig:ergodicity>
+
 
 == Goal
 
