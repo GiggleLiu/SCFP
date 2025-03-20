@@ -932,4 +932,20 @@ Some special matrices have special properties that can be exploited for efficien
     [*Eigenvalue problem*], [$O(n^2)$@Dhillon2004 @Sandryhaila2013],
 ))
 
+== CUDA sparse matrices
+
+```julia
+julia> using CUDA
+
+julia> cusp = CUSPARSE.CuSparseMatrixCSC(sprand(1000000, 1000000, 0.0001));
+
+julia> v = CuArray(randn(1000000));
+
+julia> @btime $(SparseMatrixCSC(cusp)) * $(Vector(v))
+  317.398 ms (3 allocations: 7.63 MiB)
+
+julia> @btime CUDA.@sync $cusp * $v
+  1.703 ms (86 allocations: 1.91 KiB)
+```
+
 #bibliography("refs.bib")
