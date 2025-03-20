@@ -183,15 +183,39 @@ It is characterized by the transition probability $P(bold(s)'|bold(s))$, the pro
     
 })) <fig:markov-chain>
 
-The algorithm is as follows:
-1. Initialize the system to a random configuration
-2. Repeat the following steps:
-   - Randomly flip a spin
-   - Accept the new configuration with probability $p = min(1, e^(-beta Delta H))$
-   - If the system is thermalized, calculate the physical quantities
+The algortihm is summarized as follows:
+#algorithm({
+  import algorithmic: *
+  Function([Metropolis-Hastings], args: ([$beta$], [$n$]), {
+    Assign([$bold(s)$], [Initial a random configuration])
+    For(cond: [$i = 1$ to $n$], {
+      Assign([$bold(s)'$], [propose a new configuration with prior probability $T(bold(s)arrow.r bold(s)')$])
+      Assign([$bold(s)$], [$bold(s)' "with probability:" min(1, (T(bold(s)' arrow.r bold(s)) p(bold(s)'))/(T(bold(s) arrow.r bold(s)') p(bold(s))))$])
+    })
+  })
+ })
 
-2. Detailed balance: the probability of going from $s$ to $s'$ is the same as going from $s'$ to $s$
+In line 4, a new configuration $bold(s)'$ is proposed. The probability of proposing $bold(s)'$ from $bold(s)$ is $T(bold(s)arrow.r bold(s)')$, which is known when we design the algorithm. For example, when we propose a state transfer on two 3-state spins, we may have the following transition rule:
+#figure(canvas({
+  import draw: *
+  let s(it) = text(12pt, it)
+  let d = 1.5
+  for i in range(2){
+    for j in range(2){
+      rect((i * d, j * d), (i * d + d, j * d + d))
+    }
+  }
+  line((0, 0), (0, 0.5 * d), mark: (end: "straight"), stroke: (paint: blue, thickness: 2pt))
+  line((0, 0), (0.5 * d, 0), mark: (end: "straight"), stroke: (paint: blue, thickness: 2pt))
+  content((0, -0.5), s[$(0, 0)$])
+  content((d, -0.5), s[$(1, 0)$])
 
+  for target in ((1.5 * d, 0), (1 * d, 0.5 * d), (0.5 * d, 0)) {
+    line((1 * d, 0), target, mark: (end: "straight"), stroke: (paint: red, thickness: 2pt))
+  }
+})) <fig:propose-new-config>
+The probability of proposing $(1, 0)$ from $(0, 0)$ is $1\/3$, and the probability of proposing $(0, 1)$ from $(0, 0)$ is $1\/2$. This prior is biased towards having less configurations in state $(0, 0)$, we must compensate for this bias by adjusting the acceptance probability. In a two state spin system, the random flip of a spin is unbiased, so the acceptance probability only depends on the ratio of the probability of the new and current configurations:
+$ p(bold(s)')/p(bold(s)) = e^(-beta (H(bold(s)') - H(bold(s))). $
 
 == Demonstration
 
