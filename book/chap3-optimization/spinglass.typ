@@ -1,6 +1,8 @@
 #import "../book.typ": book-page, cross-link
 #import "@preview/cetz:0.2.2": canvas, draw, tree, vector, plot, decorations
 #import "@preview/ctheorems:1.1.3": *
+#import "@preview/algorithmic:0.1.0"
+#import algorithmic: algorithm
 
 #show: book-page.with(title: "Spin Glass")
 #show: thmrules
@@ -90,7 +92,12 @@ where $beta = 1 \/ k_B T$ is the inverse temperature, $Z$ is the partition funct
 Configurations with lower energy have higher probability to be observed. The sensitivity of the probability distribution to the energy is determined by the inverse temperature $beta$. At zero temperature, $beta$ is infinite, and only the ground state can be observed.
 
 We characterize the macroscopic properties of the system by the statistical average of some functions over the configuration space. Among these functions, the *order parameter* can be used to characterize the phase transition.
-As shown in @fig:phase-transition, the order parameter for the magnetization can be defined as $ |m| = lr(|sum_(i=1)^(L^2) s_i\/L^2|). $
+As shown in @fig:phase-transition, the order parameter for the magnetization can be defined as
+$ |m| = lr(|sum_(i=1)^(L^2) s_i\/L^2|). $ <eq:magnetization>
+The statistical average of $|m|$ over the configuration space is
+$
+angle.l |m| angle.r = sum_(bold(s) in S) |m(bold(s))| p(bold(s))
+$ <eq:magnetization-average>
 At the inifinite size limit ($L arrow.r infinity$), if the statistical average $angle.l |m| angle.r$ is non-zero, the system is in the magnetized phase. If $angle.l |m| angle.r$ is zero, the system is in the disordered phase.
 #figure(canvas({
   import draw: *
@@ -110,18 +117,16 @@ At the inifinite size limit ($L arrow.r infinity$), if the statistical average $
 
 For the ferromagnetic Ising model, the ground state is two fold degenerate, they are the all-up and all-down configurations. At zero temperature, the system is frozen in one of the ground states, i.e. $angle.l |m| angle.r = 1$.
 
-== Physical quantities that we are interested in
+== Integrate a function with importance sampling
 
-- Energy/spin: $angle.l H^k/n angle.r = integral H(s)^k/n p(s) d s.$
-- Magnetization: $m^k = angle.l (sum_i |s_i|)^k \/ n angle.r = integral (sum_i |s_i|)^k \/n p(s) d s.$
-
-== The spirit of importance sampling
-
-Given a positive function $f(x)$, we want to calculate the integral
+How to calculate @eq:magnetization-average?
+Summing over all the configurations is infeasible for large system. Instead, we can sample a portion of the configuration space and estimate the statistical average of the quantity we are interested in.
+To show why is it possible, we first note that the @eq:magnetization-average can be viewed as an integral, with the integrand $|m(bold(s))| p(bold(s))$ and the integration domain $S$. An integral can be estimated by the statistical average of the integrand over a set of sampled points.
+For illustrative purpose, we consider integrating a positive function $f(x)$ defined on a unit square.
 $
 integral f(x) d x
 $
-Intead of evaluating the integral directly, the importance sampling can sample $x$ with probability $p(x)$ and estimate the integral as the statistical average of $f(x)\/p(x)$. To see how it works, we consider the example in @fig:importance-sampling.
+Intead of evaluating the integral directly, the importance sampling can sample $x$ with probability $p(x)$ and estimate the integral as the statistical average of $f(x)\/p(x)$.
 #figure(canvas({
   import draw: *
   let s(it) = text(12pt, it)
@@ -138,10 +143,11 @@ Intead of evaluating the integral directly, the importance sampling can sample $
   content((0, -2.5), s[Importance sampling])
 })) <fig:importance-sampling>
 
-The function is a peak-like function defined on a unit square, which is zero everywhere except a very small region (the red circle of radius $r << 1$) at the origin. The integral of $f(x)$ is 1. If your sampling is uniform, you will spend most of the time sampling the region far away from the origin.
-However, if you sample $x$ with $10 times$ more probability near the origin (in the dark blue region), as shown in the right panel, you can have $10 times$ more chance to find a sample in the peak region. So, whenever you find a sample in the dark blue region, you only count it as $0.1$ sample as a compensation. With this small change, the statistical average will be $sqrt(10)$ times more accurate. In a even more extreme case, if the sampled probability $p(x)$ is proportional to $f(x)$, the number of sample to reach exact result is $1$.
+A good sampling probability can improve the efficiency of the estimation. We consider the example in @fig:importance-sampling.
+The function is a peak-like function defined on a unit square, which is zero everywhere except a very small region (the red circle of radius $r << 1$) at the origin. The integral of $f(x)$ is 1. If the sampling is uniform, the sampler will spend most of the time sampling the region far away from the origin.
+However, if the sample $x$ with $10 times$ more probability near the origin (in the dark blue region), as shown in the right panel, you can have $10 times$ more chance to find a sample in the peak region. So, whenever you find a sample in the dark blue region, you only count it as $0.1$ sample as a compensation. With this small change, the statistical average will be $sqrt(10)$ times more accurate. In a even more extreme case, if the sampled probability $p(x)$ is proportional to $f(x)$, the number of sample to reach exact result is $1$.
 
-For bad sampling probability $p(x)$, the function $f(x)$ may never have a good estimate even if you have infinite samples. This happens when the *ergodicity* is broken, i.e. the system can not reach the whole configuration space with non-zero probability. For example, in @fig:ergodicity, the function $f(x)$ has two peaks, but only one peak is accessible to the sampler.
+On the other hand, bad sampling probability $p(x)$ may cause the function $f(x)$ to have a poor estimate even if you have infinite samples. This happens when the *ergodicity* is broken, i.e. the system can not reach the whole configuration space. For example, in @fig:ergodicity, the function $f(x)$ has two peaks, but only one peak is accessible to the sampler. Then, no matter how many samples you have, you can not get a good estimate of the integral.
 #figure(canvas({
   import draw: *
   let s(it) = text(12pt, it)
@@ -150,35 +156,49 @@ For bad sampling probability $p(x)$, the function $f(x)$ may never have a good e
   circle((0, 0), radius: 0.1, fill: red, stroke: none)
   circle((0.8, 0.8), radius: 0.1, fill: red, stroke: none)
   content((0, -2.5), s[Ergodicity is broken])
-  content((-0.5, -0.7), s[Accessible\ region])
+  content((-0.5, -0.7), s[Sample\ region])
 })) <fig:ergodicity>
 
 
-== Goal
+== Metropolis-Hastings algorithm
+To evaluate the @eq:magnetization-average, we can sample the configuration space with the Boltzmann distribution $p(bold(s)) = (e^(-beta H(bold(s))))\/Z$, on each sample, we evaluate $|m(bold(s))|$ and calculate the statistical average.
+The problem is that we do not know the partition function $Z$. Even if we know how to compute $p(bold(s))$, the sampling is still challenging.
+Metropolis-Hastings algorithm is a sampling method to sample the configuration space with un-normalized probability.
 
-Sample with probability $p(s)$ to calculate the physical quantities.
+The Metropolis-Hastings algorithm is a Markov chain. A Markov chain is a sequence of random variables $bold(s)_1, bold(s)_2, dots$ with the property that the probability of moving to the next state depends only on the current state.
+It is characterized by the transition probability $P(bold(s)'|bold(s))$, the probability of moving from $bold(s)$ to $bold(s)'$.
 
-== Markov chain
+#figure(canvas({
+  import draw: *
+  let s(it) = text(12pt, it)
+  let boxed(it) = box(it, stroke: black, inset: 0.5em)
+  let dx = 3
+  for i in range(5) {
+    content((i * dx, 0), boxed(s[$bold(s)_#i$]), name: "s" + str(i))
+  }
+  for i in range(4) {
+    line("s" + str(i), "s" + str(i + 1), stroke: (paint: black, thickness: 1pt), mark: (end: "straight"), name: "t" + str(i))
+    content((rel: (0, 0.5), to: "t" + str(i) + ".mid"), s[$P(bold(s)_#(i+1)|bold(s)_#i)$])
+  }
+    
+})) <fig:markov-chain>
 
-A sequence of random variables $X_1, X_2, dots$ with the property that the probability of moving to the next state depends only on the current state.
-
-The transition probability is $P(X_(t+1) = x' | X_t = x)$. The transition matrix is $P_(i j) = P(X_(t+1) = x_j | X_t = x_i)$.
-
-== Two key properties
-1. Ergodicity: the system can reach any state in the configuration space
-2. Detailed balance: the probability of going from $s$ to $s'$ is the same as going from $s'$ to $s$
-
-== Metropolis algorithm
-
-Acceptance probability: $p = min(1, e^(-beta Delta H))$
-
-== Monte Carlo simulation
+The algorithm is as follows:
 1. Initialize the system to a random configuration
 2. Repeat the following steps:
    - Randomly flip a spin
    - Accept the new configuration with probability $p = min(1, e^(-beta Delta H))$
    - If the system is thermalized, calculate the physical quantities
 
+2. Detailed balance: the probability of going from $s$ to $s'$ is the same as going from $s'$ to $s$
+
+
 == Demonstration
+
+== Physical quantities that we are interested in
+
+- Energy/spin: $angle.l H^k/n angle.r = integral H(s)^k/n p(s) d s.$
+- Magnetization: $m^k = angle.l (sum_i |s_i|)^k \/ n angle.r = integral (sum_i |s_i|)^k \/n p(s) d s.$
+
 
 == Hands on!
