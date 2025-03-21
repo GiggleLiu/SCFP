@@ -224,5 +224,14 @@ $ p(bold(s)')/p(bold(s)) = e^(-beta (H(bold(s)') - H(bold(s))). $
 - Energy/spin: $angle.l H^k/n angle.r = integral H(s)^k/n p(s) d s.$
 - Magnetization: $m^k = angle.l (sum_i |s_i|)^k \/ n angle.r = integral (sum_i |s_i|)^k \/n p(s) d s.$
 
+== When it fails to thermalize: spin glass
 
-== Hands on!
+Spin glass is computational universal, i.e. if you can cool down a spin glass system to the ground state, you can solve any problem.
+
+Spin glass is in NP-complete, i.e. if you can cool down a spin glass system to the ground state in polynomial time, you can solve any problem in NP in polynomial time.
+
+== The spectral gap
+
+== Parallel tempering
+
+== Cheeger's inequality
