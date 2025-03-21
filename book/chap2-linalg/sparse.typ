@@ -1,5 +1,5 @@
 #import "../book.typ": book-page
-#import "@preview/cetz:0.2.2": *
+#import "@preview/cetz:0.3.2": *
 #import "@preview/algorithmic:0.1.0"
 #import algorithmic: algorithm
 
@@ -577,18 +577,71 @@ end
 === Reorthogonalization
 
 In the Lanczos algorithm, numerical errors can accumulate and cause the orthogonality of the basis vectors to deteriorate. Reorthogonalization is a technique to maintain orthogonality among these vectors.
+One effective approach uses Householder transformations. Let's understand how this works. In the first step, we use the column vector $A(2:n, 1)$ to generate a Householder matrix $H_1 = I - 2 bold(v) bold(v)^dagger$, where $bold(v) = (x + e_1)/2$. When applied on the left of $A(2:n, :)$, it will zero out $A(3:n, 1)$. When applied on the right of $A(:, 2:n)$, it will zero out $A(1, 3:n)$.
+Then we repeat this process on the submatrix $A(2:n, 2:n)$ recursively, until the submatrix is a $1 times 1$ matrix. The resulting matrix is a tridiagonal matrix.
 
-One effective approach uses Householder transformations. Let's understand how this works:
+#figure(canvas({
+  import draw: *
+  let s(it) = text(12pt, it)
+  rect((0, 0), (3, 3), fill: blue.lighten(70%))
+  content((1.5, 1.5), s[$A$])
+  rect((0, 0), (0.5, 2.5), fill: orange.lighten(50%))
+  content((0.25, 1.25), s[$bold(x)$])
+  rect((0.5, 2.5), (3, 3), fill: orange.lighten(50%))
+  content((1.75, 2.75), s[$bold(x)^T$])
+  content((3, -0.5), s[Householder Reflection (step 1)])
 
-1. Consider linearly independent vectors $r_0, dots, r_(k-1) in CC^n$.
+  rect((-3.5, 0), (-1, 2.5), fill: orange.lighten(50%))
+  content((-2.25, 1.25), s[$I - 2 bold(v) bold(v)^dagger$])
 
-2. For each vector $r_i$, we can construct a Householder matrix $H_i$ that reflects vectors across a hyperplane.
+  rect((0.5, 4), (3.0, 6.5), fill: orange.lighten(50%))
+  content((1.75, 5.25), s[$I - 2 bold(v) bold(v)^dagger$])
 
-3. When we apply the sequence of Householder matrices $H_0, dots, H_(k-1)$ to the matrix $(r_0|dots|r_(k-1))$, we get:
-   $(H_0 dots H_(k-1))^T (r_0|dots|r_(k-1)) = R$
-   where $R$ is an upper triangular matrix.
+  content((4, 1.5), s[$arrow.double.r$])
 
-4. If we denote the first $k$ columns of the matrix product $(H_0 dots H_(k-1))$ as $(q_1 | dots | q_k)$, then these vectors $q_1, dots, q_k$ form an orthonormal basis.
+  let dx = 5
+  rect((dx, 0), (dx + 3, 3), fill: blue.lighten(70%))
+  content((dx + 1.5, 1.5), s[$A_1$])
+  rect((dx, 0), (dx + 0.5, 2.0), fill: white)
+  content((dx+0.25, 1), s[$bold(0)$])
+  rect((dx + 1.0, 2.5), (dx + 3, 3.0), fill: white)
+  content((dx+2, 2.75), s[$bold(0)$])
+
+  let dx = -3.5
+  let dy = -5
+  rect((dx, dy), (dx + 3, dy + 3), fill: blue.lighten(70%))
+  content((dx + 1.5, dy + 1.5), s[$A_1$])
+  rect((dx, dy), (dx + 0.5, dy + 2.0), fill: white)
+  rect((dx + 1.0, dy + 2.5), (dx + 3, dy + 3.0), fill: white)
+
+  rect((dx + 0.5, dy), (dx + 1, dy + 2.0), fill: orange.lighten(50%))
+  rect((dx + 1.0, dy + 2), (dx + 3, dy + 2.5), fill: orange.lighten(50%))
+
+  content((0.5, -3.5), s[$arrow.double.r$])
+
+  let dx = 1.5
+  rect((dx, dy), (dx + 3, dy + 3), fill: blue.lighten(70%))
+  content((dx + 1.5, dy + 1.5), s[$A_2$])
+  rect((dx, dy), (dx + 0.5, dy + 2.0), fill: white)
+  rect((dx + 0.5, dy), (dx + 1, dy + 1.5), fill: white)
+  rect((dx + 1.0, dy + 2.5), (dx + 3, dy + 3.0), fill: white)
+  rect((dx + 1.5, dy + 2.0), (dx + 3, dy + 2.5), fill: white)
+
+  content((5.5, -3.5), s[$dots$])
+  let dx = 6.5
+  rect((dx, dy), (dx + 3, dy + 3), fill: blue.lighten(70%))
+  content((dx + 1.5, dy + 1.5), s[$T$])
+  rect((dx, dy), (dx + 0.5, dy + 2.0), fill: white)
+  rect((dx + 0.5, dy), (dx + 1, dy + 1.5), fill: white)
+  rect((dx + 1, dy), (dx + 1.5, dy + 1), fill: white)
+  rect((dx + 1.5, dy), (dx + 2, dy + 0.5), fill: white)
+  rect((dx + 1.0, dy + 2.5), (dx + 3, dy + 3.0), fill: white)
+  rect((dx + 1.5, dy + 2.0), (dx + 3, dy + 2.5), fill: white)
+  rect((dx + 2, dy + 1.5), (dx + 3, dy + 2), fill: white)
+  rect((dx + 2.5, dy + 1), (dx + 3, dy + 1.5), fill: white)
+
+  content((3, -5.5), s[Householder Reflection (step 2 to n-1)])
+})) <fig:householder>
 
 This approach is numerically stable and ensures that orthogonality is maintained to machine precision, which is crucial for the convergence and accuracy of the Lanczos algorithm.
 ```julia
@@ -940,5 +993,21 @@ Some special matrices have special properties that can be exploited for efficien
     [*Determinant*], [$O(n)$@Molinari2008],
     [*Eigenvalue problem*], [$O(n^2)$@Dhillon2004 @Sandryhaila2013],
 ))
+
+== CUDA sparse matrices
+
+```julia
+julia> using CUDA
+
+julia> cusp = CUSPARSE.CuSparseMatrixCSC(sprand(1000000, 1000000, 0.0001));
+
+julia> v = CuArray(randn(1000000));
+
+julia> @btime $(SparseMatrixCSC(cusp)) * $(Vector(v))
+  317.398 ms (3 allocations: 7.63 MiB)
+
+julia> @btime CUDA.@sync $cusp * $v
+  1.703 ms (86 allocations: 1.91 KiB)
+```
 
 #bibliography("refs.bib")
