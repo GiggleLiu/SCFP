@@ -25,6 +25,3 @@ G = random_regular_graph(100, 3; seed=42)
 approx_maxcut = maxcut_sdp(G)
 
 cut_size = sum(approx_maxcut[e.src] != approx_maxcut[e.dst] for e in edges(G))
-
-using GenericTensorNetworks
-solve(MaxCut(G), SizeMax())[]

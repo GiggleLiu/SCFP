@@ -29,9 +29,33 @@
   sequence
 }
 
-// Usage example:
 #let random_numbers = pseudo_random(12345, 100)
 #let random_bools(p) = random_numbers.map(x => x < p)
+
+#let norm(v) = calc.sqrt(v.map(x => calc.pow(x, 2)).sum())
+#let distance(a, b) = norm(a.zip(b).map(x => x.at(0) - x.at(1)))
+#let show-graph(vertices, edges, radius:0.2) = {
+  import draw: *
+  for (k, (i, j)) in vertices.enumerate() {
+    circle((i, j), radius:radius, name: str(k), fill:white)
+  }
+  for (k, l) in edges {
+    line(str(k), str(l))
+  }
+}
+
+#let udg-graph(vertices, unit:1) = {
+  let edges = ()
+  for (k, va) in vertices.enumerate() {
+    for (l, vb) in vertices.enumerate() {
+      if l < k and distance(va, vb) <= unit {
+        edges.push((k, l))
+      }
+    }
+  }
+  return edges
+}
+
 
 #align(center, [= Spin Glass\
 _Jin-Guo Liu_])
@@ -48,14 +72,29 @@ _Jin-Guo Liu_])
 An Ising model is defined by a graph $G = (V, E)$ and a set of spins $s_i in {-1, 1}$ for each vertex $i in V$. The energy of the system is given by
 
 $
-H = - sum_((i,j) in E) J_(i j) s_i s_j - sum_(i in V) h_i s_i
+H = sum_((i,j) in E) J_(i j) s_i s_j + sum_(i in V) h_i s_i
 $
 
 We are interested in Ising models for multiple reasons, one is from the physics perspective. We want to understand the phenomemon of phase transition, i.e. how magnetization emerges from the disorder. Another reason is from the optimization perspective, finding the ground state (the configuration with the lowest energy) of an Ising model is in general hard, which is known as the spin glass problem. It is in complexity class NP-complete. Solving the spin glass problem in time polynomial to the graph size would break the complexity hierarchy, which is unlikely to happen.
 
+```julia
+julia> using ProblemReductions, Graphs
+
+julia> grid_graph = grid((4, 4))
+
+julia> spin_glass = SpinGlass(
+           grid_graph,   # graph
+           -ones(Int, ne(grid_graph)),     # J, in order of edges
+           zeros(Int, nv(grid_graph))     # h, in order of vertices
+       );
+
+julia> energy(spin_glass, -ones(16))  # energy of the all-down configuration
+-24
+```
+
 == Phase transition
 
-In this section, we consider the ferromagnetic Ising model, where $J_(i j) = 1$. For simplicity, we limit our discussion to the $L times L$ grid.
+In this section, we consider the ferromagnetic Ising model, where $J_(i j) = -1$. For simplicity, we limit our discussion to the $L times L$ grid.
 We denote the solution space as $S$, and $bold(s) in S$ is the configuration of spins, e.g. $bold(s) = {-1, -1, 1, -1, 1, dots}$. The number of configurations is $|S| = 2^(L^2)$, which is exponentially large.
 
 #let spinconfig(m, n, cfg, dx: 1, dy: 1, x:0, y:0) = {
@@ -117,6 +156,17 @@ At the inifinite size limit ($L arrow.r infinity$), if the statistical average $
 })) <fig:phase-transition>
 
 For the ferromagnetic Ising model, the ground state is two fold degenerate, they are the all-up and all-down configurations. At zero temperature, the system is frozen in one of the ground states, i.e. $angle.l |m| angle.r = 1$.
+
+To find all degenerate ground states, we can solve the spin glass problem with the `ConfigsMin` solver in #link("https://github.com/QuEraComputing/GenericTensorNetworks.jl")[GenericTensorNetworks.jl].
+
+```julia
+julia> using GenericTensorNetworks
+
+julia> solve(spin_glass, ConfigsMin())[]  # solve the spin glass ground state
+(-24.0, {0000000000000000, 1111111111111111})ₜ
+```
+The returned value is a data structure that contains the lowest energy and the associated configurations.
+We can see the ground states are two fold degenerate, they are the all-up and all-down configurations.
 
 == Integrate a function with importance sampling
 
@@ -242,7 +292,25 @@ Spin glass is computational universal, i.e. if you can cool down a spin glass sy
 
 Spin glass is in NP-complete, i.e. if you can cool down a spin glass system to the ground state in polynomial time, you can solve any problem in NP in polynomial time.
 
+#figure(canvas({
+  import draw: *
+  let s(it) = text(12pt, it)
+  rect((0, 0), (3, 3))
+  circle((1.5, 2.2), radius: (0.5, 0.5), fill: blue.lighten(60%), stroke: none)
+  circle((1.5, 0.8), radius: (0.5, 0.5), fill: blue.lighten(60%), stroke: none)
+  
+  let dx = 8
+  rect((dx, 0), (dx + 3, 3))
+  let n = 20
+  for i in range(n) {
+    circle((dx + 0.5 + 2 * random_numbers.at(i), 0.5 + 2 * random_numbers.at(i+n)), radius: (random_numbers.at(i+2*n))/4, fill: blue.lighten(60%), stroke: none)
+  }
+  content((dx + 1.5, -0.3), s[Frustrated, Glassy])
+  content((1.5, -0.3), s[No frustration, Ordered])
 
+  content((dx/2 + 1.5, 1.5), s[Add more "triangles"])
+  content((dx/2 + 1.5, 1.1), s[$arrow.double.r$])
+}))
 
 == The spectral gap
 
@@ -416,5 +484,61 @@ For spin glass systems, estimating the Cheeger constant can provide valuable ins
 })
 
 In practice, for spin glass systems, the Cheeger constant provides a quantitative measure of how "glassy" the energy landscape is. Systems with small Cheeger constants have energy landscapes with high barriers between different metastable states, making equilibration difficult and necessitating techniques like parallel tempering to efficiently sample the state space.
+
+== Example: Ferromagnetic Ising model on Fullerene graph
+#let fullerene() = {
+    let φ = (1+calc.sqrt(5))/2
+    let res = ()
+    for (x, y, z) in ((0.0, 1.0, 3 * φ), (1.0, 2 + φ, 2 * φ), (φ, 2.0, 2 * φ + 1.0)) {
+		    for (α, β, γ) in ((x,y,z), (y,z,x), (z,x,y)) {
+			      for loc in ((α,β,γ), (α,β,-γ), (α,-β,γ), (α,-β,-γ), (-α,β,γ), (-α,β,-γ), (-α,-β,γ), (-α,-β,-γ)) {
+				        if not res.contains(loc) {
+                    res.push(loc)
+                }
+            }
+        }
+    }
+	  return res
+}
+
+#figure(canvas(length: 0.6cm, {
+  import draw: *
+  let s(it) = text(14pt, it)
+  let vertices = fullerene()
+  let edges = udg-graph(vertices, unit: calc.sqrt(5))
+  show-graph(vertices.map(v=>(v.at(0), v.at(1)*calc.sqrt(1/5) + v.at(2)*calc.sqrt(4/5))), edges)
+}))
+
+
+```julia
+julia> using GenericTensorNetworks, Graphs, ProblemReductions
+julia> function fullerene()  # construct the fullerene graph in 3D space
+           th = (1+sqrt(5))/2
+           res = NTuple{3,Float64}[]
+           for (x, y, z) in ((0.0, 1.0, 3th), (1.0, 2 + th, 2th), (th, 2.0, 2th + 1.0))
+               for (a, b, c) in ((x,y,z), (y,z,x), (z,x,y))
+                   for loc in ((a,b,c), (a,b,-c), (a,-b,c), (a,-b,-c), (-a,b,c), (-a,b,-c), (-a,-b,c), (-a,-b,-c))
+                       if loc not in res
+                           push!(res, loc)
+                       end
+                   end
+               end
+           end
+           return res
+       end
+fullerene (generic function with 1 method)
+julia> fullerene_graph = UnitDiskGraph(fullerene(), sqrt(5)); # construct the unit disk graph
+julia> spin_glass = SpinGlass(fullerene_graph, UnitWeight(ne(fullerene_graph)), zeros(Int, nv(fullerene_graph)));
+julia> problem_size(spin_glass)
+(num_vertices = 60, num_edges = 90)
+julia> log(solve(spin_glass, PartitionFunction(1.0))[])/nv(fullerene_graph)
+1.3073684577607942
+julia> solve(spin_glass, CountingMin())[]
+(-66.0, 16000.0)ₜ
+```
+
+
+
+
 
 #bibliography("refs.bib")
