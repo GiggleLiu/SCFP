@@ -4,7 +4,7 @@
 #import "@preview/algorithmic:0.1.0"
 #import algorithmic: algorithm
 
-#show: book-page.with(title: "Spin Glass")
+#show: book-page.with(title: "Spin glass and MCMC")
 #show: thmrules
 #set math.equation(numbering: "(1)")
 
@@ -39,8 +39,9 @@ _Jin-Guo Liu_])
 
 
 == Main references
-- Lecture note: #link("https://physics.bu.edu/~py502/lectures5/mc.pdf")[Monte Carlo simulations in classical statistical physics, Anders Sandvik]
-- Swendsen, Robert H., and Jian-Sheng Wang. "Nonuniversal critical dynamics in Monte Carlo simulations." Physical review letters 58.2 (1987): 86.
+- Lecture note of Anders Sandvik: #link("https://physics.bu.edu/~py502/lectures5/mc.pdf")[Monte Carlo simulations in classical statistical physics]
+- Book: The nature of computation, @Moore2011, Chapter 12-13
+- Code: https://github.com/GiggleLiu/ScientificComputingDemos/tree/main/IsingModel and https://github.com/GiggleLiu/ScientificComputingDemos/tree/main/Spinglass
 
 == Ising model
 
@@ -217,12 +218,23 @@ In line 4, a new configuration $bold(s)'$ is proposed. The probability of propos
 The probability of proposing $(1, 0)$ from $(0, 0)$ is $1\/3$, and the probability of proposing $(0, 1)$ from $(0, 0)$ is $1\/2$. This prior is biased towards having less configurations in state $(0, 0)$, we must compensate for this bias by adjusting the acceptance probability. In a two state spin system, the random flip of a spin is unbiased, so the acceptance probability only depends on the ratio of the probability of the new and current configurations:
 $ p(bold(s)')/p(bold(s)) = e^(-beta (H(bold(s)') - H(bold(s))). $
 
-== Demonstration
-
 == Physical quantities that we are interested in
 
 - Energy/spin: $angle.l H^k/n angle.r = integral H(s)^k/n p(s) d s.$
 - Magnetization: $m^k = angle.l (sum_i |s_i|)^k \/ n angle.r = integral (sum_i |s_i|)^k \/n p(s) d s.$
+
+== Metric of a good MCMC method
+
+=== Acceptance rate
+In the ferrromagnetic phase, the MCMC method can easily get stuck in one of the ground states. A clever design can help the sampler to escape the local minimum, the cluster update proposed in @Swendsen1987 is a good example. When the prior is the same as the target distribution, the sampling the the most efficient, it has acceptance rate 1.
+
+=== Autocorrelation time
+Because a new sample in the MCMC method is generated from the previous sample, we often have time correlated samples in MCMC methods.
+Since the correlated samples are not independent, we effectively have less samples than we expect.
+The autocorrelation time $tau$ is the number of steps it takes for the correlation between two consecutive samples to decay to one half of the maximum correlation.
+The effective number of independent samples is $n\/tau$. A good MCMC method should have a small autocorrelation time.
+
+#jinguo([TODO: add a numeric example])
 
 == When it fails to thermalize: spin glass
 
@@ -230,8 +242,179 @@ Spin glass is computational universal, i.e. if you can cool down a spin glass sy
 
 Spin glass is in NP-complete, i.e. if you can cool down a spin glass system to the ground state in polynomial time, you can solve any problem in NP in polynomial time.
 
+
+
 == The spectral gap
+
+The transition matrix $P$ of a Markov chain has eigenvalues $1 = lambda_1 > lambda_2 >= lambda_3 >= ... >= lambda_n >= -1$. The spectral gap is defined as:
+
+$
+Delta = 1 - lambda_2
+$
+
+This gap determines how quickly the Markov chain converges to its stationary distribution (the Boltzmann distribution in our case). A larger spectral gap means faster convergence:
+
+- If $Delta$ is large, the system thermalizes quickly
+- If $Delta$ is small, the system thermalizes slowly
+- If $Delta approx 0$, the system may never thermalize in practical time
+
+For a Metropolis-Hastings algorithm sampling from the Boltzmann distribution, the mixing time (time to reach equilibrium) scales as $t_"mix" ~ 1/Delta$.
 
 == Parallel tempering
 
+Parallel tempering (also known as replica exchange) is a Monte Carlo method designed to improve sampling efficiency for systems with rough energy landscapes, such as spin glasses. The key idea is to simulate multiple replicas of the system at different temperatures simultaneously, allowing configurations to be exchanged between temperatures.
+
+=== Algorithm overview
+
+In parallel tempering:
+
+1. We simulate $M$ replicas of the system at different temperatures $T_1 < T_2 < ... < T_M$
+2. Each replica evolves according to standard Metropolis dynamics at its temperature
+3. Periodically, we attempt to swap configurations between adjacent temperature levels
+
+The swap between configurations at temperatures $T_i$ and $T_(i+1)$ is accepted with probability:
+
+$
+P_"swap"(bold(s)_i, bold(s)_(i+1)) = min(1, exp(-(beta_i - beta_(i+1))(H(bold(s)_(i+1)) - H(bold(s)_i))))
+$
+
+where $beta_i = 1/T_i$ and $bold(s)_i$ is the configuration at temperature $T_i$.
+
+=== Benefits of parallel tempering
+
+Parallel tempering offers several advantages:
+
+1. *Improved exploration*: Higher temperature replicas can easily cross energy barriers, while lower temperature replicas sample the relevant low-energy states
+2. *Faster thermalization*: Configurations can travel up and down the temperature ladder, helping the system escape local minima
+3. *Better sampling of low-energy states*: The method provides more efficient sampling of the low-temperature distribution
+
+=== Implementation considerations
+
+- *Temperature spacing*: The temperatures should be chosen so that the acceptance rate for swaps between adjacent temperatures is reasonable (typically 20-30%)
+- *Swap frequency*: Swaps are typically attempted after each replica has undergone several Metropolis updates
+- *Number of replicas*: More replicas provide better temperature coverage but increase computational cost
+
+=== Pseudocode
+
+#algorithm({
+  import algorithmic: *
+  Function("ParallelTempering", args: ([$H$], [$T_1, ..., T_M$], [$N_"steps"$]), {
+    Assign([$bold(s)_1, ..., bold(s)_M$], [random initial configurations])
+    For(range: [$t = 1$ to $N_"steps"$], {
+      // Update each replica with Metropolis
+      For(range: [$i = 1$ to $M$], {
+        Assign([$bold(s)_i$], [MetropolisUpdate($bold(s)_i$, $H$, $T_i$)])
+      })
+      
+      // Attempt swaps between adjacent temperatures
+      If(cond: [$t$ mod $N_"swap"$ = 0], {
+        For(range: [$i = 1$ to $M-1$], {
+          Assign([$Delta E$], [$H(bold(s)_(i+1)) - H(bold(s)_i)$])
+          Assign([$Delta beta$], [$1/T_i - 1/T_(i+1)$])
+          If(cond: [$cal(U)(0,1) < exp(-Delta beta \cdot Delta E)$], {
+            Assign([$(bold(s)_i, bold(s)_(i+1))$], [$(bold(s)_(i+1), bold(s)_i)$])
+          })
+        })
+      })
+    })
+    Return([$bold(s)_1$])  // Return lowest temperature configuration
+  })
+})
+
+Parallel tempering is particularly effective for spin glass systems where the energy landscape contains many local minima separated by high barriers, making standard Metropolis sampling inefficient at low temperatures.
+
 == Cheeger's inequality
+
+Cheeger's inequality is a fundamental result in spectral graph theory that relates the conductance (or isoperimetric constant) of a graph to its spectral gap. This relationship is particularly important in the context of spin glass systems and Markov Chain Monte Carlo methods, as it provides bounds on mixing times.
+
+=== Conductance and the Cheeger constant
+
+For a graph $G = (V, E)$ with vertex set $V$ and edge set $E$, the Cheeger constant (or conductance) $h(G)$ is defined as:
+
+$
+h(G) = min_(S subset V, 0 < |S| <= |V|/2) frac(|E(S, V backslash S)|, min("vol"(S), "vol"(V backslash S)))
+$
+
+where:
+- $E(S, V backslash S)$ is the set of edges between $S$ and its complement
+- $"vol"(S) = sum_(v in S) d_v$ is the volume of set $S$, with $d_v$ being the degree of vertex $v$
+
+The Cheeger constant measures how well-connected the graph is, or equivalently, how difficult it is to partition the graph into disconnected components.
+
+=== Cheeger's inequality
+
+Cheeger's inequality relates the Cheeger constant $h(G)$ to the second smallest eigenvalue $lambda_2$ of the normalized Laplacian matrix $L = I - D^(-1/2) A D^(-1/2)$, where $D$ is the degree matrix and $A$ is the adjacency matrix:
+
+$
+frac(lambda_2, 2) <= h(G) <= sqrt(2 lambda_2)
+$
+
+This inequality provides both lower and upper bounds on the Cheeger constant in terms of the spectral gap.
+
+#jinguo([How does this equation relate to Eq.12.27 in the nature of computation?])
+
+=== Relation to mixing time
+
+The mixing time of a Markov chain is the time required for the chain to approach its stationary distribution. For a reversible Markov chain, the mixing time $t_"mix"$ is related to the spectral gap $(1 - lambda_2)$ of the transition matrix:
+
+$
+t_"mix" approx frac(1, 1 - lambda_2)
+$
+
+By Cheeger's inequality, we know that:
+
+$
+1 - lambda_2 >= frac(h(G)^2, 2)
+$
+
+Therefore:
+
+$
+t_"mix" <= frac(2, h(G)^2)
+$
+
+This means that a graph with a large Cheeger constant (good expansion properties) will have a small mixing time, allowing MCMC methods to converge quickly to the stationary distribution.
+
+=== Estimating the Cheeger constant
+
+Exactly computing the Cheeger constant is NP-hard, but there are several approaches to estimate it:
+
+1. *Spectral methods*: Using Cheeger's inequality, we can compute $lambda_2$ and use it as an approximation.
+
+2. *Sampling-based methods*: For large graphs, we can use random walks to estimate the conductance.
+
+3. *Approximation algorithms*: There exist polynomial-time algorithms that can approximate the Cheeger constant within certain factors.
+
+For spin glass systems, estimating the Cheeger constant can provide valuable insights into the difficulty of sampling from the Boltzmann distribution at low temperatures. A small Cheeger constant indicates the presence of bottlenecks in the state space, which can significantly slow down the mixing of MCMC methods.
+
+#algorithm({
+  import algorithmic: *
+  Function("EstimateCheegerConstant", args: ([$G = (V, E)$], [$k$]), {
+    // Compute the normalized Laplacian matrix
+    Assign([$D$], [diagonal degree matrix of $G$])
+    Assign([$A$], [adjacency matrix of $G$])
+    Assign([$L$], [$I - D^(-1/2) A D^(-1/2)$])
+    
+    // Compute the second smallest eigenvalue
+    Assign([$lambda_2$], [second smallest eigenvalue of $L$])
+    
+    // Use spectral partitioning to find a good cut
+    Assign([$v_2$], [eigenvector corresponding to $lambda_2$])
+    Assign([$S_t$], [vertices with the smallest $t$ values in $D^(-1/2) v_2$])
+    
+    // Compute conductance for different values of t
+    Assign([$h_"min"$], [$infinity$])
+    For(range: [$t = 1$ to $|V|-1$], {
+      Assign([$h_t$], [$|E(S_t, V backslash S_t)| \/ min("vol"(S_t), "vol"(V backslash S_t))$])
+      If(cond: [$h_t < h_"min"$], {
+        Assign([$h_"min"$], [$h_t$])
+      })
+    })
+    
+    Return([$h_"min"$, $lambda_2$])
+  })
+})
+
+In practice, for spin glass systems, the Cheeger constant provides a quantitative measure of how "glassy" the energy landscape is. Systems with small Cheeger constants have energy landscapes with high barriers between different metastable states, making equilibration difficult and necessitating techniques like parallel tempering to efficiently sample the state space.
+
+#bibliography("refs.bib")

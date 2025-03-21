@@ -19,6 +19,8 @@
 
 = Sparse Matrices and Graphs
 
+- Code: https://github.com/GiggleLiu/ScientificComputingDemos/tree/main/SimpleKrylov
+
 == Sparse Matrices
 
 Sparse matrices are ubiquitous in scientific computing. They arise naturally in many applications where most elements are zero, allowing for significant memory savings and computational efficiency. This section considers how to efficiently store and manipulate sparse matrices.

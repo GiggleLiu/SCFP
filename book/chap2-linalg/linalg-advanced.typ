@@ -7,6 +7,8 @@
 
 = Matrix Computation (Advanced Topics)
 
+- Code: https://github.com/GiggleLiu/ScientificComputingDemos/tree/main/SimpleLinearAlgebra
+
 = Sensitivity analysis
 
 == Floating-point numbers and relative errors

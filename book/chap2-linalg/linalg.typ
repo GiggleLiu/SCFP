@@ -7,6 +7,8 @@
 
 = Matrix Computation
 
+- Code: https://github.com/GiggleLiu/ScientificComputingDemos/tree/main/SpringSystem
+
 In this chapter, we explore fundamental operations in matrix computation, including matrix multiplication, linear systems, matrix decompositions, and eigenvalue problems. We'll provide practical examples and applications for each concept. For a comprehensive reference on matrix computations, see @Golub2016.
 
 = Linear Algebra Basics
