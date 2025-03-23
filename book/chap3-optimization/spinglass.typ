@@ -106,7 +106,7 @@ An Ising model is defined by a graph $G = (V, E)$ and a set of spins $s_i in {-1
 
 $
 H = sum_((i,j) in E) J_(i j) s_i s_j + sum_(i in V) h_i s_i
-$
+$ <eq:spin-glass-hamiltonian>
 
 We are interested in Ising models for multiple reasons, one is from the physics perspective. We want to understand the phenomemon of phase transition, i.e. how magnetization emerges from the disorder. Another reason is from the optimization perspective, finding the ground state (the configuration with the lowest energy) of an Ising model is in general hard, which is known as the spin glass problem. It is in complexity class NP-complete. Solving the spin glass problem in time polynomial to the graph size would break the complexity hierarchy, which is unlikely to happen.
 
@@ -365,13 +365,30 @@ NP problems are decision problems, features the property that given a solution, 
 #figure(canvas({
   import draw: *
   let s(it) = text(8pt, it)
-  bob((0, 0), rescale: 1, flip: false, label: s[$n^100$], words: text(8pt)[Both of us are hard to solve.])
+  bob((0, 0), rescale: 1, flip: false, label: s[$n^100$], words: text(8pt)[Both of us are\ difficult to solve.])
   alice((8, 0), rescale: 1, flip: true, label: s[$1.001^n$], words: text(8pt)[Sorry, we are not in the same category.])
 })) <fig:np-complete>
 
 
 == From logic circuit to spin glass
-We start by showing the following statement is true: _If you can drive a Spin glass system to the ground state, you can prove any theorem._
+We start by showing the following statement is true: _If you can drive a Spin glass system to the ground state, you can prove any theorem._ Note that theorem proving is not different from other problems in NP. First it is a decision problem, second, with a proof, it is easy to verify whether the solution is correct in polynomial time. A spin glass system can encode a target problem by tuning its couplings $J_(i j)$ and biases $h_i$ in the Hamiltonian @eq:spin-glass-hamiltonian.
+After driving the spin glass system to the ground state, we can read out the proof from the spin configuration.
+
+#figure(canvas({
+  import draw: *
+  let s(it) = text(12pt, it)
+  let boxed(it) = box(it, stroke: black, inset: 0.5em)
+  content((0, 0), boxed(s[Problem]), name: "problem")
+  content((0, -2), boxed(s[Spin glass]), name: "spin-glass")
+  content((5, -2), boxed(s[Ground state]), name: "ground-state")
+  content((5, 0), boxed(s[Solution]), name: "solution")
+  line("problem", "spin-glass", stroke: (paint: black, thickness: 1pt), mark: (end: "straight"), name: "line1")
+  line("spin-glass", "ground-state", stroke: (paint: black, thickness: 1pt), mark: (end: "straight"), name: "line2")
+  line("ground-state", "solution", stroke: (paint: black, thickness: 1pt), mark: (end: "straight"), name: "line3")
+  content((rel: (-1.0, 0), to: "line1.mid"), s[Reduction])
+  content((rel: (0.0, -0.3), to: "line2.mid"), s[Cooling])
+  content((rel: (1.0, 0), to: "line3.mid"), s[Extraction])
+}))
 
 The ground state of a spin glass can encode the truth table of any logic circuit. In @tbl:logic-circuit-to-spin-glass, we show the spin glass gadget for well-known logic gates $not$, $and$ and $or$. These logic gates can be used to construct any logic circuit.
 
@@ -423,8 +440,9 @@ The ground state of a spin glass can encode the truth table of any logic circuit
 
 ],
 [(-1, -1, -1),\ (+1, -1, -1),\ (-1, +1, -1),\ (+1, +1, +1)], [-3],
-), caption: [The spin glass gadget for logic gates. The blue/red spin is the input/output.]) <tbl:logic-circuit-to-spin-glass>
+), caption: [The spin glass gadget for logic gates. The blue/red spin is the input/output spins. The numbers on the vertices are the biases $h_i$ of the spins, the numbers on the edges are the couplings $J_(i j)$.]) <tbl:logic-circuit-to-spin-glass>
 
+With these gadgets, we can construct any logic circuits utilizing the composibility of logic gadgets. Given two logic gadgets $H_1$ and $H_2$, in the ground state of the combined gadget $H_1 compose H_2$, both $H_1$ and $H_2$ are in their own ground state. i.e. the logic expressions associated with $H_1$ and $H_2$ are both satisfied. Therefore, the ground state of $H_1 compose H_2$ is the same as the truth table of the composed logic circuit.
 
 #figure(canvas({
   import draw: *
