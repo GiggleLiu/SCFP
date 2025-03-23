@@ -319,15 +319,14 @@ The effective number of independent samples is $n\/tau$. A good MCMC method shou
 
 #jinguo([TODO: add a numeric example])
 
-= When it fails to thermalize: spin glass
+= Spin glass
 
 When the coupling can be freely tuned, the ferromagnetic Ising model becomes a spin glass.
 Spin glass ground state finding problem is hard, it is NP-complete, i.e. if you can cool down a spin glass system to the ground state in polynomial time, you can solve any problem in NP in polynomial (to problem size) time, which is believed to be impossible.
 NP problems are decision problems, features the property that given a solution, it is easy to verify whether the solution is correct in polynomial time.
 
-#let alice(loc, rescale: 1, flip: false) = {
+#let alice(loc, rescale: 1, flip: false, label: none, words: none) = {
   import draw: *
-  let s(it) = text(12pt, it)
   let r = 0.4 * rescale
   let xr = if flip { -r } else { r }
   circle(loc, radius: r, name: "alice")
@@ -336,11 +335,16 @@ NP problems are decision problems, features the property that given a solution, 
   line((anchor: 40%, name: "line1"), (loc.at(0) - xr, loc.at(1) - 5 * r))
   line((anchor: 57%, name: "line1"), (loc.at(0) + xr, loc.at(1) - 5 * r))
   hobby((anchor: if flip { 20deg } else { 160deg }, name: "alice"), (rel: (-2 * xr, 0), to: "alice"), (rel: (-xr * 1.5, -r), to: "alice"), rescale: 0.5)
+  if label != none {
+    content((loc.at(0), loc.at(1) - 2.5 * r), label)
+  }
+  if words != none {
+    content((loc.at(0) + 5 * xr, loc.at(1) - 0.5 * r), box(width: 70pt, words))
+  }
 }
 
-#let bob(loc, rescale: 1, flip: false) = {
+#let bob(loc, rescale: 1, flip: false, label: none, words: none) = {
   import draw: *
-  let s(it) = text(12pt, it)
   let r = 0.4 * rescale
   let xr = if flip { -r } else { r }
   circle(loc, radius: (0.8 * r, r), name: "bob")
@@ -350,16 +354,25 @@ NP problems are decision problems, features the property that given a solution, 
   line((anchor: 40%, name: "line1"), (loc.at(0) + 0.5 * xr, loc.at(1) - 5 * r))
   line((anchor: 20%, name: "line1"), (loc.at(0) + 0.5 * xr, loc.at(1) - 2 * r))
   line((anchor: 59%, name: "line1"), (loc.at(0) + 2 * xr, loc.at(1) - 2 * r))
+  if label != none {
+    content((loc.at(0), loc.at(1) - 1.5 * r), label)
+  }
+  if words != none {
+    content((loc.at(0) + 6 * xr, loc.at(1) - 1.5 * r), box(width: 70pt, words))
+  }
 }
 
 #figure(canvas({
   import draw: *
-  let s(it) = text(12pt, it)
-  alice((0, 0), rescale: 1, flip: false)
-  bob((3, 0), rescale: 1, flip: true)
+  let s(it) = text(8pt, it)
+  bob((0, 0), rescale: 1, flip: false, label: s[$n^100$], words: text(8pt)[Alice, both of us are hard to solve.])
+  alice((8, 0), rescale: 1, flip: true, label: s[$1.001^n$], words: text(8pt)[I can not play with you, Mom said we are not in the same category.])
 })) <fig:np-complete>
 
-To show why is this the case, we introduce how to convert the factoring problem into a spin glass problem.
+
+== From logic circuit to spin glass
+We start by showing the following statement is true: _If you can drive a Spin glass system to the ground state, you can prove any theorem._
+We introduce how to convert the factoring problem into a spin glass problem.
 Factoring problem is the cornerstone of modern cryptography, it is the problem of given a number $N$, find two prime numbers $p$ and $q$ such that $N = p times q$.
 
 #figure(canvas({
@@ -381,6 +394,56 @@ Factoring problem is the cornerstone of modern cryptography, it is the problem o
   content((dx/2 + 1.5, 1.5), s[Add more "triangles"])
   content((dx/2 + 1.5, 1.1), s[$arrow.double.r$])
 }))
+
+#figure(table(columns: 4, table.header([Gate], [Gadget], [Ground states], [Lowest energy]),
+[Logical not: $not$], [
+  #canvas(length: 0.5cm, {
+  import draw: *
+  let s(it) = text(11pt, it)
+  for (i, (x, y, color)) in ((-1.5, 0, blue), (1.5, 0, red)).enumerate() {
+    circle((x, y), radius: 0.6, fill: color.lighten(40%), name: "s" + str(i))
+  }
+  line("s0", "s1", stroke: (paint: black, thickness: 1pt), name: "line1")
+  content("line1.mid", box(fill: white, s[1], inset: 0.1em))
+})
+
+],
+[(-1, +1),\ (+1, -1)], [-1],
+[Logical and: $and$], [#canvas(length: 0.5cm, {
+  import draw: *
+  let s(it) = text(11pt, it)
+  for (i, (x, y, color, h)) in ((0, -1.5, blue, 1), (0, 1.5, blue, 1), (2.5, 0, red, -2)).enumerate() {
+    circle((x, y), radius: 0.6, fill: color.lighten(40%), name: "s" + str(i))
+    content((x, y), s[#h])
+  }
+  line("s0", "s1", stroke: (paint: black, thickness: 1pt), name: "line1")
+  line("s0", "s2", stroke: (paint: black, thickness: 1pt), name: "line2")
+  line("s1", "s2", stroke: (paint: black, thickness: 1pt), name: "line3")
+  content("line1.mid", box(fill: white, s[1], inset: 0.1em))
+  content("line2.mid", box(fill: white, s[-2], inset: 0.1em))
+  content("line3.mid", box(fill: white, s[-2], inset: 0.1em))
+})
+],
+[(-1, -1, -1),\ (+1, -1, +1),\ (-1, +1, +1),\ (+1, +1, +1)], [-3],
+[Logical or: $or$], [
+#canvas(length: 0.5cm, {
+  import draw: *
+  let s(it) = text(11pt, it)
+  for (i, (x, y, color, h)) in ((0, -1.5, blue, -1), (0, 1.5, blue, -1), (2.5, 0, red, 2)).enumerate() {
+    circle((x, y), radius: 0.6, fill: color.lighten(40%), name: "s" + str(i))
+    content((x, y), s[#h])
+  }
+  line("s0", "s1", stroke: (paint: black, thickness: 1pt), name: "line1")
+  line("s0", "s2", stroke: (paint: black, thickness: 1pt), name: "line2")
+  line("s1", "s2", stroke: (paint: black, thickness: 1pt), name: "line3")
+  content("line1.mid", box(fill: white, s[1], inset: 0.1em))
+  content("line2.mid", box(fill: white, s[-2], inset: 0.1em))
+  content("line3.mid", box(fill: white, s[-2], inset: 0.1em))
+})
+
+],
+[(-1, -1, -1),\ (+1, -1, -1),\ (-1, +1, -1),\ (+1, +1, +1)], [-3],
+), caption: [The spin glass gadget for logic gates. The blue/red spin is the input/output.])
 
 == The spectral gap
 
