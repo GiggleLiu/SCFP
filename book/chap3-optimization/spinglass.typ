@@ -440,34 +440,91 @@ The ground state of a spin glass can encode the truth table of any logic circuit
 
 ],
 [(-1, -1, -1),\ (+1, -1, -1),\ (-1, +1, -1),\ (+1, +1, +1)], [-3],
-), caption: [The spin glass gadget for logic gates. The blue/red spin is the input/output spins. The numbers on the vertices are the biases $h_i$ of the spins, the numbers on the edges are the couplings $J_(i j)$.]) <tbl:logic-circuit-to-spin-glass>
+), caption: [The spin glass gadget for logic gates@Gao2024. The blue/red spin is the input/output spins. The numbers on the vertices are the biases $h_i$ of the spins, the numbers on the edges are the couplings $J_(i j)$.]) <tbl:logic-circuit-to-spin-glass>
 
 With these gadgets, we can construct any logic circuits utilizing the composibility of logic gadgets. Given two logic gadgets $H_1$ and $H_2$, in the ground state of the combined gadget $H_1 compose H_2$, both $H_1$ and $H_2$ are in their own ground state. i.e. the logic expressions associated with $H_1$ and $H_2$ are both satisfied. Therefore, the ground state of $H_1 compose H_2$ is the same as the truth table of the composed logic circuit.
 
-#figure(canvas({
-  import draw: *
-  let s(it) = text(12pt, it)
-  rect((0, 0), (3, 3))
-  circle((1.5, 2.2), radius: (0.5, 0.5), fill: blue.lighten(60%), stroke: none)
-  circle((1.5, 0.8), radius: (0.5, 0.5), fill: blue.lighten(60%), stroke: none)
-  
-  let dx = 8
-  rect((dx, 0), (dx + 3, 3))
-  let n = 20
-  for i in range(n) {
-    circle((dx + 0.5 + 2 * random_numbers.at(i), 0.5 + 2 * random_numbers.at(i+n)), radius: (random_numbers.at(i+2*n))/4, fill: blue.lighten(60%), stroke: none)
+
+```julia
+source_problem = Factoring(3, 2, 15)
+
+# Construct the spin glass
+paths = reduction_paths(Factoring, SpinGlass)
+mapres = reduceto(paths[1], source_problem)
+target_problem(mapres) |> num_variables  # output: 63
+
+# Extract the ground state
+ground_state = read_config(solve(target_problem(mapres), SingleConfigMin())[])
+
+# Verify the solution
+solution = extract_solution(mapres, ground_state) # output: [1, 0, 1, 1, 1]
+ProblemReductions.read_solution(source_problem, solution) # output: (5, 3)
+```
+
+In this example, the resulting spin glass has $63$ spins, which is beyond the capability of brute force search.
+Here we resort to the generic tensor network solver to find the ground state.
+In the following, we will introduce a physics-inspired algorithm, the simulated annealing, to find the ground state of a spin glass.
+
+== Simulated Annealing
+Simulated annealing is an algorithm for finding the global optimum of a given function, which mimics the physical process of cooling down a material.
+#block(stroke: black, inset: 0.5em, [
+  *Can we simulate the cooling process to find the ground state of a spin glass?*
+  - Fact 1: Spin-glass can encode any problem in NP, including the famous factoring problem: $N = p times q$.
+  - Fact 2: A physical system thermalizes through the Hamiltonian dynamics
+    $
+      cases((dif bold(q))/(dif t) = (partial H)/(partial bold(p)), (dif bold(p))/(dif t) = - (partial H)/(partial bold(q)))
+    $
+    where $H = T + V$ is the Hamiltonian, $bold(q)$ and $bold(p)$ are the generalized position and momentum variables.
+  - Fact 3: The thermal state at zero temperature is the ground state.
+  - Fact 4: If we drive the spin glass to the ground state, we can read out the solution from the spin configuration.
+])
+
+
+A cooling process is characterized by lowering the temperature $T$ from a high initial temperature $T_"init"$ to a low final temperature $T_"final"$ following a cooling schedule. The temperature determining the probability distribution of states through the Boltzmann statistics:
+$
+  p(bold(s)) ~ e^(-H(bold(s))\/T)
+$
+At the thermal equilibrium, the system effectively finds the distribution with the lowest free energy:
+$F = angle.l H angle.r - T S$, where $S$ is the entropy. When the temperature $T$ is high, the system tends to find the distribution with large entropy, making the system behave more randomly. As the temperature decreases, the system tends to find the distribution with lower energy, making the system more likely to be in the low-energy states. This transition can not happen abruptly, otherwise the system will get stuck in a local minimum. We have to wait the dynamics to thermalize the system.
+
+The algorithm works as follows:
+
+#algorithm(
+  {
+    import algorithmic: *
+    Function("SimulatedAnnealing", args: ([$bold(s)$], [$T_"init"$], [$alpha$], [$n_"steps"$]),
+    {
+    For(cond: [$i = 1 dots n_"steps"$], {
+        Assign([$T$], [$alpha^i T_"init"$])
+        // Choose a random spin to flip
+        Assign([$bold(s)'$], [$bold(s)$ with random spin flipped])
+          // Accept with probability $e^{-\Delta E/T}$ if energy increases
+        State([$r ~ cal(U)(0,1) quad$  #Ic[random number]]) 
+        If(cond: [$r < e^(-(H(bold(s)') - H(bold(s)))\/T)$], {
+          Assign([$bold(s)$], [$bold(s)'$])
+        })
+      // Decrease temperature according to cooling schedule
+    })
+    
+    Return([$bold(s)$])
+    }
+    )
   }
-  content((dx + 1.5, -0.8), s[Frustrated, Glassy\ Many local minima])
-  content((1.5, -0.8), s[No frustration, Ordered,\ Countable local minima])
+)
+The algorithm starts with an initial spin configuration $bold(s)$, initial temperature $T_"init"$ and cooling rate $alpha < 1$. It then iteratively updates the spin configuration with probability $e^(-Delta E\/T)$. This update strategy can be carefully designed to achieve shorter mixing time. Here, we use the simplest single spin flip strategy.
 
-  content((dx/2 + 1.5, 1.5), s[Add more "triangles"])
-  content((dx/2 + 1.5, 1.1), s[$arrow.double.r$])
-}))
+The cooling schedule is also crucial for the algorithm's performance. If we cool too quickly, the system may get trapped in a local minimum. If we cool too slowly, the algorithm becomes computationally expensive. Common cooling schedules include:
 
+- Linear: $T_k = T_"init" - k dot (T_"init" - T_"final")/n$
+- Exponential: $T_k = T_"init" dot alpha^k$ where $0 < alpha < 1$
+- Logarithmic: $T_k = T_"init"/log(k+1)$
+
+Theoretically, with a logarithmic cooling schedule that decreases slowly enough, simulated annealing will converge to the global optimum with probability 1. However, in practice, faster cooling schedules are often used with good empirical results.
 
 == Example: Encoding the factoring problem to a spin glass
 We introduce how to convert the factoring problem into a spin glass problem.
 Factoring problem is the cornerstone of modern cryptography, it is the problem of given a number $N$, find two prime numbers $p$ and $q$ such that $N = p times q$.
+
 == The spectral gap
 
 The transition matrix $P$ of a Markov chain has eigenvalues $1 = lambda_1 > lambda_2 >= lambda_3 >= ... >= lambda_n >= -1$. The spectral gap is defined as:
@@ -552,6 +609,28 @@ end
 #figure(image("images/spectralgap.svg", width: 300pt),
 caption: [Spectral gap v.s. $1\/T$ of the Ising model ($J = -1$) on a circle of length $N=6$.],
 )
+
+#figure(canvas({
+  import draw: *
+  let s(it) = text(12pt, it)
+  rect((0, 0), (3, 3))
+  circle((1.5, 2.2), radius: (0.5, 0.5), fill: blue.lighten(60%), stroke: none)
+  circle((1.5, 0.8), radius: (0.5, 0.5), fill: blue.lighten(60%), stroke: none)
+  
+  let dx = 8
+  rect((dx, 0), (dx + 3, 3))
+  let n = 20
+  for i in range(n) {
+    circle((dx + 0.5 + 2 * random_numbers.at(i), 0.5 + 2 * random_numbers.at(i+n)), radius: (random_numbers.at(i+2*n))/4, fill: blue.lighten(60%), stroke: none)
+  }
+  content((dx + 1.5, -0.8), s[Frustrated, Glassy\ Many local minima])
+  content((1.5, -0.8), s[No frustration, Ordered,\ Countable local minima])
+
+  content((dx/2 + 1.5, 1.5), s[Add more "triangles"])
+  content((dx/2 + 1.5, 1.1), s[$arrow.double.r$])
+}))
+
+
 
 == Parallel tempering
 
