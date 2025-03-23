@@ -4,7 +4,7 @@
 #import "@preview/algorithmic:0.1.0"
 #import algorithmic: algorithm
 
-#show: book-page.with(title: "Spin glass and MCMC")
+#show: book-page.with(title: "Spin systems and MCMC")
 #show: thmrules
 #set math.equation(numbering: "(1)")
 
@@ -56,8 +56,41 @@
   return edges
 }
 
+#let draw_cube(cube_center, size, perspective: 0.3) = {
+  import draw: *
+    // Define the vertices of the front face
+  let front_vertices = (
+    (cube_center.at(0) - size/2, cube_center.at(1) - size/2),  // bottom-left
+    (cube_center.at(0) + size/2, cube_center.at(1) - size/2),  // bottom-right
+    (cube_center.at(0) + size/2, cube_center.at(1) + size/2),  // top-right
+    (cube_center.at(0) - size/2, cube_center.at(1) + size/2)   // top-left
+  )
+  
+  // Define the vertices of the back face
+  let back_vertices = front_vertices.map(v => (
+    v.at(0) + perspective, 
+    v.at(1) - perspective
+  ))
+  
+  // Draw the front face with named vertices
+  for i in range(4) {
+    circle(front_vertices.at(i), radius: 0.0, name: "f" + str(i))
+    circle(back_vertices.at(i), radius: 0.0, name: "b" + str(i))
+  }
+  
+  // Draw the back face with named vertices
+  for i in range(4) {
+    line("f" + str(i), "f" + str(calc.rem(i + 1, 4)))
+    line("b" + str(i), "b" + str(calc.rem(i + 1, 4)))
+  }
+  
+  // Connect front to back
+  for i in range(4) {
+    line("f" + str(i), "b" + str(i))
+  }
+}
 
-#align(center, [= Spin Glass\
+#align(center, [= Spin systems and MCMC\
 _Jin-Guo Liu_])
 
 
@@ -286,11 +319,48 @@ The effective number of independent samples is $n\/tau$. A good MCMC method shou
 
 #jinguo([TODO: add a numeric example])
 
-== When it fails to thermalize: spin glass
+= When it fails to thermalize: spin glass
 
-Spin glass is computational universal, i.e. if you can cool down a spin glass system to the ground state, you can solve any problem.
+When the coupling can be freely tuned, the ferromagnetic Ising model becomes a spin glass.
+Spin glass ground state finding problem is hard, it is NP-complete, i.e. if you can cool down a spin glass system to the ground state in polynomial time, you can solve any problem in NP in polynomial (to problem size) time, which is believed to be impossible.
+NP problems are decision problems, features the property that given a solution, it is easy to verify whether the solution is correct in polynomial time.
 
-Spin glass is in NP-complete, i.e. if you can cool down a spin glass system to the ground state in polynomial time, you can solve any problem in NP in polynomial time.
+#let alice(loc, rescale: 1, flip: false) = {
+  import draw: *
+  let s(it) = text(12pt, it)
+  let r = 0.4 * rescale
+  let xr = if flip { -r } else { r }
+  circle(loc, radius: r, name: "alice")
+  circle((rel: (xr * 0.3, 0.3 * r), to: loc), radius: (0.2 * r, 0.15 * r), name: "eye", stroke: none, fill: black)
+  line((anchor: if flip { -70deg } else { -110deg }, name: "alice"), (rel: (-1.6 * xr, -3.5 * r), to: "alice"), (rel: (1.5 * xr, -3.7 * r), to: "alice"), (anchor: if flip { -120deg } else { -60deg }, name: "alice"), stroke: (paint: black, thickness: 1pt), name: "line1")
+  line((anchor: 40%, name: "line1"), (loc.at(0) - xr, loc.at(1) - 5 * r))
+  line((anchor: 57%, name: "line1"), (loc.at(0) + xr, loc.at(1) - 5 * r))
+  hobby((anchor: if flip { 20deg } else { 160deg }, name: "alice"), (rel: (-2 * xr, 0), to: "alice"), (rel: (-xr * 1.5, -r), to: "alice"), rescale: 0.5)
+}
+
+#let bob(loc, rescale: 1, flip: false) = {
+  import draw: *
+  let s(it) = text(12pt, it)
+  let r = 0.4 * rescale
+  let xr = if flip { -r } else { r }
+  circle(loc, radius: (0.8 * r, r), name: "bob")
+  circle((rel: (xr * 0.4, 0.2 * r), to: loc), radius: (0.2 * r, 0.18 * r), name: "eye", stroke: none, fill: black)
+  line((rel: (-1.5 * xr, -r), to: "bob"), (rel: (-0.6 * xr, -3.5 * r), to: "bob"), (rel: (0.7 * xr, -3.5 * r), to: "bob"), (rel: (1.2 * xr, -r), to: "bob"), stroke: (paint: black, thickness: 1pt), name: "line1", close: true)
+  line((anchor: 31%, name: "line1"), (loc.at(0) - 0.5 * xr, loc.at(1) - 5 * r))
+  line((anchor: 40%, name: "line1"), (loc.at(0) + 0.5 * xr, loc.at(1) - 5 * r))
+  line((anchor: 20%, name: "line1"), (loc.at(0) + 0.5 * xr, loc.at(1) - 2 * r))
+  line((anchor: 59%, name: "line1"), (loc.at(0) + 2 * xr, loc.at(1) - 2 * r))
+}
+
+#figure(canvas({
+  import draw: *
+  let s(it) = text(12pt, it)
+  alice((0, 0), rescale: 1, flip: false)
+  bob((3, 0), rescale: 1, flip: true)
+})) <fig:np-complete>
+
+To show why is this the case, we introduce how to convert the factoring problem into a spin glass problem.
+Factoring problem is the cornerstone of modern cryptography, it is the problem of given a number $N$, find two prime numbers $p$ and $q$ such that $N = p times q$.
 
 #figure(canvas({
   import draw: *
@@ -305,8 +375,8 @@ Spin glass is in NP-complete, i.e. if you can cool down a spin glass system to t
   for i in range(n) {
     circle((dx + 0.5 + 2 * random_numbers.at(i), 0.5 + 2 * random_numbers.at(i+n)), radius: (random_numbers.at(i+2*n))/4, fill: blue.lighten(60%), stroke: none)
   }
-  content((dx + 1.5, -0.3), s[Frustrated, Glassy])
-  content((1.5, -0.3), s[No frustration, Ordered])
+  content((dx + 1.5, -0.8), s[Frustrated, Glassy\ Many local minima])
+  content((1.5, -0.8), s[No frustration, Ordered,\ Countable local minima])
 
   content((dx/2 + 1.5, 1.5), s[Add more "triangles"])
   content((dx/2 + 1.5, 1.1), s[$arrow.double.r$])
@@ -327,6 +397,75 @@ This gap determines how quickly the Markov chain converges to its stationary dis
 - If $Delta approx 0$, the system may never thermalize in practical time
 
 For a Metropolis-Hastings algorithm sampling from the Boltzmann distribution, the mixing time (time to reach equilibrium) scales as $t_"mix" ~ 1/Delta$.
+
+=== Example: Spectral gap and mixing time
+
+Let us consider an Ising model with $N$ spins on a circle:
+#figure(canvas({
+  import draw: *
+  let s(it) = text(12pt, it)
+  let N = 6
+  let d = 1.0
+  for i in range(N) {
+    circle((i * d, 0), radius: 0.2, name: "s" + str(i))
+    if i > 0 {
+      line("s" + str(i - 1), "s" + str(i))
+    }
+  }
+  bezier("s0.south", "s" + str(N - 1) + ".south", (0, - 1), (N * d - d, -1))
+
+  // Draw a 3D cube to represent the state space
+  let cube_center = (8, 0)
+  let size = 1.2
+  draw_cube(cube_center, size, perspective: 0.3)
+  circle("f0", radius: 0.05, fill: red, stroke: none, name: "a")
+  circle("f1", radius: 0.05, fill: blue, stroke: none, name: "b")
+  bezier("a.east", "b.east", (8, -1), mark: (end: "straight"), stroke: (dash: "dashed"))
+  // Add label
+  content((cube_center.at(0), cube_center.at(1) - size - 0.3), s[State space for $N=3$])
+}))
+
+$ H(bold(s)) = J sum_(i=1)^(N) s_i s_(i+1), quad s_1 = s_(N+1). $
+
+
+The state space is a hypercube, the number of states is $2^N$. For a given state $bold(s)$, it has $N$ directions to move to the adjacent states $bold(s)', |bold(s') - bold(s)| = 1$, where the norm is the Hamming distance. There is no bias in the prior, i.e. $T(bold(s) arrow.r bold(s)') = T(bold(s)' arrow.r bold(s)) = 1\/N$. So the transition probability from $bold(s)$ to $bold(s')$ is
+$ P(bold(s)'|bold(s)) = 1/N min(1, e^(-beta (H(bold(s)') - H(bold(s))))). $
+
+Let's examine how the spectral gap affects mixing time with a concrete example. We'll create a spin glass system and analyze its spectral properties using Julia:
+
+```julia
+using ProblemReductions, Graphs, Printf
+
+function transition_matrix(model::SpinGlass, beta::T) where T
+    N = num_variables(model)
+    P = zeros(T, 2^N, 2^N)  # P[i, j] = probability of transitioning from j to i
+    readbit(cfg, i::Int) = (cfg >> (i - 1)) & 1  # read the i-th bit of cfg
+    int2cfg(cfg::Int) = [readbit(cfg, i) for i in 1:N]
+    for j in 1:2^N
+        for i in 1:2^N
+            if count_ones((i-1) ⊻ (j-1)) == 1  # Hamming distance is 1
+                P[i, j] = 1/N * min(one(T), exp(-beta * (energy(model, int2cfg(i-1)) - energy(model, int2cfg(j-1)))))
+            end
+        end
+        P[j, j] = 1 - sum(P[:, j])  # rejected transitions
+    end
+    return P
+end
+```
+
+The spectral gap can be computed as follows:
+```julia
+using LinearAlgebra: eigvals
+
+function spectral_gap(P)
+    eigenvalues = eigvals(P, sortby=x -> real(x))
+    return 1.0 - real(eigenvalues[end-1])
+end
+```
+
+#figure(image("images/spectralgap.svg", width: 300pt),
+caption: [Spectral gap v.s. $1\/T$ of the Ising model ($J = -1$) on a circle of length $N=6$.],
+)
 
 == Parallel tempering
 

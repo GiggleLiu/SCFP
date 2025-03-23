@@ -22,7 +22,7 @@
     #chapter("chap2-linalg/sparse.typ")[Sparse Matrices and Graphs]
     #chapter("chap2-linalg/tensor-network.typ")[Tensor networks]
     = Optimization
-    #chapter("chap3-optimization/spinglass.typ")[Spin glass and MCMC]
+    #chapter("chap3-optimization/spinglass.typ")[Spin systems and MCMC]
     #chapter("chap3-optimization/linear_integer.typ")[Linear/Integer programming]
     #chapter("chap3-optimization/ad.typ")[Automatic differentiation]
     = Quantum systems
