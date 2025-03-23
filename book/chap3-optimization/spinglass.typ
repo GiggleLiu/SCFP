@@ -365,35 +365,15 @@ NP problems are decision problems, features the property that given a solution, 
 #figure(canvas({
   import draw: *
   let s(it) = text(8pt, it)
-  bob((0, 0), rescale: 1, flip: false, label: s[$n^100$], words: text(8pt)[Alice, both of us are hard to solve.])
-  alice((8, 0), rescale: 1, flip: true, label: s[$1.001^n$], words: text(8pt)[I can not play with you, Mom said we are not in the same category.])
+  bob((0, 0), rescale: 1, flip: false, label: s[$n^100$], words: text(8pt)[Both of us are hard to solve.])
+  alice((8, 0), rescale: 1, flip: true, label: s[$1.001^n$], words: text(8pt)[Sorry, we are not in the same category.])
 })) <fig:np-complete>
 
 
 == From logic circuit to spin glass
 We start by showing the following statement is true: _If you can drive a Spin glass system to the ground state, you can prove any theorem._
-We introduce how to convert the factoring problem into a spin glass problem.
-Factoring problem is the cornerstone of modern cryptography, it is the problem of given a number $N$, find two prime numbers $p$ and $q$ such that $N = p times q$.
 
-#figure(canvas({
-  import draw: *
-  let s(it) = text(12pt, it)
-  rect((0, 0), (3, 3))
-  circle((1.5, 2.2), radius: (0.5, 0.5), fill: blue.lighten(60%), stroke: none)
-  circle((1.5, 0.8), radius: (0.5, 0.5), fill: blue.lighten(60%), stroke: none)
-  
-  let dx = 8
-  rect((dx, 0), (dx + 3, 3))
-  let n = 20
-  for i in range(n) {
-    circle((dx + 0.5 + 2 * random_numbers.at(i), 0.5 + 2 * random_numbers.at(i+n)), radius: (random_numbers.at(i+2*n))/4, fill: blue.lighten(60%), stroke: none)
-  }
-  content((dx + 1.5, -0.8), s[Frustrated, Glassy\ Many local minima])
-  content((1.5, -0.8), s[No frustration, Ordered,\ Countable local minima])
-
-  content((dx/2 + 1.5, 1.5), s[Add more "triangles"])
-  content((dx/2 + 1.5, 1.1), s[$arrow.double.r$])
-}))
+The ground state of a spin glass can encode the truth table of any logic circuit. In @tbl:logic-circuit-to-spin-glass, we show the spin glass gadget for well-known logic gates $not$, $and$ and $or$. These logic gates can be used to construct any logic circuit.
 
 #figure(table(columns: 4, table.header([Gate], [Gadget], [Ground states], [Lowest energy]),
 [Logical not: $not$], [
@@ -443,8 +423,33 @@ Factoring problem is the cornerstone of modern cryptography, it is the problem o
 
 ],
 [(-1, -1, -1),\ (+1, -1, -1),\ (-1, +1, -1),\ (+1, +1, +1)], [-3],
-), caption: [The spin glass gadget for logic gates. The blue/red spin is the input/output.])
+), caption: [The spin glass gadget for logic gates. The blue/red spin is the input/output.]) <tbl:logic-circuit-to-spin-glass>
 
+
+#figure(canvas({
+  import draw: *
+  let s(it) = text(12pt, it)
+  rect((0, 0), (3, 3))
+  circle((1.5, 2.2), radius: (0.5, 0.5), fill: blue.lighten(60%), stroke: none)
+  circle((1.5, 0.8), radius: (0.5, 0.5), fill: blue.lighten(60%), stroke: none)
+  
+  let dx = 8
+  rect((dx, 0), (dx + 3, 3))
+  let n = 20
+  for i in range(n) {
+    circle((dx + 0.5 + 2 * random_numbers.at(i), 0.5 + 2 * random_numbers.at(i+n)), radius: (random_numbers.at(i+2*n))/4, fill: blue.lighten(60%), stroke: none)
+  }
+  content((dx + 1.5, -0.8), s[Frustrated, Glassy\ Many local minima])
+  content((1.5, -0.8), s[No frustration, Ordered,\ Countable local minima])
+
+  content((dx/2 + 1.5, 1.5), s[Add more "triangles"])
+  content((dx/2 + 1.5, 1.1), s[$arrow.double.r$])
+}))
+
+
+== Example: Encoding the factoring problem to a spin glass
+We introduce how to convert the factoring problem into a spin glass problem.
+Factoring problem is the cornerstone of modern cryptography, it is the problem of given a number $N$, find two prime numbers $p$ and $q$ such that $N = p times q$.
 == The spectral gap
 
 The transition matrix $P$ of a Markov chain has eigenvalues $1 = lambda_1 > lambda_2 >= lambda_3 >= ... >= lambda_n >= -1$. The spectral gap is defined as:
