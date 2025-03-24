@@ -308,17 +308,18 @@ Below $T_c$, the system tend to form a large cluster of spins in the same direct
 #grid(columns: 2, column-gutter: 50pt, figure(image("images/ising-spins-1.0.gif", width: 100%)), figure(image("images/ising-spins-3.0.gif", width: 100%)), align(center)[#h(4em)$T = 1 (<T_c)$], align(center)[#h(4em)$T = 3 (>T_c)$])
 
 #figure(image("images/ising-data.png", width: 80%),
-caption: [The left panel shows the observable values for the Ising model at temperature $T = 1$ using the simple update MCMC. Each sweep processes to update every spin once, and the observable is averaged over 1000 samples. The right panel is the autocorrelation function as a function of the lag $tau$.]
+caption: [(a) the observable values for the Ising model at temperature $T = 1$ using the simple update MCMC. Each sweep processes to update every spin once, and the observable is averaged over 1000 samples. (b) the autocorrelation function as a function of the lag $tau$, the inverse slope of the line is the autocorrelation time $Theta$.]
 ) <fig:ising-data>
 
 However, the simple update does not thermalize fast enough. In the ferromagnetic phase, the domain wall grows too slow to reach the whole system.
-Instead of flip one spin a time, we can update a cluster of spins at a time. The cluster update proposed in @Swendsen1987 is a good example.
-This method improves both the *acceptance rate* and the *autocorrelation time*.
-Here, the autocorrelation time, $Theta$, is the number of steps it takes for the correlation between two consecutive samples to decay to one half of the maximum correlation:
+As shown in @fig:ising-data (b), the *autocorrelation time* is very long, indicating a strong correlation between the samples. Here, the autocorrelation time, $Theta$, is the number of steps it takes for the correlation between two consecutive samples to decay to one half of the maximum correlation:
 $
   A_Q (tau) = (angle.l Q_k Q_(k+tau) angle.r - angle.l Q_k angle.r^2)/(angle.l Q_k^2 angle.r - angle.l Q_k angle.r^2).
 $
 where $Q_k$ is the quantity of interest evaluated at step $k$. The autocorrelation function is strictly $<=1$, and the smaller it is, the less correlated the samples are. When the samples are independent, we have $angle.l Q_k Q_(k+tau) angle.r = angle.l Q_k angle.r angle.l Q_(k+tau) angle.r arrow.double.r A_Q (tau) = 0$. A typical behavior is $A_Q (tau) ~ e^(-tau\/Theta)$.
+
+Instead of flip one spin a time, we can update a cluster of spins at a time. The cluster update proposed in @Swendsen1987 is a good example.
+This method improves both the *acceptance rate* and the *autocorrelation time*.
 
 The following results are obtained from the cluster update MCMC. We can see the system thermalizes in a few tens of sweeps.
 #grid(columns: 2, column-gutter: 50pt, figure(image("images/swising-spins-1.0.gif", width: 100%)), figure(image("images/swising-spins-3.0.gif", width: 100%)), align(center)[#h(4em)$T = 1 (<T_c)$], align(center)[#h(4em)$T = 3 (>T_c)$])
