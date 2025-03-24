@@ -407,8 +407,13 @@ The bias should be compensated by the acceptance probability.
 - Magnetization: $m^k = angle.l (sum_i |s_i|)^k \/ n angle.r = integral (sum_i |s_i|)^k \/n p(s) d s.$
 
 
-== Results
+== Results: Simple update MCMC
+- $T_c approx 2.269$, below this temperature, the system is in the ferromagnetic phase.
+#grid(columns: 2, column-gutter: 50pt, figure(image("images/ising-spins-1.0.gif", width: 300pt)), figure(image("images/ising-spins-3.0.gif", width: 300pt)), align(center)[$T = 1$], align(center)[$T = 3$])
 
+== Results: Cluster update MCMC
+- Swendsen-Wang update: Instead of updating one spin at a time, we update a cluster of spins at a time.
+#grid(columns: 2, column-gutter: 50pt, figure(image("images/swising-spins-1.0.gif", width: 300pt)), figure(image("images/swising-spins-3.0.gif", width: 300pt)), align(center)[$T = 1$], align(center)[$T = 3$])
 
 == Metric of a good MCMC method
 
@@ -662,6 +667,7 @@ An implmentation of NAND operation through composing the logic $and$ and $not$ g
 
 If and only if all gadgets have correct assignments, the energy of the combined gadget is minimized.
 
+== Julia implementation of the reduction
 #box(text(16pt)[```julia
 source_problem = Factoring(3, 2, 15)
 
