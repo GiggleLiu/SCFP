@@ -635,6 +635,10 @@ columns: 2, gutter: 20pt)
 ))
 The spin glass gadget for logic gates@Gao2024. The blue/red spin is the input/output spins. The numbers on the vertices are the biases $h_i$ of the spins, the numbers on the edges are the couplings $J_(i j)$.
 
+== Example: Encoding the factoring problem to a spin glass
+We introduce how to convert the factoring problem into a spin glass problem.
+Factoring problem is the cornerstone of modern cryptography, it is the problem of given a number $N$, find two prime numbers $p$ and $q$ such that $N = p times q$.
+
 == Composibility of logic gadgets
 
 An implmentation of NAND operation through composing the logic $and$ and $not$ gadgets.
@@ -737,10 +741,6 @@ Common cooling schedules include:
 
 - _Remark_: Theoretically, with a logarithmic cooling schedule that decreases slowly enough, simulated annealing will converge to the global optimum with probability 1.
 
-== Example: Encoding the factoring problem to a spin glass
-We introduce how to convert the factoring problem into a spin glass problem.
-Factoring problem is the cornerstone of modern cryptography, it is the problem of given a number $N$, find two prime numbers $p$ and $q$ such that $N = p times q$.
-
 == The spectral gap
 
 The transition matrix $P$ of a Markov chain has eigenvalues $1 = lambda_1 > lambda_2 >= lambda_3 >= ... >= lambda_n >= -1$. The spectral gap is defined as:
@@ -756,6 +756,8 @@ This gap determines how quickly the Markov chain converges to its stationary dis
 - If $Delta approx 0$, the system may never thermalize in practical time
 
 For a Metropolis-Hastings algorithm sampling from the Boltzmann distribution, the mixing time (time to reach equilibrium) scales as $t_"mix" ~ 1/Delta$.
+
+== Discussion: Can SA successfully cool down a spin glass?
 
 == Example: Spectral gap and mixing time
 
@@ -787,11 +789,12 @@ Let us consider an Ising model with $N$ spins on a circle:
 $ H(bold(s)) = J sum_(i=1)^(N) s_i s_(i+1), quad s_1 = s_(N+1). $
 
 
-The state space is a hypercube, the number of states is $2^N$. For a given state $bold(s)$, it has $N$ directions to move to the adjacent states $bold(s)', |bold(s') - bold(s)| = 1$, where the norm is the Hamming distance. There is no bias in the prior, i.e. $T(bold(s) arrow.r bold(s)') = T(bold(s)' arrow.r bold(s)) = 1\/N$. So the transition probability from $bold(s)$ to $bold(s')$ is
+For a given state $bold(s)$, it has $N$ directions to move to the adjacent states $bold(s)', |bold(s') - bold(s)| = 1$, where the norm is the Hamming distance.
+So the transition probability from $bold(s)$ to $bold(s')$ is
 $ P(bold(s)'|bold(s)) = 1/N min(1, e^(-beta (H(bold(s)') - H(bold(s))))). $
 
-Let's examine how the spectral gap affects mixing time with a concrete example. We'll create a spin glass system and analyze its spectral properties using Julia:
 
+== Julia code for computing the transition matrix
 #box(text(16pt)[```julia
 function transition_matrix(model::SpinGlass, beta::T) where T
     N = num_variables(model)
@@ -811,6 +814,7 @@ end
 ```
 ])
 
+== Julia code for computing the spectral gap
 The spectral gap can be computed as follows:
 #box(text(16pt)[```julia
 using LinearAlgebra: eigvals
@@ -822,10 +826,11 @@ end
 ```
 ])
 
-== Spectral gap and mixing time
+== Spectral gap v.s. inverse temperature
 Spectral gap v.s. $1\/T$ of the Ising model ($J = -1$) on a circle of length $N=6$.
 #figure(image("images/spectralgap.svg", width: 400pt))
 
+== The landscape matters
 #figure(canvas({
   import draw: *
   let s(it) = text(12pt, it)
@@ -848,11 +853,9 @@ Spectral gap v.s. $1\/T$ of the Ising model ($J = -1$) on a circle of length $N=
 
 == Estimate the gap: Cheeger's inequality
 
-Cheeger's inequality is a fundamental result in spectral graph theory that relates the conductance (or isoperimetric constant) of a graph to its spectral gap. This relationship is particularly important in the context of spin glass systems and Markov Chain Monte Carlo methods, as it provides bounds on mixing times.
+Cheeger's inequality is a fundamental result in spectral graph theory that relates the *conductance* of a graph to its *spectral gap*.
 
-=== Conductance and the Cheeger constant
-
-For a graph $G = (V, E)$ with vertex set $V$ and edge set $E$, the Cheeger constant (or conductance) $h(G)$ is defined as:
+For a graph $G = (V, E)$ with vertex set $V$ and edge set $E$, the *Cheeger constant* (or conductance) $h(G)$ is defined as the probability of escaping from the most inescapable set:
 
 $
 h(G) = min_(S subset V, 0 < |S| <= |V|/2) frac(|E(S, V backslash S)|, min("vol"(S), "vol"(V backslash S)))
@@ -862,9 +865,7 @@ where:
 - $E(S, V backslash S)$ is the set of edges between $S$ and its complement
 - $"vol"(S) = sum_(v in S) d_v$ is the volume of set $S$, with $d_v$ being the degree of vertex $v$
 
-The Cheeger constant measures how well-connected the graph is, or equivalently, how difficult it is to partition the graph into disconnected components.
-
-=== Cheeger's inequality
+== Cheeger's inequality
 
 Cheeger's inequality relates the Cheeger constant $h(G)$ to the second smallest eigenvalue $lambda_2$ of the normalized Laplacian matrix $L = I - D^(-1/2) A D^(-1/2)$, where $D$ is the degree matrix and $A$ is the adjacency matrix:
 
