@@ -733,7 +733,7 @@ This gap determines how quickly the Markov chain converges to its stationary dis
 
 For a Metropolis-Hastings algorithm sampling from the Boltzmann distribution, the mixing time (time to reach equilibrium) scales as $t_"mix" ~ 1/Delta$.
 
-=== Example: Spectral gap and mixing time
+== Example: Spectral gap and mixing time
 
 Let us consider an Ising model with $N$ spins on a circle:
 #figure(canvas({
@@ -769,8 +769,6 @@ $ P(bold(s)'|bold(s)) = 1/N min(1, e^(-beta (H(bold(s)') - H(bold(s))))). $
 Let's examine how the spectral gap affects mixing time with a concrete example. We'll create a spin glass system and analyze its spectral properties using Julia:
 
 #box(text(16pt)[```julia
-using ProblemReductions, Graphs, Printf
-
 function transition_matrix(model::SpinGlass, beta::T) where T
     N = num_variables(model)
     P = zeros(T, 2^N, 2^N)  # P[i, j] = probability of transitioning from j to i
@@ -790,7 +788,6 @@ end
 ])
 
 The spectral gap can be computed as follows:
-
 #box(text(16pt)[```julia
 using LinearAlgebra: eigvals
 

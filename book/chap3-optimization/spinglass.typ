@@ -701,7 +701,7 @@ Cheeger's inequality is a fundamental result in spectral graph theory that relat
 
 === Conductance and the Cheeger constant
 
-For a graph $G = (V, E)$ with vertex set $V$ and edge set $E$, the Cheeger constant (or conductance) $h(G)$ is defined as:
+For a graph $G = (V, E)$ with vertex set $V$ and edge set $E$, the Cheeger constant (or conductance) $h(G)$ is defined as the probability of escaping from the most inescapable set:
 
 $
 h(G) = min_(S subset V, 0 < |S| <= |V|/2) frac(|E(S, V backslash S)|, min("vol"(S), "vol"(V backslash S)))
@@ -722,8 +722,6 @@ frac(lambda_2, 2) <= h(G) <= sqrt(2 lambda_2)
 $
 
 This inequality provides both lower and upper bounds on the Cheeger constant in terms of the spectral gap.
-
-#jinguo([How does this equation relate to Eq.12.27 in the nature of computation?])
 
 === Relation to mixing time
 
