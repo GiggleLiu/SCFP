@@ -1,6 +1,6 @@
 #import "@preview/touying:0.4.2": *
 #import "@preview/touying-simpl-hkustgz:0.1.0" as hkustgz-theme
-#import "@preview/cetz:0.2.2": canvas, draw, tree, vector, plot, decorations
+#import "@preview/cetz:0.2.2": canvas, draw, tree, vector, plot, decorations, coordinate
 #import "@preview/algorithmic:0.1.0"
 #import algorithmic: algorithm
 #set math.mat(row-gap: 0.1em, column-gap: 0.7em)
@@ -162,7 +162,7 @@ $
 H = sum_((i,j) in E) J_(i j) s_i s_j + sum_(i in V) h_i s_i
 $ <eq:spin-glass-hamiltonian>
 
-Q: What is the configuration of the following spin system? The number on the edges are the couplings $J_(i j)$.
+Q: What is the configuration with the lowest energy in the following spin system? The number on the edges are the couplings $J_(i j)$.
 #figure(canvas({
   import draw: *
   triangle((-1, -1, -1), (none, none, none), colors: (white, white, white))
@@ -259,29 +259,36 @@ angle.l |m| angle.r = sum_(bold(s) in S) |m(bold(s))| p(bold(s))
 $ <eq:magnetization-average>
 At the inifinite size limit ($L arrow.r infinity$), if the statistical average $angle.l |m| angle.r$ is non-zero, the system is in the magnetized phase. If $angle.l |m| angle.r$ is zero, the system is in the disordered phase.
 
+== Nature favors ground states
 For the ferromagnetic Ising model, the ground state is two fold degenerate, they are the all-up and all-down configurations. At zero temperature, the system is frozen in one of the ground states, i.e. $angle.l |m| angle.r = 1$.
 
 To find all degenerate ground states, we can solve the spin glass problem with the `ConfigsMin` solver in #link("https://github.com/QuEraComputing/GenericTensorNetworks.jl")[GenericTensorNetworks.jl].
 
-```julia
+#box(text(16pt, [```julia
 julia> using GenericTensorNetworks
 
 julia> solve(spin_glass, ConfigsMin())[]  # solve the spin glass ground state
 (-24.0, {0000000000000000, 1111111111111111})ₜ
 ```
-The returned value is a data structure that contains the lowest energy and the associated configurations.
-We can see the ground states are two fold degenerate, they are the all-up and all-down configurations.
+]))
 
-== Integrate a function with importance sampling
+== Estimate the observables at finite temperature
 
-sum == integral
+$
+p(bold(s)) = (e^(-beta H(bold(s))))/Z,\
+angle.l O angle.r = sum_(bold(s) in S) O(bold(s)) p(bold(s))
+$
 
-For illustrative purpose, we consider integrating a positive function $f(x)$ defined on a unit square.
+=== A statistical approach
+1. Draw sample from $p(bold(s))$,
+2. Take the statistical average of $O(bold(s))$.
+
+== Importance sampling
+Consider integrating a *positive* function $f(x)$ defined on a unit square.
 $
 integral f(x) d x
 $
-== Importance sampling
-Intead of evaluating the integral directly, the importance sampling can sample $x$ with probability $p(x)$ and estimate the integral as the statistical average of $f(x)\/p(x)$.
+Instead of randomly draw samples (left), the importance sampling can sample $x$ with probability $p(x)$ and estimate the integral as the statistical average of $f(x)\/p(x)$.
 #figure(canvas({
   import draw: *
   let s(it) = text(12pt, it)
@@ -298,12 +305,9 @@ Intead of evaluating the integral directly, the importance sampling can sample $
   content((0, -2.5), s[Importance sampling])
 })) <fig:importance-sampling>
 
-A good sampling probability can improve the efficiency of the estimation. We consider the example in @fig:importance-sampling.
-The function is a peak-like function defined on a unit square, which is zero everywhere except a very small region (the red circle of radius $r << 1$) at the origin. The integral of $f(x)$ is 1. If the sampling is uniform, the sampler will spend most of the time sampling the region far away from the origin.
-However, if the sample $x$ with $10 times$ more probability near the origin (in the dark blue region), as shown in the right panel, you can have $10 times$ more chance to find a sample in the peak region. So, whenever you find a sample in the dark blue region, you only count it as $0.1$ sample as a compensation. With this small change, the statistical average will be $sqrt(10)$ times more accurate. In a even more extreme case, if the sampled probability $p(x)$ is proportional to $f(x)$, the number of sample to reach exact result is $1$.
+== Risk: Lost of ergodicity
+*Ergodicity*: Every configuration in the configuration space is reachable from any other configuration in a finite number of steps.
 
-== Ergodicity
-On the other hand, bad sampling probability $p(x)$ may cause the function $f(x)$ to have a poor estimate even if you have infinite samples. This happens when the *ergodicity* is broken, i.e. the system can not reach the whole configuration space. For example, in @fig:ergodicity, the function $f(x)$ has two peaks, but only one peak is accessible to the sampler. Then, no matter how many samples you have, you can not get a good estimate of the integral.
 #figure(canvas({
   import draw: *
   let s(it) = text(12pt, it)
@@ -315,14 +319,27 @@ On the other hand, bad sampling probability $p(x)$ may cause the function $f(x)$
   content((-0.5, -0.7), s[Sample\ region])
 })) <fig:ergodicity>
 
+Q: If $p(x)$ is proportional to $f(x)$, what is the variance of the estimate?
 
-== Metropolis-Hastings algorithm
-To evaluate the magnetization, we can sample the configuration space with the Boltzmann distribution $p(bold(s)) = (e^(-beta H(bold(s))))\/Z$, on each sample, we evaluate $|m(bold(s))|$ and calculate the statistical average.
-The problem is that we do not know the partition function $Z$. Even if we know how to compute $p(bold(s))$, the sampling is still challenging.
-Metropolis-Hastings algorithm is a sampling method to sample the configuration space with un-normalized probability.
+== The remaining problem
 
-The Metropolis-Hastings algorithm is a Markov chain. A Markov chain is a sequence of random variables $bold(s)_1, bold(s)_2, dots$ with the property that the probability of moving to the next state depends only on the current state.
-It is characterized by the transition probability $P(bold(s)'|bold(s))$, the probability of moving from $bold(s)$ to $bold(s)'$.
+Now you know why sampling from $p(bold(s))$ is good?
+$
+angle.l O angle.r = sum_(bold(s) in S) O(bold(s)) p(bold(s))
+$
+
+- The variance in the order of magnitude of $p(bold(s))$ is much larger than that of $O(bold(s))$.
+
+=== Issues
+1. How to compute $p(bold(s)) = e^(-beta H(bold(s)))\/Z$ (we do not know $Z$)?
+2. Even if we know how to compute $p(bold(s))$, how to draw sample from $p(bold(s))$?
+
+
+// Use a tensor network to characterize the probability model, and then use Monte Carlo method to sample the model.
+
+== Markov chain Monte Carlo
+- Task: Given a *unnormalized* probability distribution $p(bold(s))$, generate a sequence of samples $bold(s)_1, bold(s)_2, dots$ that converges to the true distribution.
+- Markovian: The probability of moving to the next state $bold(s)_(k+1)$ depends only on the current state $bold(s)_k$. Characterized by the transition probability $P(bold(s)'|bold(s))$.
 
 #figure(canvas({
   import draw: *
@@ -339,7 +356,13 @@ It is characterized by the transition probability $P(bold(s)'|bold(s))$, the pro
     
 })) <fig:markov-chain>
 
-The algortihm is summarized as follows:
+=== A sufficient condition for the convergence
+1. Detailed balance: $p(bold(s)) P(bold(s)'|bold(s)) = p(bold(s)') P(bold(s)|bold(s)')$
+2. Ergodicity: Every configuration in the configuration space is reachable from any other configuration in a finite number of steps.
+
+== Metropolis-Hastings algorithm
+An MCMC algorithm that satisfies the above two conditions:
+
 #algorithm({
   import algorithmic: *
   Function([Metropolis-Hastings], args: ([$beta$], [$n$]), {
@@ -351,9 +374,10 @@ The algortihm is summarized as follows:
   })
  })
 
-In line 4, a new configuration $bold(s)'$ is proposed. The probability of proposing $bold(s)'$ from $bold(s)$ is $T(bold(s)arrow.r bold(s)')$, which is known when we design the algorithm.
+In our case, $p(bold(s)')/p(bold(s)) = e^(-beta (H(bold(s)') - H(bold(s))).$ The prior transition probability $T(bold(s)arrow.r bold(s)')$ is the probability of proposing $bold(s)'$ from $bold(s)$.
+
 == Example: 3-state Ising model
-For example, when we propose a state transfer on two 3-state spins, we may have the following transition rule:
+The transition rule of a 2-spin model:
 #figure(canvas({
   import draw: *
   let s(it) = text(12pt, it)
@@ -372,13 +396,19 @@ For example, when we propose a state transfer on two 3-state spins, we may have 
     line((1 * d, 0), target, mark: (end: "straight"), stroke: (paint: red, thickness: 2pt))
   }
 })) <fig:propose-new-config>
-The probability of proposing $(1, 0)$ from $(0, 0)$ is $1\/3$, and the probability of proposing $(0, 1)$ from $(0, 0)$ is $1\/2$. This prior is biased towards having less configurations in state $(0, 0)$, we must compensate for this bias by adjusting the acceptance probability. In a two state spin system, the random flip of a spin is unbiased, so the acceptance probability only depends on the ratio of the probability of the new and current configurations:
-$ p(bold(s)')/p(bold(s)) = e^(-beta (H(bold(s)') - H(bold(s))). $
+- $T((1, 0) arrow.r (0, 0)) = 1\/3$
+- $T((0, 1) arrow.r (0, 0)) = 1\/2$
+
+The bias should be compensated by the acceptance probability.
 
 == Physical quantities that we are interested in
 
 - Energy/spin: $angle.l H^k/n angle.r = integral H(s)^k/n p(s) d s.$
 - Magnetization: $m^k = angle.l (sum_i |s_i|)^k \/ n angle.r = integral (sum_i |s_i|)^k \/n p(s) d s.$
+
+
+== Results
+
 
 == Metric of a good MCMC method
 
@@ -388,15 +418,20 @@ In the ferrromagnetic phase, the MCMC method can easily get stuck in one of the 
 === Autocorrelation time
 Because a new sample in the MCMC method is generated from the previous sample, we often have time correlated samples in MCMC methods.
 Since the correlated samples are not independent, we effectively have less samples than we expect.
-The autocorrelation time $tau$ is the number of steps it takes for the correlation between two consecutive samples to decay to one half of the maximum correlation.
+The *autocorrelation time $tau$* is the number of steps it takes for the correlation between two consecutive samples to decay to one half of the maximum correlation.
 The effective number of independent samples is $n\/tau$. A good MCMC method should have a small autocorrelation time.
 
 = Spin glass
 
 == The hardness
-When the coupling can be freely tuned, the ferromagnetic Ising model becomes a spin glass.
-Spin glass ground state finding problem is hard, it is NP-complete, i.e. if you can cool down a spin glass system to the ground state in polynomial time, you can solve any problem in NP in polynomial (to problem size) time, which is believed to be impossible.
-NP problems are decision problems, features the property that given a solution, it is easy to verify whether the solution is correct in polynomial time.
+#align(center, box(stroke: black, inset: 0.5em, [
+    Coupling $J_(i j)$ and bias $h_i$ freely tuned $arrow.r$ We get a spin glass!
+  ])
+)
+
+Spin glass ground state finding problem is hard, it is NP-complete (hardest problems in NP), which is believed to be impossible to solve in polynomial time.
+
+*NP problems*: Decision problems, features the property that given a solution, it is easy to verify whether the solution is correct in polynomial time.
 
 #let alice(loc, rescale: 1, flip: false, label: none, words: none) = {
   import draw: *
@@ -443,13 +478,113 @@ NP problems are decision problems, features the property that given a solution, 
 })) <fig:np-complete>
 
 
-== From logic circuit to spin glass
-We start by showing the following statement is true: _If you can drive a Spin glass system to the ground state, you can prove any theorem._ Note that theorem proving is not different from other problems in NP. First it is a decision problem, second, with a proof, it is easy to verify whether the solution is correct in polynomial time. A spin glass system can encode a target problem by tuning its couplings $J_(i j)$ and biases $h_i$ in the Hamiltonian.
-After driving the spin glass system to the ground state, we can read out the proof from the spin configuration.
-
-#figure(canvas({
+== NP problem hierarchy
+#let pointer(start, end, angle: 45deg) = {
   import draw: *
-  let s(it) = text(12pt, it)
+  draw.get-ctx(ctx => {
+    let (ctx, va) = coordinate.resolve(ctx, start)
+    let (ctx, vb) = coordinate.resolve(ctx, end)
+    let dy = vb.at(1) - va.at(1)
+    let dx = dy / calc.tan(angle)
+    let cx = va.at(0) + dx
+    let cy = vb.at(1)
+    line(start, (cx, cy))
+    line((cx, cy), end)
+  })
+}
+#grid(canvas(length: 0.7cm, {
+  import draw: *
+  let s(it) = text(14pt, it)
+  circle((0, 0), radius: (6, 4), stroke: (paint: black, thickness: 1pt))
+  circle((3, 0), radius: (3, 2), stroke: (paint: black, thickness: 1pt))
+  hobby((-1, 1), (-2, 3), (-5, 3), (-7, 0), (-5, -3), (-2, -3), (-1, -1), close: true, smooth: 10pt, stroke: (paint: black, thickness: 1pt), fill: blue.transparentize(50%))
+  circle((-4, 0), radius: (2, 2), stroke: (paint: black, thickness: 1pt), fill: yellow.transparentize(20%))
+
+  content((1, 3), s[NP])
+  content((-4, 0), s[P])
+  content((-2, 2), s[BQP])
+  content((3, 0), s[NP-complete])
+  for (i, j, name) in ((-2, -1.5, "B"), (5.5, 0, "C"), (-6.5, 0, "S"), (-1.5, 3, "G")) {
+    circle((i, j), radius:0.2, fill: black, name:name)
+  }
+  content((-7, -4), box(s[Factoring], inset: 5pt), name: "Factoring")
+  content((-8.5, 0), box(s[Quantum \ Sampling], inset: 5pt), name: "Sampling")
+  content((0, 5), box(s[Spin \ Glass], inset: 5pt), name: "Spinglass")
+  content((-7, 5), box(s[Graph \ isomorphism], inset: 5pt), name: "GI")
+  set-style(stroke: (paint: black, thickness: 1pt))
+  pointer("B", "Factoring", angle: 45deg)
+  pointer("C", "Spinglass", angle: -65deg)
+  pointer("G", "GI", angle: -65deg)
+}),
+[#box([*P:* Polynomial time solvable\
+*NP:* Polynomial time verifiable\
+*NP-complete:* The hardest problems in NP\
+\
+*BQP:* Polynomial time solvable on a quantum computer
+], width: 350pt)],
+columns: 2, gutter: 20pt)
+
+- NP: the problem set that can be solved by a "magic coin" - a coin that gives the best outcome with probability 1, i.e. it is non-deterministic.
+
+== NP-complete problems can be reduced to each other
+
+- Reduction: Problem $A$ can be reduced to problem $B$ if $A$ can be "solved by" solving $B$.
+
+#align(center, canvas(length: 1.2cm, {
+  import draw: *
+  for (x, y, txt, color) in (
+      (5, -1, "Independent Set", white),
+      (-4, -1, "QUBO (Spin Glass)", white),
+      (5, 1, "Set Packing", white),
+      (-5, 3, "Dominating Set", white),
+      (-8, -1, "Max Cut", white),
+      (-8, 3, "Coloring", white),
+      (-5, 1, "k-SAT", white),
+      (0, -1, "Circuit SAT", white),
+      (5, 3, "Vertex Matching", gray),
+      (3, -3, "Independent Set on KSG", white),
+      (-4, -3, "QUBO on Grid", white),
+      (0, 1, "Integer Factorization", gray),
+      (1, 3, "Vertex Cover", white),
+      (-2, 3, "Set Cover", white)
+    ){
+    content((x, y), box(text(14pt, txt), stroke:black, inset:7pt, fill:color.lighten(50%)), name: txt)
+  }
+  let arr = "straight"
+  for (a, b, markstart, markend, color) in (
+    ("Integer Factorization", "Circuit SAT", none, arr, black),
+    ("Set Packing", "Independent Set", arr, arr, black),
+    ("k-SAT", "Independent Set", none, arr, black),
+    ("Independent Set on KSG", "Independent Set", arr, arr, black),
+    ("Integer Factorization", "Circuit SAT", none, arr, black),
+    ("Vertex Cover", "Set Cover", none, arr, black),
+    ("Dominating Set", "k-SAT", arr, none, black),
+    ("Coloring", "k-SAT", arr, none, black),
+    ("Circuit SAT", "k-SAT", arr, none, black),
+    ("Set Packing", "Independent Set", arr, arr, black),
+    ("k-SAT", "Independent Set", none, arr, black),
+    ("Circuit SAT", "QUBO (Spin Glass)", none, arr, black),
+    ("Integer Factorization", "Independent Set on KSG", none, arr, black),
+    ("k-SAT", "Circuit SAT", arr, none, black),
+    ("Independent Set on KSG", "QUBO on Grid", arr, none, black),
+    ("QUBO (Spin Glass)", "Max Cut", arr, arr, black),
+    ("Vertex Matching", "Set Packing", none, arr, black),
+    ("Vertex Cover", "Independent Set", arr, none, black),
+    ("QUBO on Grid", "QUBO (Spin Glass)", arr, none, black),
+  ){
+    line(a, b, mark: (end: markend, start: markstart), stroke: color)
+  }
+  rect((-6, -4), (6, -2), stroke:(dash: "dashed"))
+  content((0, -4), box(fill: white, inset: 7pt)[Low-dimensional topology])
+}))
+
+
+
+== A generic reduction strategy
+
+#figure(canvas(length: 1.3cm,{
+  import draw: *
+  let s(it) = text(14pt, it)
   let boxed(it) = box(it, stroke: black, inset: 0.5em)
   content((0, 0), boxed(s[Problem]), name: "problem")
   content((0, -2), boxed(s[Spin glass]), name: "spin-glass")
@@ -463,11 +598,17 @@ After driving the spin glass system to the ground state, we can read out the pro
   content((rel: (1.0, 0), to: "line3.mid"), s[Extraction])
 }))
 
-The ground state of a spin glass can encode the truth table of any logic circuit. In @tbl:logic-circuit-to-spin-glass, we show the spin glass gadget for well-known logic gates $not$, $and$ and $or$. These logic gates can be used to construct any logic circuit.
+1. Given a problem $A$ in NP, we construct its verification circuit $C_A$ (take $A$ and a solution $bold(s)$ as input, output 1 if $bold(s)$ is a solution to $A$, otherwise output 0) of polynomial size.
+2. Represent the verification circuit $C_A$ as a spin glass $S(C_A)$ with polynomial size.
+3. Fix the output spin to logic state $1$.
+4. Find the ground state of $S(C_A)$ using a generic spin glass solver.
+5. Read out the spin configuration associated with $bold(s)$ from the ground state.
 
+
+== Logic circuit to spin glass
 #figure(table(columns: 4, table.header([Gate], [Gadget], [Ground states], [Lowest energy]),
 [Logical not: $not$], [
-  #canvas(length: 0.5cm, {
+  #canvas(length: 0.6cm, {
   import draw: *
   let s(it) = text(11pt, it)
   for (i, (x, y, color)) in ((-1.5, 0, blue), (1.5, 0, red)).enumerate() {
@@ -479,24 +620,28 @@ The ground state of a spin glass can encode the truth table of any logic circuit
 
 ],
 [(-1, +1),\ (+1, -1)], [-1],
-[Logical and: $and$], [#canvas(length: 0.5cm, {
+[Logical and: $and$], [#canvas(length: 0.6cm, {
   triangle((1, -2, -2), (1, 1, -2))
 })
 ],
-[(-1, -1, -1),\ (+1, -1, +1),\ (-1, +1, +1),\ (+1, +1, +1)], [-3],
+[(-1, -1, -1), (+1, -1, +1),\ (-1, +1, +1), (+1, +1, +1)], [-3],
 [Logical or: $or$], [
-#canvas(length: 0.5cm, {
+#canvas(length: 0.6cm, {
   triangle((1, -2, -2), (-1, -1, 2))
 })
 
 ],
-[(-1, -1, -1),\ (+1, -1, -1),\ (-1, +1, -1),\ (+1, +1, +1)], [-3],
-), caption: [The spin glass gadget for logic gates@Gao2024. The blue/red spin is the input/output spins. The numbers on the vertices are the biases $h_i$ of the spins, the numbers on the edges are the couplings $J_(i j)$.]) <tbl:logic-circuit-to-spin-glass>
+[(-1, -1, -1), (+1, -1, -1),\ (-1, +1, -1), (+1, +1, +1)], [-3],
+))
+The spin glass gadget for logic gates@Gao2024. The blue/red spin is the input/output spins. The numbers on the vertices are the biases $h_i$ of the spins, the numbers on the edges are the couplings $J_(i j)$.
+
+== Composibility of logic gadgets
+TODO: draw a figure
 
 With these gadgets, we can construct any logic circuits utilizing the composibility of logic gadgets. Given two logic gadgets $H_1$ and $H_2$, in the ground state of the combined gadget $H_1 compose H_2$, both $H_1$ and $H_2$ are in their own ground state. i.e. the logic expressions associated with $H_1$ and $H_2$ are both satisfied. Therefore, the ground state of $H_1 compose H_2$ is the same as the truth table of the composed logic circuit.
 
 
-```julia
+#box(text(16pt)[```julia
 source_problem = Factoring(3, 2, 15)
 
 # Construct the spin glass
@@ -511,6 +656,7 @@ ground_state = read_config(solve(target_problem(mapres), SingleConfigMin())[])
 solution = extract_solution(mapres, ground_state) # output: [1, 0, 1, 1, 1]
 ProblemReductions.read_solution(source_problem, solution) # output: (5, 3)
 ```
+])
 
 In this example, the resulting spin glass has $63$ spins, which is beyond the capability of brute force search.
 Here we resort to the generic tensor network solver to find the ground state.
