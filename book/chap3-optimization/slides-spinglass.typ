@@ -619,7 +619,7 @@ columns: 2, gutter: 20pt)
 })
 
 ],
-[(-1, +1),\ (+1, -1)], [-1],
+[(-1, +1), (+1, -1)], [-1],
 [Logical and: $and$], [#canvas(length: 0.6cm, {
   triangle((1, -2, -2), (1, 1, -2))
 })
@@ -658,24 +658,18 @@ ProblemReductions.read_solution(source_problem, solution) # output: (5, 3)
 ```
 ])
 
-In this example, the resulting spin glass has $63$ spins, which is beyond the capability of brute force search.
-Here we resort to the generic tensor network solver to find the ground state.
-In the following, we will introduce a physics-inspired algorithm, the simulated annealing, to find the ground state of a spin glass.
+== Simulate the cooling process to find the ground state?
+- Fact 1: Spin-glass can encode any problem in NP, including the famous factoring problem: $N = p times q$.
+- Fact 2: A physical system thermalizes through the Hamiltonian dynamics
+  $
+    cases((dif bold(q))/(dif t) = (partial H)/(partial bold(p)), (dif bold(p))/(dif t) = - (partial H)/(partial bold(q)))
+  $
+  where $H = T + V$ is the Hamiltonian, $bold(q)$ and $bold(p)$ are the generalized position and momentum variables.
+- Fact 3: The thermal state at zero temperature is the ground state.
+- Fact 4: If we drive the spin glass to the ground state, we can read out the solution from the spin configuration.
 
 == Simulated Annealing
-Simulated annealing is an algorithm for finding the global optimum of a given function, which mimics the physical process of cooling down a material.
-#block(stroke: black, inset: 0.5em, [
-  *Can we simulate the cooling process to find the ground state of a spin glass?*
-  - Fact 1: Spin-glass can encode any problem in NP, including the famous factoring problem: $N = p times q$.
-  - Fact 2: A physical system thermalizes through the Hamiltonian dynamics
-    $
-      cases((dif bold(q))/(dif t) = (partial H)/(partial bold(p)), (dif bold(p))/(dif t) = - (partial H)/(partial bold(q)))
-    $
-    where $H = T + V$ is the Hamiltonian, $bold(q)$ and $bold(p)$ are the generalized position and momentum variables.
-  - Fact 3: The thermal state at zero temperature is the ground state.
-  - Fact 4: If we drive the spin glass to the ground state, we can read out the solution from the spin configuration.
-])
-
+Simulated annealing is an algorithm for finding the *global optimum* of a given function, which mimics the physical process of cooling down a material.
 
 A cooling process is characterized by lowering the temperature $T$ from a high initial temperature $T_"init"$ to a low final temperature $T_"final"$ following a cooling schedule. The temperature determining the probability distribution of states through the Boltzmann statistics:
 $
@@ -684,6 +678,7 @@ $
 At the thermal equilibrium, the system effectively finds the distribution with the lowest free energy:
 $F = angle.l H angle.r - T S$, where $S$ is the entropy. When the temperature $T$ is high, the system tends to find the distribution with large entropy, making the system behave more randomly. As the temperature decreases, the system tends to find the distribution with lower energy, making the system more likely to be in the low-energy states. This transition can not happen abruptly, otherwise the system will get stuck in a local minimum. We have to wait the dynamics to thermalize the system.
 
+==
 The algorithm works as follows:
 
 #algorithm(
@@ -773,7 +768,7 @@ $ P(bold(s)'|bold(s)) = 1/N min(1, e^(-beta (H(bold(s)') - H(bold(s))))). $
 
 Let's examine how the spectral gap affects mixing time with a concrete example. We'll create a spin glass system and analyze its spectral properties using Julia:
 
-```julia
+#box(text(16pt)[```julia
 using ProblemReductions, Graphs, Printf
 
 function transition_matrix(model::SpinGlass, beta::T) where T
@@ -792,9 +787,11 @@ function transition_matrix(model::SpinGlass, beta::T) where T
     return P
 end
 ```
+])
 
 The spectral gap can be computed as follows:
-```julia
+
+#box(text(16pt)[```julia
 using LinearAlgebra: eigvals
 
 function spectral_gap(P)
@@ -802,10 +799,11 @@ function spectral_gap(P)
     return 1.0 - real(eigenvalues[end-1])
 end
 ```
+])
 
-#figure(image("images/spectralgap.svg", width: 300pt),
-caption: [Spectral gap v.s. $1\/T$ of the Ising model ($J = -1$) on a circle of length $N=6$.],
-)
+== Spectral gap and mixing time
+Spectral gap v.s. $1\/T$ of the Ising model ($J = -1$) on a circle of length $N=6$.
+#figure(image("images/spectralgap.svg", width: 400pt))
 
 #figure(canvas({
   import draw: *
@@ -826,71 +824,6 @@ caption: [Spectral gap v.s. $1\/T$ of the Ising model ($J = -1$) on a circle of 
   content((dx/2 + 1.5, 1.5), s[Add more "triangles"])
   content((dx/2 + 1.5, 1.1), s[$arrow.double.r$])
 }))
-
-
-
-== Parallel tempering
-
-Parallel tempering (also known as replica exchange) is a Monte Carlo method designed to improve sampling efficiency for systems with rough energy landscapes, such as spin glasses. The key idea is to simulate multiple replicas of the system at different temperatures simultaneously, allowing configurations to be exchanged between temperatures.
-
-=== Algorithm overview
-
-In parallel tempering:
-
-1. We simulate $M$ replicas of the system at different temperatures $T_1 < T_2 < ... < T_M$
-2. Each replica evolves according to standard Metropolis dynamics at its temperature
-3. Periodically, we attempt to swap configurations between adjacent temperature levels
-
-The swap between configurations at temperatures $T_i$ and $T_(i+1)$ is accepted with probability:
-
-$
-P_"swap"(bold(s)_i, bold(s)_(i+1)) = min(1, exp(-(beta_i - beta_(i+1))(H(bold(s)_(i+1)) - H(bold(s)_i))))
-$
-
-where $beta_i = 1/T_i$ and $bold(s)_i$ is the configuration at temperature $T_i$.
-
-=== Benefits of parallel tempering
-
-Parallel tempering offers several advantages:
-
-1. *Improved exploration*: Higher temperature replicas can easily cross energy barriers, while lower temperature replicas sample the relevant low-energy states
-2. *Faster thermalization*: Configurations can travel up and down the temperature ladder, helping the system escape local minima
-3. *Better sampling of low-energy states*: The method provides more efficient sampling of the low-temperature distribution
-
-=== Implementation considerations
-
-- *Temperature spacing*: The temperatures should be chosen so that the acceptance rate for swaps between adjacent temperatures is reasonable (typically 20-30%)
-- *Swap frequency*: Swaps are typically attempted after each replica has undergone several Metropolis updates
-- *Number of replicas*: More replicas provide better temperature coverage but increase computational cost
-
-=== Pseudocode
-
-#algorithm({
-  import algorithmic: *
-  Function("ParallelTempering", args: ([$H$], [$T_1, ..., T_M$], [$N_"steps"$]), {
-    Assign([$bold(s)_1, ..., bold(s)_M$], [random initial configurations])
-    For(range: [$t = 1$ to $N_"steps"$], {
-      // Update each replica with Metropolis
-      For(range: [$i = 1$ to $M$], {
-        Assign([$bold(s)_i$], [MetropolisUpdate($bold(s)_i$, $H$, $T_i$)])
-      })
-      
-      // Attempt swaps between adjacent temperatures
-      If(cond: [$t$ mod $N_"swap"$ = 0], {
-        For(range: [$i = 1$ to $M-1$], {
-          Assign([$Delta E$], [$H(bold(s)_(i+1)) - H(bold(s)_i)$])
-          Assign([$Delta beta$], [$1/T_i - 1/T_(i+1)$])
-          If(cond: [$cal(U)(0,1) < exp(-Delta beta \cdot Delta E)$], {
-            Assign([$(bold(s)_i, bold(s)_(i+1))$], [$(bold(s)_(i+1), bold(s)_i)$])
-          })
-        })
-      })
-    })
-    Return([$bold(s)_1$])  // Return lowest temperature configuration
-  })
-})
-
-Parallel tempering is particularly effective for spin glass systems where the energy landscape contains many local minima separated by high barriers, making standard Metropolis sampling inefficient at low temperatures.
 
 == Cheeger's inequality
 
@@ -941,125 +874,6 @@ t_"mix" <= frac(2, h(G)^2)
 $
 
 This means that a graph with a large Cheeger constant (good expansion properties) will have a small mixing time, allowing MCMC methods to converge quickly to the stationary distribution.
-
-=== Estimating the Cheeger constant
-
-Exactly computing the Cheeger constant is NP-hard, but there are several approaches to estimate it:
-
-1. *Spectral methods*: Using Cheeger's inequality, we can compute $lambda_2$ and use it as an approximation.
-
-2. *Sampling-based methods*: For large graphs, we can use random walks to estimate the conductance.
-
-3. *Approximation algorithms*: There exist polynomial-time algorithms that can approximate the Cheeger constant within certain factors.
-
-For spin glass systems, estimating the Cheeger constant can provide valuable insights into the difficulty of sampling from the Boltzmann distribution at low temperatures. A small Cheeger constant indicates the presence of bottlenecks in the state space, which can significantly slow down the mixing of MCMC methods.
-
-#algorithm({
-  import algorithmic: *
-  Function("EstimateCheegerConstant", args: ([$G = (V, E)$], [$k$]), {
-    // Compute the normalized Laplacian matrix
-    Assign([$D$], [diagonal degree matrix of $G$])
-    Assign([$A$], [adjacency matrix of $G$])
-    Assign([$L$], [$I - D^(-1/2) A D^(-1/2)$])
-    
-    // Compute the second smallest eigenvalue
-    Assign([$lambda_2$], [second smallest eigenvalue of $L$])
-    
-    // Use spectral partitioning to find a good cut
-    Assign([$v_2$], [eigenvector corresponding to $lambda_2$])
-    Assign([$S_t$], [vertices with the smallest $t$ values in $D^(-1/2) v_2$])
-    
-    // Compute conductance for different values of t
-    Assign([$h_"min"$], [$infinity$])
-    For(range: [$t = 1$ to $|V|-1$], {
-      Assign([$h_t$], [$|E(S_t, V backslash S_t)| \/ min("vol"(S_t), "vol"(V backslash S_t))$])
-      If(cond: [$h_t < h_"min"$], {
-        Assign([$h_"min"$], [$h_t$])
-      })
-    })
-    
-    Return([$h_"min"$, $lambda_2$])
-  })
-})
-
-In practice, for spin glass systems, the Cheeger constant provides a quantitative measure of how "glassy" the energy landscape is. Systems with small Cheeger constants have energy landscapes with high barriers between different metastable states, making equilibration difficult and necessitating techniques like parallel tempering to efficiently sample the state space.
-
-== Example: Ferromagnetic Ising model on Fullerene graph
-#let norm(v) = calc.sqrt(v.map(x => calc.pow(x, 2)).sum())
-#let distance(a, b) = norm(a.zip(b).map(x => x.at(0) - x.at(1)))
-#let show-graph(vertices, edges, radius:0.2) = {
-  import draw: *
-  for (k, (i, j)) in vertices.enumerate() {
-    circle((i, j), radius:radius, name: str(k), fill:white)
-  }
-  for (k, l) in edges {
-    line(str(k), str(l))
-  }
-}
-
-#let udg-graph(vertices, unit:1) = {
-  let edges = ()
-  for (k, va) in vertices.enumerate() {
-    for (l, vb) in vertices.enumerate() {
-      if l < k and distance(va, vb) <= unit {
-        edges.push((k, l))
-      }
-    }
-  }
-  return edges
-}
-
-
-#let fullerene() = {
-    let φ = (1+calc.sqrt(5))/2
-    let res = ()
-    for (x, y, z) in ((0.0, 1.0, 3 * φ), (1.0, 2 + φ, 2 * φ), (φ, 2.0, 2 * φ + 1.0)) {
-		    for (α, β, γ) in ((x,y,z), (y,z,x), (z,x,y)) {
-			      for loc in ((α,β,γ), (α,β,-γ), (α,-β,γ), (α,-β,-γ), (-α,β,γ), (-α,β,-γ), (-α,-β,γ), (-α,-β,-γ)) {
-				        if not res.contains(loc) {
-                    res.push(loc)
-                }
-            }
-        }
-    }
-	  return res
-}
-
-#figure(canvas(length: 0.6cm, {
-  import draw: *
-  let s(it) = text(14pt, it)
-  let vertices = fullerene()
-  let edges = udg-graph(vertices, unit: calc.sqrt(5))
-  show-graph(vertices.map(v=>(v.at(0), v.at(1)*calc.sqrt(1/5) + v.at(2)*calc.sqrt(4/5))), edges)
-}))
-
-
-```julia
-julia> using GenericTensorNetworks, Graphs, ProblemReductions
-julia> function fullerene()  # construct the fullerene graph in 3D space
-           th = (1+sqrt(5))/2
-           res = NTuple{3,Float64}[]
-           for (x, y, z) in ((0.0, 1.0, 3th), (1.0, 2 + th, 2th), (th, 2.0, 2th + 1.0))
-               for (a, b, c) in ((x,y,z), (y,z,x), (z,x,y))
-                   for loc in ((a,b,c), (a,b,-c), (a,-b,c), (a,-b,-c), (-a,b,c), (-a,b,-c), (-a,-b,c), (-a,-b,-c))
-                       if loc not in res
-                           push!(res, loc)
-                       end
-                   end
-               end
-           end
-           return res
-       end
-fullerene (generic function with 1 method)
-julia> fullerene_graph = UnitDiskGraph(fullerene(), sqrt(5)); # construct the unit disk graph
-julia> spin_glass = SpinGlass(fullerene_graph, UnitWeight(ne(fullerene_graph)), zeros(Int, nv(fullerene_graph)));
-julia> problem_size(spin_glass)
-(num_vertices = 60, num_edges = 90)
-julia> log(solve(spin_glass, PartitionFunction(1.0))[])/nv(fullerene_graph)
-1.3073684577607942
-julia> solve(spin_glass, CountingMin())[]
-(-66.0, 16000.0)ₜ
-```
 
 = Hands-on
 == Hands-on: Implement and improve a simple Lanczos algorithm
