@@ -636,10 +636,27 @@ columns: 2, gutter: 20pt)
 The spin glass gadget for logic gates@Gao2024. The blue/red spin is the input/output spins. The numbers on the vertices are the biases $h_i$ of the spins, the numbers on the edges are the couplings $J_(i j)$.
 
 == Composibility of logic gadgets
-TODO: draw a figure
 
-With these gadgets, we can construct any logic circuits utilizing the composibility of logic gadgets. Given two logic gadgets $H_1$ and $H_2$, in the ground state of the combined gadget $H_1 compose H_2$, both $H_1$ and $H_2$ are in their own ground state. i.e. the logic expressions associated with $H_1$ and $H_2$ are both satisfied. Therefore, the ground state of $H_1 compose H_2$ is the same as the truth table of the composed logic circuit.
+An implmentation of NAND operation through composing the logic $and$ and $not$ gadgets.
+#figure(canvas({
+  import draw: *
+  let s(it) = text(16pt, it)
+  triangle((1, -2, -2), (1, 1, -2))
 
+  for (i, (x, y, color, t)) in ((2.5, 0, white, "2"), (5, 0, red, none)).enumerate() {
+    circle((x, y), radius: 0.6, fill: color.lighten(40%), name: "s" + str(i))
+    content((x, y), box(s[#t], inset: 0.1em))
+  }
+  line("s0", "s1", stroke: (paint: black, thickness: 1pt), name: "line1")
+  content("line1.mid", box(fill: white, s[1], inset: 0.1em))
+  content((-1, 1.5), s[$x$])
+  content((-1, -1.5), s[$y$])
+  content((7, 0), s[$not (x and y)$])
+  content((2.5, -2.5), s[Biases added up], name: "add")
+  line("add", (2.5, -1), mark: (end: "straight"))
+}))
+
+If and only if all gadgets have correct assignments, the energy of the combined gadget is minimized.
 
 #box(text(16pt)[```julia
 source_problem = Factoring(3, 2, 15)
@@ -822,7 +839,7 @@ Spectral gap v.s. $1\/T$ of the Ising model ($J = -1$) on a circle of length $N=
   content((dx/2 + 1.5, 1.1), s[$arrow.double.r$])
 }))
 
-== Cheeger's inequality
+== Estimate the gap: Cheeger's inequality
 
 Cheeger's inequality is a fundamental result in spectral graph theory that relates the conductance (or isoperimetric constant) of a graph to its spectral gap. This relationship is particularly important in the context of spin glass systems and Markov Chain Monte Carlo methods, as it provides bounds on mixing times.
 
@@ -850,9 +867,9 @@ $
 
 This inequality provides both lower and upper bounds on the Cheeger constant in terms of the spectral gap.
 
-=== Relation to mixing time
+== Relation to mixing time
 
-The mixing time of a Markov chain is the time required for the chain to approach its stationary distribution. For a reversible Markov chain, the mixing time $t_"mix"$ is related to the spectral gap $(1 - lambda_2)$ of the transition matrix:
+For a reversible Markov chain, the mixing time $t_"mix"$ is related to the spectral gap $(1 - lambda_2)$ of the transition matrix:
 
 $
 t_"mix" approx frac(1, 1 - lambda_2)
@@ -862,11 +879,7 @@ By Cheeger's inequality, we know that:
 
 $
 1 - lambda_2 >= frac(h(G)^2, 2)
-$
-
-Therefore:
-
-$
+arrow.double.r
 t_"mix" <= frac(2, h(G)^2)
 $
 
