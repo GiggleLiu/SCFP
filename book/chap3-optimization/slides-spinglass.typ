@@ -686,18 +686,8 @@ ProblemReductions.read_solution(source_problem, solution) # output: (5, 3)
 - Fact 4: If we drive the spin glass to the ground state, we can read out the solution from the spin configuration.
 
 == Simulated Annealing
+
 Simulated annealing is an algorithm for finding the *global optimum* of a given function, which mimics the physical process of cooling down a material.
-
-A cooling process is characterized by lowering the temperature $T$ from a high initial temperature $T_"init"$ to a low final temperature $T_"final"$ following a cooling schedule. The temperature determining the probability distribution of states through the Boltzmann statistics:
-$
-  p(bold(s)) ~ e^(-H(bold(s))\/T)
-$
-At the thermal equilibrium, the system effectively finds the distribution with the lowest free energy:
-$F = angle.l H angle.r - T S$, where $S$ is the entropy. When the temperature $T$ is high, the system tends to find the distribution with large entropy, making the system behave more randomly. As the temperature decreases, the system tends to find the distribution with lower energy, making the system more likely to be in the low-energy states. This transition can not happen abruptly, otherwise the system will get stuck in a local minimum. We have to wait the dynamics to thermalize the system.
-
-==
-The algorithm works as follows:
-
 #algorithm(
   {
     import algorithmic: *
@@ -720,15 +710,32 @@ The algorithm works as follows:
     )
   }
 )
-The algorithm starts with an initial spin configuration $bold(s)$, initial temperature $T_"init"$ and cooling rate $alpha < 1$. It then iteratively updates the spin configuration with probability $e^(-Delta E\/T)$. This update strategy can be carefully designed to achieve shorter mixing time. Here, we use the simplest single spin flip strategy.
+$T_"init"$ is the initial temperature, $alpha < 1$ is the cooling rate, $n_"steps"$ is the number of steps.
 
-The cooling schedule is also crucial for the algorithm's performance. If we cool too quickly, the system may get trapped in a local minimum. If we cool too slowly, the algorithm becomes computationally expensive. Common cooling schedules include:
+== Simulated Annealing
 
-- Linear: $T_k = T_"init" - k dot (T_"init" - T_"final")/n$
-- Exponential: $T_k = T_"init" dot alpha^k$ where $0 < alpha < 1$
-- Logarithmic: $T_k = T_"init"/log(k+1)$
+The temperature determining the probability distribution of states through the Boltzmann statistics:
+$
+  p(bold(s)) ~ e^(-H(bold(s))\/T)
+$
+At the thermal equilibrium, the system effectively finds the distribution with the lowest free energy:
+$F = angle.l H angle.r - T S$, where $S$ is the entropy.
+- When the temperature $T$ is high, the system tends to find the distribution with large entropy, making the system behave more randomly.
+- As the temperature decreases, the system tends to find the distribution with lower energy, making the system more likely to be in the low-energy states.
 
-Theoretically, with a logarithmic cooling schedule that decreases slowly enough, simulated annealing will converge to the global optimum with probability 1. However, in practice, faster cooling schedules are often used with good empirical results.
+== Cooling schedule
+*Key assumption*: The system stays in the thermal equilibrium.
+
+- Cool too quickly, the system may get trapped in a local minimum.
+- Cool too slowly, the algorithm becomes computationally expensive.
+
+Common cooling schedules include:
+
+1. Linear: $T_k = T_"init" - k dot (T_"init" - T_"final")/n$
+2. Exponential: $T_k = T_"init" dot alpha^k$ where $0 < alpha < 1$
+3. Logarithmic: $T_k = T_"init"/log(k+1)$
+
+- _Remark_: Theoretically, with a logarithmic cooling schedule that decreases slowly enough, simulated annealing will converge to the global optimum with probability 1.
 
 == Example: Encoding the factoring problem to a spin glass
 We introduce how to convert the factoring problem into a spin glass problem.
