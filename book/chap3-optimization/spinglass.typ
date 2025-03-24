@@ -301,23 +301,31 @@ In line 4, a new configuration $bold(s)'$ is proposed. The probability of propos
 The probability of proposing $(1, 0)$ from $(0, 0)$ is $1\/3$, and the probability of proposing $(0, 1)$ from $(0, 0)$ is $1\/2$. This prior is biased towards having less configurations in state $(0, 0)$, we must compensate for this bias by adjusting the acceptance probability. In a two state spin system, the random flip of a spin is unbiased, so the acceptance probability only depends on the ratio of the probability of the new and current configurations:
 $ p(bold(s)')/p(bold(s)) = e^(-beta (H(bold(s)') - H(bold(s))). $
 
-== Physical quantities that we are interested in
+== Simulation results
+The following results are obtained from the simple update MCMC detailed in the code demo: #link("https://github.com/GiggleLiu/ScientificComputingDemos/tree/main/IsingModel")[IsingModel].
+They correspond to the update of spin configurations at temperature $T = 1$ and $T = 3$ respectively, and the critical temperature $T_c =2/ln(1+sqrt(2)) approx 2.269$.
+Below $T_c$, the system tend to form a large cluster of spins in the same direction, the magnetization is non-zero. Above $T_c$, the system is in the paramagnetic phase, the magnetization is zero.
+#grid(columns: 2, column-gutter: 50pt, figure(image("images/ising-spins-1.0.gif", width: 100%)), figure(image("images/ising-spins-3.0.gif", width: 100%)), align(center)[#h(4em)$T = 1 (<T_c)$], align(center)[#h(4em)$T = 3 (>T_c)$])
 
-- Energy/spin: $angle.l H^k/n angle.r = integral H(s)^k/n p(s) d s.$
-- Magnetization: $m^k = angle.l (sum_i |s_i|)^k \/ n angle.r = integral (sum_i |s_i|)^k \/n p(s) d s.$
+#figure(image("images/ising-data.png", width: 80%),
+caption: [The left panel shows the observable values for the Ising model at temperature $T = 1$ using the simple update MCMC. Each sweep processes to update every spin once, and the observable is averaged over 1000 samples. The right panel is the autocorrelation function as a function of the lag $tau$.]
+) <fig:ising-data>
 
-== Metric of a good MCMC method
+However, the simple update does not thermalize fast enough. In the ferromagnetic phase, the domain wall grows too slow to reach the whole system.
+Instead of flip one spin a time, we can update a cluster of spins at a time. The cluster update proposed in @Swendsen1987 is a good example.
+This method improves both the *acceptance rate* and the *autocorrelation time*.
+Here, the autocorrelation time, $Theta$, is the number of steps it takes for the correlation between two consecutive samples to decay to one half of the maximum correlation:
+$
+  A_Q (tau) = (angle.l Q_k Q_(k+tau) angle.r - angle.l Q_k angle.r^2)/(angle.l Q_k^2 angle.r - angle.l Q_k angle.r^2).
+$
+where $Q_k$ is the quantity of interest evaluated at step $k$. The autocorrelation function is strictly $<=1$, and the smaller it is, the less correlated the samples are. When the samples are independent, we have $angle.l Q_k Q_(k+tau) angle.r = angle.l Q_k angle.r angle.l Q_(k+tau) angle.r arrow.double.r A_Q (tau) = 0$. A typical behavior is $A_Q (tau) ~ e^(-tau\/Theta)$.
 
-=== Acceptance rate
-In the ferrromagnetic phase, the MCMC method can easily get stuck in one of the ground states. A clever design can help the sampler to escape the local minimum, the cluster update proposed in @Swendsen1987 is a good example. When the prior is the same as the target distribution, the sampling the the most efficient, it has acceptance rate 1.
+The following results are obtained from the cluster update MCMC. We can see the system thermalizes in a few tens of sweeps.
+#grid(columns: 2, column-gutter: 50pt, figure(image("images/swising-spins-1.0.gif", width: 100%)), figure(image("images/swising-spins-3.0.gif", width: 100%)), align(center)[#h(4em)$T = 1 (<T_c)$], align(center)[#h(4em)$T = 3 (>T_c)$])
 
-=== Autocorrelation time
-Because a new sample in the MCMC method is generated from the previous sample, we often have time correlated samples in MCMC methods.
-Since the correlated samples are not independent, we effectively have less samples than we expect.
-The autocorrelation time $tau$ is the number of steps it takes for the correlation between two consecutive samples to decay to one half of the maximum correlation.
-The effective number of independent samples is $n\/tau$. A good MCMC method should have a small autocorrelation time.
-
-#jinguo([TODO: add a numeric example])
+#figure(image("images/sw-data.png", width: 80%),
+caption: [The same observables as in @fig:ising-data, but using the cluster update MCMC. The autocorrelation time below $10^(-3)$ are not shown.]
+) <fig:sw-data>
 
 = Spin glass
 
