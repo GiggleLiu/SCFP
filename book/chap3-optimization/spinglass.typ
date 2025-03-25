@@ -164,6 +164,19 @@ $
 where $beta = 1 \/ k_B T$ is the inverse temperature, $Z$ is the partition function $Z = sum_bold(s) e^(-beta H(bold(s)))$ that normalizes the probability distribution.
 Configurations with lower energy have higher probability to be observed. The sensitivity of the probability distribution to the energy is determined by the inverse temperature $beta$. At zero temperature, $beta$ is infinite, and only the ground state can be observed.
 
+With the tensor network based method@Roa2024, we can generate spin configurations from the Boltzmann distribution. Due to the limitations of the tensor network method, we can only generate samples for system size smaller than $30 times 30$.
+```julia
+graph = grid((10, 10))
+problem = SpinGlass(graph, -ones(Int, ne(graph)), zeros(Int, nv(graph)))
+pmodel = TensorNetworkModel(problem, β)
+samples = sample(pmodel, 1000)
+energy_distribution = energy.(Ref(problem), samples)
+```
+
+#figure(image("images/ising-energy-distribution.svg", width: 80%),
+caption: [The energy distribution of spin configurations generated unbiasly from the ferromagnetic Ising model ($J_(i j) = -1, L = 10$) at different inverse temperatures $beta$. The method to generate the samples is the tensor network based method detailed in @Roa2024]
+)
+
 We characterize the macroscopic properties of the system by the statistical average of some functions over the configuration space. Among these functions, the *order parameter* can be used to characterize the phase transition.
 As shown in @fig:phase-transition, the order parameter for the magnetization can be defined as
 $ |m| = lr(|sum_(i=1)^(L^2) s_i\/L^2|). $ <eq:magnetization>

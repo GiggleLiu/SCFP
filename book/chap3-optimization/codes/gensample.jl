@@ -18,7 +18,7 @@ end
 Create a histogram of energies with mean energy line.
 """
 function plot_energy_histogram(energies_list, βs)
-    fig = Figure(size=(1000, 1000))
+    fig = Figure(size=(800, 500))
     ax = Axis(fig[1, 1])
     
     # Create histograms for each beta value with different colors
@@ -54,9 +54,9 @@ energies_list = []
 
 for β in βs
     problem, pmodel = create_spin_glass_model(10, β)
-    samples = sample(pmodel, 100)
+    samples = sample(pmodel, 1000)
     energies = energy.(Ref(problem), samples)
     push!(energies_list, energies)
 end
 
-plot_energy_histogram(energies_list, βs)
+fig = plot_energy_histogram(energies_list, βs)
