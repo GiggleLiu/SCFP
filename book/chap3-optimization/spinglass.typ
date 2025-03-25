@@ -1,5 +1,5 @@
 #import "../book.typ": book-page, cross-link
-#import "@preview/cetz:0.2.2": canvas, draw, tree, vector, plot, decorations
+#import "@preview/cetz:0.3.4": canvas, draw, tree, vector, decorations
 #import "@preview/ctheorems:1.1.3": *
 #import "@preview/algorithmic:0.1.0"
 #import algorithmic: algorithm
@@ -121,7 +121,7 @@ julia> spin_glass = SpinGlass(
            zeros(Int, nv(grid_graph))     # h, in order of vertices
        );
 
-julia> energy(spin_glass, -ones(16))  # energy of the all-down configuration
+julia> energy(spin_glass, ones(Int, 16))  # energy of the all-down configuration
 -24
 ```
 
@@ -183,7 +183,7 @@ using TensorInference
 graph = grid((10, 10))
 problem = SpinGlass(graph, -ones(Int, ne(graph)), zeros(Int, nv(graph)))
 
-beta = 1.0
+β = 1.0
 pmodel = TensorNetworkModel(problem, β)
 samples = sample(pmodel, 1000)
 energy_distribution = energy.(Ref(problem), samples)
@@ -479,6 +479,10 @@ In the following, we show how to construct a spin glass system that can encode a
 
 With these gadgets, we can construct any logic circuits utilizing the composibility of logic gadgets. Given two logic gadgets $H_1$ and $H_2$, in the ground state of the combined gadget $H_1 compose H_2$, both $H_1$ and $H_2$ are in their own ground state. i.e. the logic expressions associated with $H_1$ and $H_2$ are both satisfied. Therefore, the ground state of $H_1 compose H_2$ is the same as the truth table of the composed logic circuit.
 
+== Example: Encoding the factoring problem to a spin glass
+We introduce how to convert the factoring problem into a spin glass problem.
+Factoring problem is the cornerstone of modern cryptography, it is the problem of given a number $N$, find two prime numbers $p$ and $q$ such that $N = p times q$.
+
 
 ```julia
 source_problem = Factoring(3, 2, 15)
@@ -557,10 +561,6 @@ The cooling schedule is also crucial for the algorithm's performance. If we cool
 - Logarithmic: $T_k = T_"init"/log(k+1)$
 
 Theoretically, with a logarithmic cooling schedule that decreases slowly enough, simulated annealing will converge to the global optimum with probability 1. However, in practice, faster cooling schedules are often used with good empirical results.
-
-== Example: Encoding the factoring problem to a spin glass
-We introduce how to convert the factoring problem into a spin glass problem.
-Factoring problem is the cornerstone of modern cryptography, it is the problem of given a number $N$, find two prime numbers $p$ and $q$ such that $N = p times q$.
 
 == The spectral gap
 
@@ -643,6 +643,7 @@ function spectral_gap(P)
 end
 ```
 
+TODO: code for this plot.
 #figure(image("images/spectralgap.svg", width: 300pt),
 caption: [Spectral gap v.s. $1\/T$ of the Ising model ($J = -1$) on a circle of length $N=6$.],
 )
@@ -656,7 +657,7 @@ Cheeger's inequality is a fundamental result in spectral graph theory that relat
 For a graph $G = (V, E)$ with vertex set $V$ and edge set $E$, the Cheeger constant (or conductance) $h(G)$ is defined as the probability of escaping from the most inescapable set:
 
 $
-h(G) = min_(S subset V, 0 < |S| <= |V|/2) frac(|E(S, V backslash S)|, min("vol"(S), "vol"(V backslash S)))
+h(G) = min_(S subset V, 0 < |S| <= (|V|)/2) frac(|E(S, V backslash S)|, min("vol"(S), "vol"(V backslash S)))
 $
 
 where:
