@@ -361,7 +361,7 @@ NP problems are decision problems, features the property that given a solution, 
     content((loc.at(0), loc.at(1) - 2.5 * r), label)
   }
   if words != none {
-    content((loc.at(0) + 5 * xr, loc.at(1) - 0.5 * r), box(width: 70pt, words))
+    content((loc.at(0) + 5 * xr, loc.at(1) - 0.5 * r), box(width: rescale * 7em, words))
   }
 }
 
@@ -380,15 +380,15 @@ NP problems are decision problems, features the property that given a solution, 
     content((loc.at(0), loc.at(1) - 1.5 * r), label)
   }
   if words != none {
-    content((loc.at(0) + 6 * xr, loc.at(1) - 1.5 * r), box(width: 70pt, words))
+    content((loc.at(0) + 6 * xr, loc.at(1) - 1.5 * r), box(width: rescale * 7em, words))
   }
 }
 
-#figure(canvas({
+#figure(canvas(length: 3em, {
   import draw: *
-  let s(it) = text(8pt, it)
-  bob((0, 0), rescale: 1, flip: false, label: s[$n^100$], words: text(8pt)[Both of us are\ difficult to solve.])
-  alice((8, 0), rescale: 1, flip: true, label: s[$1.001^n$], words: text(8pt)[Sorry, we are not in the same category.])
+  let s(it) = text(0.8em, it)
+  bob((0, 0), rescale: 1, flip: false, label: s[$n^100$], words: text(0.8em)[Both of us are difficult to solve.])
+  alice((8, 0), rescale: 1, flip: true, label: s[$1.001^n$], words: text(0.8em)[Sorry, we are not in the same category.])
 })) <fig:np-complete>
 
 
@@ -396,9 +396,9 @@ NP problems are decision problems, features the property that given a solution, 
 We start by showing the following statement is true: _If you can drive a Spin glass system to the ground state, you can prove any theorem._ Note that theorem proving is not different from other problems in NP. First it is a decision problem, second, with a proof, it is easy to verify whether the solution is correct in polynomial time. A spin glass system can encode a target problem by tuning its couplings $J_(i j)$ and biases $h_i$ in the Hamiltonian @eq:spin-glass-hamiltonian.
 After driving the spin glass system to the ground state, we can read out the proof from the spin configuration.
 
-#figure(canvas({
+#figure(canvas(length: 3em, {
   import draw: *
-  let s(it) = text(12pt, it)
+  let s(it) = text(1em, it)
   let boxed(it) = box(it, stroke: black, inset: 0.5em)
   content((0, 0), boxed(s[Problem]), name: "problem")
   content((0, -2), boxed(s[Spin glass]), name: "spin-glass")
@@ -632,91 +632,6 @@ end
 caption: [Spectral gap v.s. $1\/T$ of the Ising model ($J = -1$) on a circle of length $N=6$.],
 )
 
-#figure(canvas({
-  import draw: *
-  let s(it) = text(12pt, it)
-  rect((0, 0), (3, 3))
-  circle((1.5, 2.2), radius: (0.5, 0.5), fill: blue.lighten(60%), stroke: none)
-  circle((1.5, 0.8), radius: (0.5, 0.5), fill: blue.lighten(60%), stroke: none)
-  
-  let dx = 8
-  rect((dx, 0), (dx + 3, 3))
-  let n = 20
-  for i in range(n) {
-    circle((dx + 0.5 + 2 * random_numbers.at(i), 0.5 + 2 * random_numbers.at(i+n)), radius: (random_numbers.at(i+2*n))/4, fill: blue.lighten(60%), stroke: none)
-  }
-  content((dx + 1.5, -0.8), s[Frustrated, Glassy\ Many local minima])
-  content((1.5, -0.8), s[No frustration, Ordered,\ Countable local minima])
-
-  content((dx/2 + 1.5, 1.5), s[Add more "triangles"])
-  content((dx/2 + 1.5, 1.1), s[$arrow.double.r$])
-}))
-
-
-
-== Parallel tempering
-
-Parallel tempering (also known as replica exchange) is a Monte Carlo method designed to improve sampling efficiency for systems with rough energy landscapes, such as spin glasses. The key idea is to simulate multiple replicas of the system at different temperatures simultaneously, allowing configurations to be exchanged between temperatures.
-
-=== Algorithm overview
-
-In parallel tempering:
-
-1. We simulate $M$ replicas of the system at different temperatures $T_1 < T_2 < ... < T_M$
-2. Each replica evolves according to standard Metropolis dynamics at its temperature
-3. Periodically, we attempt to swap configurations between adjacent temperature levels
-
-The swap between configurations at temperatures $T_i$ and $T_(i+1)$ is accepted with probability:
-
-$
-P_"swap"(bold(s)_i, bold(s)_(i+1)) = min(1, exp(-(beta_i - beta_(i+1))(H(bold(s)_(i+1)) - H(bold(s)_i))))
-$
-
-where $beta_i = 1/T_i$ and $bold(s)_i$ is the configuration at temperature $T_i$.
-
-=== Benefits of parallel tempering
-
-Parallel tempering offers several advantages:
-
-1. *Improved exploration*: Higher temperature replicas can easily cross energy barriers, while lower temperature replicas sample the relevant low-energy states
-2. *Faster thermalization*: Configurations can travel up and down the temperature ladder, helping the system escape local minima
-3. *Better sampling of low-energy states*: The method provides more efficient sampling of the low-temperature distribution
-
-=== Implementation considerations
-
-- *Temperature spacing*: The temperatures should be chosen so that the acceptance rate for swaps between adjacent temperatures is reasonable (typically 20-30%)
-- *Swap frequency*: Swaps are typically attempted after each replica has undergone several Metropolis updates
-- *Number of replicas*: More replicas provide better temperature coverage but increase computational cost
-
-=== Pseudocode
-
-#algorithm({
-  import algorithmic: *
-  Function("ParallelTempering", args: ([$H$], [$T_1, ..., T_M$], [$N_"steps"$]), {
-    Assign([$bold(s)_1, ..., bold(s)_M$], [random initial configurations])
-    For(range: [$t = 1$ to $N_"steps"$], {
-      // Update each replica with Metropolis
-      For(range: [$i = 1$ to $M$], {
-        Assign([$bold(s)_i$], [MetropolisUpdate($bold(s)_i$, $H$, $T_i$)])
-      })
-      
-      // Attempt swaps between adjacent temperatures
-      If(cond: [$t$ mod $N_"swap"$ = 0], {
-        For(range: [$i = 1$ to $M-1$], {
-          Assign([$Delta E$], [$H(bold(s)_(i+1)) - H(bold(s)_i)$])
-          Assign([$Delta beta$], [$1/T_i - 1/T_(i+1)$])
-          If(cond: [$cal(U)(0,1) < exp(-Delta beta \cdot Delta E)$], {
-            Assign([$(bold(s)_i, bold(s)_(i+1))$], [$(bold(s)_(i+1), bold(s)_i)$])
-          })
-        })
-      })
-    })
-    Return([$bold(s)_1$])  // Return lowest temperature configuration
-  })
-})
-
-Parallel tempering is particularly effective for spin glass systems where the energy landscape contains many local minima separated by high barriers, making standard Metropolis sampling inefficient at low temperatures.
-
 == Cheeger's inequality
 
 Cheeger's inequality is a fundamental result in spectral graph theory that relates the conductance (or isoperimetric constant) of a graph to its spectral gap. This relationship is particularly important in the context of spin glass systems and Markov Chain Monte Carlo methods, as it provides bounds on mixing times.
@@ -747,12 +662,7 @@ This inequality provides both lower and upper bounds on the Cheeger constant in 
 
 === Relation to mixing time
 
-The mixing time of a Markov chain is the time required for the chain to approach its stationary distribution. For a reversible Markov chain, the mixing time $t_"mix"$ is related to the spectral gap $(1 - lambda_2)$ of the transition matrix:
-
-$
-t_"mix" approx frac(1, 1 - lambda_2)
-$
-
+The mixing time of a Markov chain is the time required for the chain to approach its stationary distribution. For a reversible Markov chain, the mixing time $t_"mix"$ is related to the spectral gap $(1 - lambda_2)$ of the transition matrix: $t_"mix" approx frac(1, 1 - lambda_2)$.
 By Cheeger's inequality, we know that:
 
 $
@@ -767,102 +677,40 @@ $
 
 This means that a graph with a large Cheeger constant (good expansion properties) will have a small mixing time, allowing MCMC methods to converge quickly to the stationary distribution.
 
-=== Estimating the Cheeger constant
-
-Exactly computing the Cheeger constant is NP-hard, but there are several approaches to estimate it:
-
-1. *Spectral methods*: Using Cheeger's inequality, we can compute $lambda_2$ and use it as an approximation.
-
-2. *Sampling-based methods*: For large graphs, we can use random walks to estimate the conductance.
-
-3. *Approximation algorithms*: There exist polynomial-time algorithms that can approximate the Cheeger constant within certain factors.
-
-For spin glass systems, estimating the Cheeger constant can provide valuable insights into the difficulty of sampling from the Boltzmann distribution at low temperatures. A small Cheeger constant indicates the presence of bottlenecks in the state space, which can significantly slow down the mixing of MCMC methods.
-
-#algorithm({
-  import algorithmic: *
-  Function("EstimateCheegerConstant", args: ([$G = (V, E)$], [$k$]), {
-    // Compute the normalized Laplacian matrix
-    Assign([$D$], [diagonal degree matrix of $G$])
-    Assign([$A$], [adjacency matrix of $G$])
-    Assign([$L$], [$I - D^(-1/2) A D^(-1/2)$])
-    
-    // Compute the second smallest eigenvalue
-    Assign([$lambda_2$], [second smallest eigenvalue of $L$])
-    
-    // Use spectral partitioning to find a good cut
-    Assign([$v_2$], [eigenvector corresponding to $lambda_2$])
-    Assign([$S_t$], [vertices with the smallest $t$ values in $D^(-1/2) v_2$])
-    
-    // Compute conductance for different values of t
-    Assign([$h_"min"$], [$infinity$])
-    For(range: [$t = 1$ to $|V|-1$], {
-      Assign([$h_t$], [$|E(S_t, V backslash S_t)| \/ min("vol"(S_t), "vol"(V backslash S_t))$])
-      If(cond: [$h_t < h_"min"$], {
-        Assign([$h_"min"$], [$h_t$])
-      })
-    })
-    
-    Return([$h_"min"$, $lambda_2$])
-  })
-})
-
 In practice, for spin glass systems, the Cheeger constant provides a quantitative measure of how "glassy" the energy landscape is. Systems with small Cheeger constants have energy landscapes with high barriers between different metastable states, making equilibration difficult and necessitating techniques like parallel tempering to efficiently sample the state space.
 
-== Example: Ferromagnetic Ising model on Fullerene graph
-#let fullerene() = {
-    let φ = (1+calc.sqrt(5))/2
-    let res = ()
-    for (x, y, z) in ((0.0, 1.0, 3 * φ), (1.0, 2 + φ, 2 * φ), (φ, 2.0, 2 * φ + 1.0)) {
-		    for (α, β, γ) in ((x,y,z), (y,z,x), (z,x,y)) {
-			      for loc in ((α,β,γ), (α,β,-γ), (α,-β,γ), (α,-β,-γ), (-α,β,γ), (-α,β,-γ), (-α,-β,γ), (-α,-β,-γ)) {
-				        if not res.contains(loc) {
-                    res.push(loc)
-                }
-            }
-        }
-    }
-	  return res
-}
+== Parallel tempering
 
-#figure(canvas(length: 0.6cm, {
+The energy landscape of a spin glass is rough, with many local minima separated by high barriers. Normal Metropolis sampling is inefficient at low temperatures, as the system gets trapped in a local minimum.
+
+#figure(canvas({
   import draw: *
-  let s(it) = text(14pt, it)
-  let vertices = fullerene()
-  let edges = udg-graph(vertices, unit: calc.sqrt(5))
-  show-graph(vertices.map(v=>(v.at(0), v.at(1)*calc.sqrt(1/5) + v.at(2)*calc.sqrt(4/5))), edges)
+  let s(it) = text(12pt, it)
+  rect((0, 0), (3, 3))
+  circle((1.5, 2.2), radius: (0.5, 0.5), fill: blue.lighten(60%), stroke: none)
+  circle((1.5, 0.8), radius: (0.5, 0.5), fill: blue.lighten(60%), stroke: none)
+  
+  let dx = 8
+  rect((dx, 0), (dx + 3, 3))
+  let n = 20
+  for i in range(n) {
+    circle((dx + 0.5 + 2 * random_numbers.at(i), 0.5 + 2 * random_numbers.at(i+n)), radius: (random_numbers.at(i+2*n))/4, fill: blue.lighten(60%), stroke: none)
+  }
+  content((dx + 1.5, -0.8), s[Glassy, Many local minima])
+  content((1.5, -0.8), s[Ordered, Countable local minima])
+
+  content((dx/2 + 1.5, 1.5), s[Add more frustration])
+  content((dx/2 + 1.5, 1.1), s[$arrow.double.r$])
 }))
 
+Parallel tempering (also known as replica exchange) is a Monte Carlo method designed to improve sampling efficiency for systems with rough energy landscapes, such as spin glasses. The key idea is to simulate multiple replicas of the system at different temperatures simultaneously, allowing configurations to be exchanged between temperatures. It improves the exploration of the state space, and makes the sampling of low-energy states thermalize faster. In parallel tempering:
 
-```julia
-julia> using GenericTensorNetworks, Graphs, ProblemReductions
-julia> function fullerene()  # construct the fullerene graph in 3D space
-           th = (1+sqrt(5))/2
-           res = NTuple{3,Float64}[]
-           for (x, y, z) in ((0.0, 1.0, 3th), (1.0, 2 + th, 2th), (th, 2.0, 2th + 1.0))
-               for (a, b, c) in ((x,y,z), (y,z,x), (z,x,y))
-                   for loc in ((a,b,c), (a,b,-c), (a,-b,c), (a,-b,-c), (-a,b,c), (-a,b,-c), (-a,-b,c), (-a,-b,-c))
-                       if loc not in res
-                           push!(res, loc)
-                       end
-                   end
-               end
-           end
-           return res
-       end
-fullerene (generic function with 1 method)
-julia> fullerene_graph = UnitDiskGraph(fullerene(), sqrt(5)); # construct the unit disk graph
-julia> spin_glass = SpinGlass(fullerene_graph, UnitWeight(ne(fullerene_graph)), zeros(Int, nv(fullerene_graph)));
-julia> problem_size(spin_glass)
-(num_vertices = 60, num_edges = 90)
-julia> log(solve(spin_glass, PartitionFunction(1.0))[])/nv(fullerene_graph)
-1.3073684577607942
-julia> solve(spin_glass, CountingMin())[]
-(-66.0, 16000.0)ₜ
-```
-
-
-
-
+1. We simulate $M$ replicas of the system at different temperatures $T_1 < T_2 < ... < T_M$
+2. Each replica evolves according to standard Metropolis dynamics at its temperature
+3. Periodically, we attempt to swap configurations between adjacent temperature levels. The swap between configurations at temperatures $T_i$ and $T_(i+1)$ is accepted with probability:
+  $
+  P_"swap"(bold(s)_i, bold(s)_(i+1)) = min(1, e^(-(beta_i - beta_(i+1))(H(bold(s)_(i+1)) - H(bold(s)_i))))
+  $
+  where $beta_i = 1/T_i$ and $bold(s)_i$ is the configuration at temperature $T_i$.
 
 #bibliography("refs.bib")

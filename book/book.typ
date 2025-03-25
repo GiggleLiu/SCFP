@@ -24,7 +24,7 @@
     = Optimization
     #chapter("chap3-optimization/spinglass.typ")[Spin systems and MCMC]
     #chapter("chap3-optimization/linear_integer.typ")[Linear/Integer programming]
-    #chapter("chap3-optimization/ad.typ")[Automatic differentiation]
+    //#chapter("chap3-optimization/ad.typ")[Automatic differentiation]
     = Quantum systems
     //#chapter("chap4-quantum/quantum-simulation.typ")[Quantum simulation]
     = Appendix
