@@ -174,7 +174,7 @@ energy_distribution = energy.(Ref(problem), samples)
 ```
 
 #figure(image("images/ising-energy-distribution.svg", width: 80%),
-caption: [The energy distribution of spin configurations generated unbiasly from the ferromagnetic Ising model ($J_(i j) = -1, L = 10$) at different inverse temperatures $beta$. The method to generate the samples is the tensor network based method detailed in @Roa2024]
+caption: [The binned energy distribution of spin configurations generated unbiasly from the ferromagnetic Ising model ($J_(i j) = -1, L = 10$) at different inverse temperatures $beta$. The method to generate the samples is the tensor network based method detailed in @Roa2024]
 )
 
 We characterize the macroscopic properties of the system by the statistical average of some functions over the configuration space. Among these functions, the *order parameter* can be used to characterize the phase transition.
@@ -208,11 +208,21 @@ To find all degenerate ground states, we can solve the spin glass problem with t
 ```julia
 julia> using GenericTensorNetworks
 
-julia> solve(spin_glass, ConfigsMin())[]  # solve the spin glass ground state
-(-24.0, {0000000000000000, 1111111111111111})ₜ
+julia> graph = grid((6, 6))
+julia> problem = SpinGlass(graph, -ones(Int, ne(graph)), zeros(Int, nv(graph)));
+
+julia> solve(problem, ConfigsMin())[]  # solve the spin glass ground state
+(-60.0, {000000000000000000000000000000000000, 111111111111111111111111111111111111})ₜ
+
+julia> solutionspace = solve(problem, ConfigsMin(9))[];  # States with energy E0 ~ E0+8
+julia> show_landscape((x, y)->hamming_distance(x, y) <= 1, solutionspace; layer_distance=-30, optimal_distance=20, filename="grid66.svg");
 ```
 The returned value is a data structure that contains the lowest energy and the associated configurations.
 We can see the ground states are two fold degenerate, they are the all-up and all-down configurations.
+
+#figure(image("images/grid66.svg", width: 80%),
+caption: [The energy landscape of low energy states of the ferromagnetic Ising model on a 6x6 grid. The two degenerate ground states are the all-up and all-down configurations. Configurations are connected if they differ by flipping a single spin.]
+)
 
 == Integrate a function with importance sampling
 
@@ -384,11 +394,11 @@ NP problems are decision problems, features the property that given a solution, 
   }
 }
 
-#figure(canvas(length: 3em, {
+#figure(canvas(length: 1.3cm, {
   import draw: *
   let s(it) = text(0.8em, it)
-  bob((0, 0), rescale: 1, flip: false, label: s[$n^100$], words: text(0.8em)[Both of us are difficult to solve.])
-  alice((8, 0), rescale: 1, flip: true, label: s[$1.001^n$], words: text(0.8em)[Sorry, we are not in the same category.])
+  bob((0, 0), rescale: 1, flip: false, label: s[$n^100$], words: text(1em)[Both of us are difficult to solve.])
+  alice((8, 0), rescale: 1, flip: true, label: s[$1.001^n$], words: text(1em)[Sorry, we are not in the same category.])
 })) <fig:np-complete>
 
 
@@ -396,7 +406,7 @@ NP problems are decision problems, features the property that given a solution, 
 We start by showing the following statement is true: _If you can drive a Spin glass system to the ground state, you can prove any theorem._ Note that theorem proving is not different from other problems in NP. First it is a decision problem, second, with a proof, it is easy to verify whether the solution is correct in polynomial time. A spin glass system can encode a target problem by tuning its couplings $J_(i j)$ and biases $h_i$ in the Hamiltonian @eq:spin-glass-hamiltonian.
 After driving the spin glass system to the ground state, we can read out the proof from the spin configuration.
 
-#figure(canvas(length: 3em, {
+#figure(canvas(length: 1.3cm, {
   import draw: *
   let s(it) = text(1em, it)
   let boxed(it) = box(it, stroke: black, inset: 0.5em)
@@ -416,7 +426,7 @@ The ground state of a spin glass can encode the truth table of any logic circuit
 
 #figure(table(columns: 4, table.header([Gate], [Gadget], [Ground states], [Lowest energy]),
 [Logical not: $not$], [
-  #canvas(length: 0.5cm, {
+  #canvas(length: 0.6cm, {
   import draw: *
   let s(it) = text(11pt, it)
   for (i, (x, y, color)) in ((-1.5, 0, blue), (1.5, 0, red)).enumerate() {
@@ -428,7 +438,7 @@ The ground state of a spin glass can encode the truth table of any logic circuit
 
 ],
 [(-1, +1),\ (+1, -1)], [-1],
-[Logical and: $and$], [#canvas(length: 0.5cm, {
+[Logical and: $and$], [#canvas(length: 0.6cm, {
   import draw: *
   let s(it) = text(11pt, it)
   for (i, (x, y, color, h)) in ((0, -1.5, blue, 1), (0, 1.5, blue, 1), (2.5, 0, red, -2)).enumerate() {
@@ -445,7 +455,7 @@ The ground state of a spin glass can encode the truth table of any logic circuit
 ],
 [(-1, -1, -1),\ (+1, -1, +1),\ (-1, +1, +1),\ (+1, +1, +1)], [-3],
 [Logical or: $or$], [
-#canvas(length: 0.5cm, {
+#canvas(length: 0.6cm, {
   import draw: *
   let s(it) = text(11pt, it)
   for (i, (x, y, color, h)) in ((0, -1.5, blue, -1), (0, 1.5, blue, -1), (2.5, 0, red, 2)).enumerate() {
