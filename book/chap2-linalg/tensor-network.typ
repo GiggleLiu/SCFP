@@ -12,16 +12,22 @@
 #let theorem = thmbox("theorem", "Theorem", base: none, stroke: black)
 #let proof = thmproof("proof", "Proof")
 
+
+#let exampleblock(it) = block(fill: rgb("#ffffff"), inset: 1em, radius: 4pt, stroke: black, it)
 #let tensor(location, name, label) = {
   import draw: *
   circle(location, radius: 10pt, name: name)
   content((), text(black, label))
 }
 
+#let labelnode(loc, label, name: none) = {
+  import draw: *
+  content(loc, text(black, label), align: center, fill:silver, frame:"rect", padding:0.07, stroke: none, name: name)
+}
 #let labeledge(from, to, label) = {
   import draw: *
   line(from, to, name:"line")
-  content("line.mid", label, align: center, fill:silver, frame:"rect", padding:0.07, stroke: none)
+  labelnode("line.mid", label)
 }
 
 #let infobox(title, body, stroke: blue) = {
@@ -37,7 +43,7 @@
 }
 
 = Tensor Networks
-== Definition
+== Tensor network representation
 
 _Tensor network_ is a diagrammatic representation of tensor _contractions_.
 In this representation, a tensor is represented as a node, and an index is represented as a hyperedge (a hyperedge can connect to any number of nodes). For example, vectors, matrices and higher order tensors can be represented as
@@ -60,7 +66,31 @@ In this representation, a tensor is represented as a node, and an index is repre
 
 Tensor contraction is a generalized matrix multiplication, which is defined as the summation of the element products from multiple tensors.
 
-In the same diagram, the tensors associated with the same variable are connected by the same hyperedge. If a variable appears in the output tensor, the hyperedge is left _open_. For example, the diagrammatic representation of the matrix multiplication is given as follows:
+A tensor network@Liu2022@Roa2024 can be represented by a triple of $(Lambda, cal(T), V_0)$, where:
+- $Lambda$ is the set of variables present in the network.
+- $cal(T) = { T_(V_k) }_(k=1)^K$ is the set of input tensors, where each tensor $T_(V_k)$ is associated with the labels $V_k$.
+- $V_0$ specifies the labels of the output tensor.
+
+Specifically, each tensor $T_(V_k) in cal(T)$ is labeled by a set of variables $V_k subset.eq Lambda$, where the cardinality $|V_k|$ equals the rank of $T_(V_k)$. The multilinear map, or the *contraction*, applied to this triple is defined as
+$
+T_(V_0) = "contract"(Lambda, cal(T), V_0) ouset(=, "def") sum_(m in cal(D)_(Lambda without V_0)) product_(T_V in cal(T)) T_(V|M=m),
+$
+where $M = Lambda without V_0$. $T_(V|M=m)$ denotes a slicing of the tensor $T_V$ with the variables $M$ fixed to the values $m$. The summation runs over all possible configurations of the variables in $M$.
+
+#exampleblock[
+*Example: Tensor network representation of matrix multiplication*
+
+Matrix multiplication can be described as the contraction of a tensor network given by
+$
+C_(i k) = "contract"({i,j,k}, {A_(i j), B_(j k)}, {i, k}),
+$
+where the input matrices $A$ and $B$ are indexed by the variable sets ${i, j}, {j, k}$, respectively, which are subsets of $Lambda = {i, j, k}$. As a remark of notation, when an set is used as subscripts, we omit the comma and the braces. The output tensor is indexed by variables ${i, k}$ and the summation runs over variables $Lambda without {i, k} = {j}$. The contraction corresponds to
+$
+C_(i k) = sum_j A_(i j) B_(j k),
+$
+which is consistent with the matrix multiplication.
+
+In the diagramatic representation, the tensors associated with the same variable are connected by the same hyperedge. If a variable appears in the output tensor, the hyperedge is left _open_. For example, the diagrammatic representation of the matrix multiplication is given as follows:
 
 #align(center, text(10pt, canvas({
   import draw: *
@@ -69,46 +99,114 @@ In the same diagram, the tensors associated with the same variable are connected
   labeledge("A", (rel: (-1.5, 0)), [$i$])
   labeledge("A", (rel: (1.5, 0)), [$j$])
   labeledge("B", (rel: (1.5, 0)), [$k$])
-  content((-1, -0.5), [$ C_(i k) := sum_j A_(i j) B_(j k) $])
+})))
+]
+
+In the program, a tensor network is also known as `einsum`, which uses a string to denote the tensor network topology. For example, the matrix multiplication can be represented as `ij,jk->ik`. The intputs and outputs are separated by `->`, and the indices of different input tensors are separated by commas.
+In the following example, we use the `OMEinsum` package to compute some simple tensor network contractions:
+
+```julia
+s = fill(1)  # scalar
+w, v = [1, 2], [4, 5];  # vectors
+A, B = [1 2; 3 4], [5 6; 7 8]; # matrices
+T1, T2 = reshape(1:8, 2, 2, 2), reshape(9:16, 2, 2, 2); # 3D tensor
+
+# Single tensor operations
+ein"i->"(w)  # sum of the elements of a vector.
+ein"ij->i"(A)  # sum of the rows of a matrix.
+ein"ii->"(A)  # sum of the diagonal elements of a matrix, i.e., the trace.
+ein"ij->"(A)  # sum of the elements of a matrix.
+ein"i->ii"(w)  # create a diagonal matrix.
+ein",->"(s, s)  # scalar multiplication.
+
+# Two tensor operations
+ein"ij, jk -> ik"(A, B)  # matrix multiplication.
+ein"ijb,jkb->ikb"(T1, T2)  # batch matrix multiplication.
+ein"ij,ij->ij"(A, B)  # element-wise multiplication.
+ein"ij,ij->"(A, B)  # sum of the element-wise multiplication.
+ein"ij,->ij"(A, s)  # element-wise multiplication by a scalar.
+
+# More than two tensor operations
+optein"ai,aj,ak->ijk"(A, A, B)  # star contraction.
+optein"ia,ajb,bkc,cld,dm->ijklm"(A, T1, T2, T1, A)  # tensor train contraction.
+```
+
+When there are only one or two tensors involved, the strings are easy to read. However, when there are more than two tensors, the strings can be quite complicated. Then the diagrammatic representation is more helpful. For example, the star contraction has the following diagrammatic representation:
+
+#align(center, text(10pt, canvas({
+  import draw: *
+  let s(it) = text(10pt, it)
+  content((-5, 0.5), s[`ai,aj,ak->ijk` = ])
+  tensor((-1.0, 0), "A", s[$A$])
+  tensor((1.0, 0), "B", s[$A$])
+  tensor((0, 1.0), "C", s[$B$])
+  labeledge("A", (rel: (-1.2, 0)), s[$i$])
+  labeledge("B", (rel: (1.2, 0)), s[$j$])
+  labeledge("C", (rel: (0, 1.2)), s[$k$])
+  labelnode((0, 0), s[$a$], name: "a")
+  line("a", "A")
+  line("a", "B")
+  line("a", "C")
+
+  set-origin((-2, -2))
+  content((-3.5, 0.5), [`ia,ajb,bkc,cld,dm->ijklm` = ])
+
+  tensor((0, 0), "A", [$A$])
+  tensor((1.5, 0), "B", [$T_1$])
+  tensor((3, 0), "C", [$T_2$])
+  tensor((4.5, 0), "D", [$T_1$])
+  tensor((6, 0), "E", [$A$])
+  labeledge("A", (rel: (0, 1.2)), [$i$])
+  labeledge("B", (rel: (0, 1.2)), [$j$])
+  labeledge("C", (rel: (0, 1.2)), [$k$])
+  labeledge("D", (rel: (0, 1.2)), [$l$])
+  labeledge("E", (rel: (0, 1.2)), [$m$])
+
+  labeledge("A", "B", [$a$])
+  labeledge("B", "C", [$b$])
+  labeledge("C", "D", [$c$])
+  labeledge("D", "E", [$d$])
 })))
 
-#definition([_(Tensor Network)_ A tensor network@Liu2022@Roa2024 is a mathematical framework for defining multilinear maps, which can be represented by a triple $cal(N) = (Lambda, cal(T), V_0)$, where:
-- $Lambda$ is the set of variables present in the network $cal(N)$.
-- $cal(T) = { T_(V_k) }_(k=1)^K$ is the set of input tensors, where each tensor $T_(V_k)$ is associated with the labels $V_k$.
-- $V_0$ specifies the labels of the output tensor.
-])
-Specifically, each tensor $T_(V_k) in cal(T)$ is labeled by a set of variables $V_k subset.eq Lambda$, where the cardinality $|V_k|$ equals the rank of $T_(V_k)$. The multilinear map, or the *contraction*, applied to this triple is defined as
-$
-T_(V_0) = "contract"(Lambda, cal(T), V_0) ouset(=, "def") sum_(m in cal(D)_(Lambda without V_0)) product_(T_V in cal(T)) T_(V|M=m),
-$
-where $M = Lambda without V_0$. $T_(V|M=m)$ denotes a slicing of the tensor $T_V$ with the variables $M$ fixed to the values $m$. The summation runs over all possible configurations of the variables in $M$.
 
-For instance, matrix multiplication can be described as the contraction of a tensor network given by
-$
-(A B)_(i k) = "contract"({i,j,k}, {A_(i j), B_(j k)}, {i, k}),
-$
-where the input matrices $A$ and $B$ are indexed by the variable sets ${i, j}, {j, k}$, respectively, which are subsets of $Lambda = {i, j, k}$. As a remark of notation, when an set is used as subscripts, we omit the comma and the braces. The output tensor is indexed by variables ${i, k}$ and the summation runs over variables $Lambda without {i, k} = {j}$. The contraction corresponds to
-$
-(A B)_(i k) = sum_j A_(i j) B_(j k),
-$
-which is consistent with the matrix multiplication.
 
-== The tree decomposition
+== Tensor network contraction orders
+
+The optimal contraction order is closely related to the _tree decomposition_@Markov2008 of the line graph of the tensor network.
+
 #figure(canvas({
   import draw: *
-  let locations = ((0, 0), (1, 0), (0, -1), (0, -2), (1, -2), (2, 0), (2, -1), (2, -2))
+  let d = 1.1
+  let locs_labels = ((0, 0), (d, 0), (0, -d), (0, -2 * d), (d, -2 * d), (2 * d, 0), (2 * d, -d), (2 * d, -2 * d))
+  for (loc, t, name) in (((0.5 * d, -0.5 * d), [$T_1$], "T_1"), ((1.5 * d, -0.5 * d), [$T_2$], "T_2"), ((1.5 * d, -1.5 * d), [$T_3$], "T_3"), ((0.5 * d, -1.5 * d), [$T_4$], "T_4")) {
+    circle(loc, radius: 0.3, name: name)
+    content(loc, text(12pt, [#t]))
+  }
+  for ((loc, t), name) in locs_labels.zip(([$A$], [$B$], [$C$], [$D$], [$E$], [$F$], [$G$], [$H$])).zip(("A", "B", "C", "D", "E", "F", "G", "H")) {
+    labelnode(loc, t, name: name)
+  }
+  for (src, dst) in (("A", "T_1"), ("B", "T_1"), ("C", "T_1"), ("F", "T_2"), ("G", "T_2"), ("B", "T_2"), ("H", "T_3"), ("E", "T_3"), ("G", "T_3"), ("D", "T_4"), ("C", "T_4"), ("E", "T_4")) {
+    line(src, dst)
+  }
+  content((d, -3), text(12pt)[(a)])
+  content((3.5, -1), text(12pt)[$arrow.double.r$])
+  content((3.5, -1.5), text(10pt)[Line graph])
+  set-origin((5, 0))
   let colors = (color.hsv(30deg, 90%, 70%), color.hsv(120deg, 90%, 70%), color.hsv(210deg, 90%, 70%), color.hsv(240deg, 90%, 70%), color.hsv(330deg, 90%, 70%), color.hsv(120deg, 90%, 70%), color.hsv(210deg, 90%, 70%), color.hsv(240deg, 90%, 70%))
   let texts = ("A", "B", "C", "D", "E", "F", "G", "H")
-  for (loc, color, t) in locations.zip(colors, texts) {
+  for (loc, color, t) in locs_labels.zip(colors, texts) {
     circle(loc, radius: 0.3, name: t)
-    content(loc, text(14pt, color)[#t])
+    content(loc, text(12pt, color)[#t])
   }
   for (a, b) in (("A", "B"), ("A", "C"), ("B", "C"), ("C", "D"), ("C", "E"), ("D", "E"), ("E", "G"), ("G", "H"), ("E", "H"), ("F", "G"), ("F", "B"), ("B", "G")) {
     line(a, b)
   }
+  content((d, -3), text(12pt)[(b)])
+  content((3.5, -1), text(12pt)[$arrow.double.r$])
+  content((3.5, -1.5), text(10pt)[T. D.])
   set-origin((5, 0))
   for (loc, bag) in (((0, 0), "B1"), ((0, -2), "B2"), ((1, -1), "B3"), ((3, -1), "B4"), ((4, 0), "B5"), ((4, -2), "B6")) {
-    circle(loc, radius: 0.5, name: bag)
+    circle(loc, radius: 0.55, name: bag)
   }
   let topleft = (-0.2, 0.2)
   let topright = (0.2, 0.2)
@@ -152,12 +250,14 @@ which is consistent with the matrix multiplication.
   line("e3", "e4", stroke: colors.at(4))
   line("g1", "g2", stroke: colors.at(6))
   line("g1", "g3", stroke: colors.at(6))
+  content((2, -3), text(12pt)[(c)])
 }),
-caption: [A tree decomposition of a tensor network. Removing vertices with long path length will reduce the contraction complexity the most efficiently.]
+caption: [(a) A tensor network. (b) A line graph for the tensor network. Labels are connected if and only if they appear in the same tensor. (c) A tree decomposition (T. D.) of the line graph.]
 )
 
+TODO: check the GTN paper and Xuanzhao's blog.
 
-
+== Tensor networks for data compression
 Let us define a complex matrix $A in CC^(m times n)$, and let its singular value decomposition be
 $
 A = U S V^dagger
@@ -181,16 +281,16 @@ $
 
   content((-3.5, 0), [$=$])
 
-  tensor((-1.5, 0), "A", [$U_1$])
-  tensor((1.5, 0), "B", [$U_2$])
-  tensor((0, -1.5), "C", [$U_3$])
-  tensor((0, 1.5), "D", [$U_4$])
+  tensor((-1.0, 0), "A", [$U_1$])
+  tensor((1.0, 0), "B", [$U_2$])
+  tensor((0, -1.0), "C", [$U_3$])
+  tensor((0, 1.0), "D", [$U_4$])
   tensor((1, 1), "L", [$Lambda$])
   labeledge("D", (rel: (0, 1.2)), [$i$])
   labeledge("A", (rel: (-1.2, 0)), [$j$])
   labeledge("C", (rel: (0, -1.2)), [$k$])
   labeledge("B", (rel: (1.2, 0)), [$l$])
-  content((0, 0), box(inset: 3pt)[$c$], name: "c")
+  labelnode((0, 0), [$c$], name: "c")
   line("c", "D")
   line("c", "C")
   line("c", "B")
@@ -233,7 +333,7 @@ where $U_1, U_2, U_3, U_4$ are unitary matrices and $X$ is a rank-4 tensor.
 })))
 
 
-== Tensor training decomposition
+== Tensor train decomposition
 
 #align(center, text(10pt, canvas({
   import draw: *
