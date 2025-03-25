@@ -20,13 +20,13 @@
     #chapter("chap2-linalg/linalg.typ")[Matrix Computation]
     #chapter("chap2-linalg/linalg-advanced.typ")[Matrix Computation (Advanced Topics)]
     #chapter("chap2-linalg/sparse.typ")[Sparse Matrices and Graphs]
-    #chapter("chap2-linalg/tensor-network.typ")[Tensor networks]
+    //#chapter("chap2-linalg/tensor-network.typ")[Tensor networks]
     = Optimization
     #chapter("chap3-optimization/spinglass.typ")[Spin systems and MCMC]
     #chapter("chap3-optimization/linear_integer.typ")[Linear/Integer programming]
     #chapter("chap3-optimization/ad.typ")[Automatic differentiation]
     = Quantum systems
-    #chapter("chap4-quantum/quantum-simulation.typ")[Quantum simulation]
+    //#chapter("chap4-quantum/quantum-simulation.typ")[Quantum simulation]
     = Appendix
     #chapter("appendix/plotting.typ")[Plotting (CairoMakie)]
   ]
