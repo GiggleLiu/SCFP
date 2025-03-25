@@ -25,6 +25,23 @@
   }
 }
 
+#let spinconfig(m, n, cfg, dx: 1, dy: 1, x:0, y:0) = {
+  import draw: *
+  let len = 0.5
+  grid((x, y), (x + (m - 1) * dx, y + (n - 1) * dy), step: (dx, dy), stroke: (paint: gray, thickness: 0.5pt))
+  for i in range(m) {
+    for j in range(n) {
+      if cfg.at(i * n + j) {
+        line((x + i * dx, y + j * dy - len/2), (x + i * dx, y + j * dy + len/2), stroke: (paint: red, thickness: 2pt), mark: (end: "straight"))
+      } else {
+        line((x + i * dx, y + j * dy - len/2), (x + i * dx, y + j * dy + len/2), stroke: (paint: blue, thickness: 2pt), mark: (start: "straight"))
+      }
+    }
+  }
+}
+
+
+
 #let triangle(Js, hs, colors: (blue, blue, red)) = {
   import draw: *
   let s(it) = text(16pt, it)
@@ -129,7 +146,7 @@
   }
 }
 
-= Spin Systems
+= Spin Systems and Phase Transitions
 
 == What is a spin?
 
@@ -171,42 +188,23 @@ Q: What is the configuration with the lowest energy in the following spin system
 }))
 
 
-== Defining an Ising model
+== Ferromagnetic Ising model
 
-Through the package #link("https://github.com/GiggleLiu/ProblemReductions.jl")[ProblemReductions.jl], the `SpinGlass` type can be constructed from a graph and a set of couplings and fields.
+Setup:
+- $J_(i j) = -1$ (ferromagnetic)
+- $L times L$ grid (no-frustration)
 
-```julia
-julia> using ProblemReductions, Graphs
-julia> grid_graph = grid((4, 4));
-julia> spin_glass = SpinGlass(
-           grid_graph,   # graph
-           -ones(Int, ne(grid_graph)),    # J, in order of edges
-           zeros(Int, nv(grid_graph))     # h, in order of vertices
-       );
-julia> energy(spin_glass, -ones(16))  # energy of the all-down configuration
--24
-```
+#figure(canvas({
+  import draw: *
+  let s(it) = text(14pt, it)
+  spinconfig(4, 4, random_bools(0.5).slice(4, 20))
+  content((5, 1.5), s[$|S| = 2^(L^2)$])
+}))
+The solution space as $S$, and $bold(s) in S$ is the configuration of spins, e.g. $bold(s) = {-1, -1, 1, -1, 1, dots}$.
 
 == Phase transition
 
 #figure(image("images/magnets.png", width: 200pt))
-
-#let spinconfig(m, n, cfg, dx: 1, dy: 1, x:0, y:0) = {
-  import draw: *
-  let len = 0.5
-  grid((x, y), (x + (m - 1) * dx, y + (n - 1) * dy), step: (dx, dy), stroke: (paint: gray, thickness: 0.5pt))
-  for i in range(m) {
-    for j in range(n) {
-      if cfg.at(i * n + j) {
-        line((x + i * dx, y + j * dy - len/2), (x + i * dx, y + j * dy + len/2), stroke: (paint: red, thickness: 2pt), mark: (end: "straight"))
-      } else {
-        line((x + i * dx, y + j * dy - len/2), (x + i * dx, y + j * dy + len/2), stroke: (paint: blue, thickness: 2pt), mark: (start: "straight"))
-      }
-    }
-  }
-}
-
-
 #figure(canvas({
   import draw: *
   let s(it) = text(14pt, it)
@@ -223,20 +221,17 @@ julia> energy(spin_glass, -ones(16))  # energy of the all-down configuration
   content((3.5, 1.5), s[$angle.l |m| angle.r = 0$])
 })) <fig:phase-transition>
 
+== Order parameter
+*Definition (Order parameter)*: _An observable that identifies a phase._
 
-== Ferromagnetic Ising model
+Order parameter for the magnetization
+$ |m| = lr(|sum_(i=1)^(L^2) s_i\/L^2|). $ <eq:magnetization>
+The statistical average
+$
+angle.l |m| angle.r = sum_(bold(s) in S) |m(bold(s))| p(bold(s))
+$ <eq:magnetization-average>
+At the inifinite size limit ($L arrow.r infinity$), if the statistical average $angle.l |m| angle.r$ is non-zero, the system is in the magnetized phase. If $angle.l |m| angle.r$ is zero, the system is in the disordered phase.
 
-Setup:
-- $J_(i j) = -1$ (ferromagnetic)
-- $L times L$ grid (no-frustration)
-
-#figure(canvas({
-  import draw: *
-  let s(it) = text(14pt, it)
-  spinconfig(4, 4, random_bools(0.5).slice(4, 20))
-  content((5, 1.5), s[$|S| = 2^(L^2)$])
-}))
-The solution space as $S$, and $bold(s) in S$ is the configuration of spins, e.g. $bold(s) = {-1, -1, 1, -1, 1, dots}$. The number of configurations is $|S| = 2^(L^2)$.
 
 == Probabilistic description
 System can be described by a probability distribution, called the Boltzmann distribution:
@@ -248,16 +243,24 @@ where $beta = 1 \/ k_B T$ is the inverse temperature, $Z$ is the partition funct
 - _Remark_: Configurations with lower energy have higher probability to be observed.
 - _Remark_: The sensitivity of the probability distribution to the energy is determined by the inverse temperature $beta$. At zero temperature, $beta$ is infinite, and only the ground state can be observed.
 
-== Order parameter
-*Definition (Order parameter)*: _An observable that identifies a phase._
+== Defining an Ising model
 
-Order parameter for the magnetization
-$ |m| = lr(|sum_(i=1)^(L^2) s_i\/L^2|). $ <eq:magnetization>
-The statistical average
-$
-angle.l |m| angle.r = sum_(bold(s) in S) |m(bold(s))| p(bold(s))
-$ <eq:magnetization-average>
-At the inifinite size limit ($L arrow.r infinity$), if the statistical average $angle.l |m| angle.r$ is non-zero, the system is in the magnetized phase. If $angle.l |m| angle.r$ is zero, the system is in the disordered phase.
+Through the package #link("https://github.com/GiggleLiu/ProblemReductions.jl")[ProblemReductions.jl], the `SpinGlass` type can be constructed from a graph and a set of couplings and fields.
+
+#box(text(16pt)[```julia
+julia> using ProblemReductions, Graphs
+
+julia> grid_graph = grid((4, 4));
+julia> spin_glass = SpinGlass(
+           grid_graph,   # graph
+           -ones(Int, ne(grid_graph)),    # J, in order of edges
+           zeros(Int, nv(grid_graph))     # h, in order of vertices
+       );
+
+julia> energy(spin_glass, ones(16))  # NOTE: 0 -> +1, 1 -> -1 in the package
+-24
+```
+])
 
 == Nature favors ground states
 For the ferromagnetic Ising model, the ground state is two fold degenerate, they are the all-up and all-down configurations. At zero temperature, the system is frozen in one of the ground states, i.e. $angle.l |m| angle.r = 1$.
