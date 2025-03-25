@@ -641,9 +641,24 @@ function spectral_gap(P)
     eigenvalues = eigvals(P, sortby=x -> real(x))
     return 1.0 - real(eigenvalues[end-1])
 end
+
+# initilaize a 6 site Ising model on a cycle
+graph = Graphs.cycle_graph(6)
+model = SpinGlass(graph, -ones(ne(graph)), zeros(nv(graph)))
+for T in [0.5, 1.0, 2.0, 4.0, 10.0]
+    gap = spectral_gap(transition_matrix(model, 1/T))
+    println("T: $T, Spectral gap: $gap")
+end    
+# output:
+# T: 0.5, Spectral gap: 0.0001676924058030549
+# T: 1.0, Spectral gap: 0.009043491536947279
+# T: 2.0, Spectral gap: 0.062025555293211854
+# T: 4.0, Spectral gap: 0.14992147959036217
+# T: 10.0, Spectral gap: 0.24477825057138192
 ```
 
-TODO: code for this plot.
+We plot the output above in the following figure, where we can see a clear trend of exponential decay of the spectral gap with the inverse temperature.
+
 #figure(image("images/spectralgap.svg", width: 300pt),
 caption: [Spectral gap v.s. $1\/T$ of the Ising model ($J = -1$) on a circle of length $N=6$.],
 )
