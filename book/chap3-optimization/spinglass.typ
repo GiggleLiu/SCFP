@@ -1,5 +1,5 @@
 #import "../book.typ": book-page, cross-link
-#import "@preview/cetz:0.3.4": canvas, draw, tree, vector, decorations
+#import "@preview/cetz:0.2.2": canvas, draw, tree, vector, decorations
 #import "@preview/ctheorems:1.1.3": *
 #import "@preview/algorithmic:0.1.0"
 #import algorithmic: algorithm
