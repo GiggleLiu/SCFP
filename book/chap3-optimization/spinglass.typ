@@ -102,13 +102,13 @@ _Jin-Guo Liu_])
 
 == Ising model
 
-An Ising model is defined by a graph $G = (V, E)$ and a set of spins $s_i in {-1, 1}$ for each vertex $i in V$. The energy of the system is given by
-
+An Ising model is defined by a graph $G = (V, E)$ and a set of spins $s_i in {-1, +1}$ for each vertex $i in V$, where $-1$ and $+1$ represent spin-down and spin-up, respectively. The energy of the system is given by
 $
-H = sum_((i,j) in E) J_(i j) s_i s_j + sum_(i in V) h_i s_i
+H(bold(s)) = sum_((i,j) in E) J_(i j) s_i s_j + sum_(i in V) h_i s_i,
 $ <eq:spin-glass-hamiltonian>
+where $J_(i j)$ is the interaction strength between spins $i$ and $j$, and $h_i$ is the external field at vertex $i$. $bold(s)$ is the configuration of spins, e.g. $bold(s) = {-1, -1, 1, -1, 1, dots}$. The solution space of an Ising model is the set of all possible configurations of spins, which is exponentially large: $|S| = 2^(|V|)$.
 
-We are interested in Ising models for multiple reasons, one is from the physics perspective. We want to understand the phenomemon of phase transition, i.e. how magnetization emerges from the disorder. Another reason is from the optimization perspective, finding the ground state (the configuration with the lowest energy) of an Ising model is in general hard, which is known as the spin glass problem. It is in complexity class NP-complete. Solving the spin glass problem in time polynomial to the graph size would break the complexity hierarchy, which is unlikely to happen.
+Ising models is the simplest model for us to understand the phenomemon of phase transition, i.e. how magnetization emerges from the disorder. It is also an interesting model to study the computational complexity theory. Finding its ground state (the configuration with the lowest energy) is in general hard, which is known as the spin glass problem. It is in complexity class NP-complete@Moore2011. To construct an Ising model in Julia, we can use the `SpinGlass` function in the #link("https://github.com/GiggleLiu/ProblemReductions.jl")[`ProblemReductions`] package:
 
 ```julia
 julia> using ProblemReductions, Graphs
@@ -127,8 +127,9 @@ julia> energy(spin_glass, -ones(16))  # energy of the all-down configuration
 
 == Phase transition
 
-In this section, we consider the ferromagnetic Ising model, where $J_(i j) = -1$. For simplicity, we limit our discussion to the $L times L$ grid.
-We denote the solution space as $S$, and $bold(s) in S$ is the configuration of spins, e.g. $bold(s) = {-1, -1, 1, -1, 1, dots}$. The number of configurations is $|S| = 2^(L^2)$, which is exponentially large.
+In this section, we consider the ferromagnetic Ising model ($J_(i j) = -1$) on the $L times L$ grid.
+We choose a two dimensional grid because 1D Ising model does not exhibit a phase transition. In 2D, the ferromagnetic Ising model undergoes a phase transition at a critical temperature $T_c$.
+Above $T_c$, the system is in the disordered phase, where the spins are randomly oriented. Below $T_c$, the system is in the magnetized phase, where the spins are aligned in the same direction.
 
 #let spinconfig(m, n, cfg, dx: 1, dy: 1, x:0, y:0) = {
   import draw: *
@@ -145,46 +146,13 @@ We denote the solution space as $S$, and $bold(s) in S$ is the configuration of 
   }
 }
 
-#figure(canvas({
-  import draw: *
-  let s(it) = text(14pt, it)
-  spinconfig(4, 4, random_bools(0.5).slice(4, 20))
-  content((5, 1.5), s[$|S| = 2^(L^2)$])
-}))
+// #figure(canvas({
+//   import draw: *
+//   let s(it) = text(14pt, it)
+//   spinconfig(4, 4, random_bools(0.5).slice(4, 20))
+//   content((5, 1.5), s[$|S| = 2^(L^2)$])
+// }))
 
-When we talk about the phase transition, we are interested in how does the macroscopic properties of the system change as the temperature $T$ changes, like how ice becomes water, magnets lose their magnetization, etc.
-Computation is a valid strategy to study the phase transition. Before we move on, we need to consider the following question:
-- How to describe the system?
-- How to characterize the phase transition?
-
-At finite temperature, the system can be described by a probability distribution, called the Boltzmann distribution:
-$
-p(bold(s)) = (e^(-beta H(bold(s))))/Z,
-$
-where $beta = 1 \/ k_B T$ is the inverse temperature, $Z$ is the partition function $Z = sum_bold(s) e^(-beta H(bold(s)))$ that normalizes the probability distribution.
-Configurations with lower energy have higher probability to be observed. The sensitivity of the probability distribution to the energy is determined by the inverse temperature $beta$. At zero temperature, $beta$ is infinite, and only the ground state can be observed.
-
-With the tensor network based method@Roa2024, we can generate spin configurations from the Boltzmann distribution. Due to the limitations of the tensor network method, we can only generate samples for system size smaller than $30 times 30$.
-```julia
-graph = grid((10, 10))
-problem = SpinGlass(graph, -ones(Int, ne(graph)), zeros(Int, nv(graph)))
-pmodel = TensorNetworkModel(problem, β)
-samples = sample(pmodel, 1000)
-energy_distribution = energy.(Ref(problem), samples)
-```
-
-#figure(image("images/ising-energy-distribution.svg", width: 80%),
-caption: [The binned energy distribution of spin configurations generated unbiasly from the ferromagnetic Ising model ($J_(i j) = -1, L = 10$) at different inverse temperatures $beta$. The method to generate the samples is the tensor network based method detailed in @Roa2024]
-)
-
-We characterize the macroscopic properties of the system by the statistical average of some functions over the configuration space. Among these functions, the *order parameter* can be used to characterize the phase transition.
-As shown in @fig:phase-transition, the order parameter for the magnetization can be defined as
-$ |m| = lr(|sum_(i=1)^(L^2) s_i\/L^2|). $ <eq:magnetization>
-The statistical average of $|m|$ over the configuration space is
-$
-angle.l |m| angle.r = sum_(bold(s) in S) |m(bold(s))| p(bold(s))
-$ <eq:magnetization-average>
-At the inifinite size limit ($L arrow.r infinity$), if the statistical average $angle.l |m| angle.r$ is non-zero, the system is in the magnetized phase. If $angle.l |m| angle.r$ is zero, the system is in the disordered phase.
 #figure(canvas({
   import draw: *
   let s(it) = text(14pt, it)
@@ -201,10 +169,43 @@ At the inifinite size limit ($L arrow.r infinity$), if the statistical average $
   content((3.5, 1.5), s[$angle.l |m| angle.r = 0$])
 })) <fig:phase-transition>
 
-For the ferromagnetic Ising model, the ground state is two fold degenerate, they are the all-up and all-down configurations. At zero temperature, the system is frozen in one of the ground states, i.e. $angle.l |m| angle.r = 1$.
+Computation is a valid strategy to study the phase transition.
+At finite temperature, the system can be described by a probability distribution, called the Boltzmann distribution:
+$
+p_beta (bold(s)) = (e^(-beta H(bold(s))))/Z,
+$
+where $beta = 1 \/ k_B T$ is the inverse temperature, $Z$ is the partition function $Z = sum_bold(s) e^(-beta H(bold(s)))$ that normalizes the probability distribution.
+Configurations with lower energy have higher probability to be observed. The sensitivity of the probability distribution to the energy is determined by the inverse temperature $beta$. At zero temperature, $beta$ is infinite, and only the ground state can be observed. However, directly storing this probability distribution is infeasible in a computer program, since it requires exponentially large memory.
+The tensor network based method@Roa2024 allows us to peek the spin configurations from the Boltzmann distribution:
+```julia
+using TensorInference
 
-To find all degenerate ground states, we can solve the spin glass problem with the `ConfigsMin` solver in #link("https://github.com/QuEraComputing/GenericTensorNetworks.jl")[GenericTensorNetworks.jl].
+graph = grid((10, 10))
+problem = SpinGlass(graph, -ones(Int, ne(graph)), zeros(Int, nv(graph)))
 
+beta = 1.0
+pmodel = TensorNetworkModel(problem, β)
+samples = sample(pmodel, 1000)
+energy_distribution = energy.(Ref(problem), samples)
+```
+The computation is done by #link("https://github.com/TensorBFS/TensorInference.jl/")[TensorInference.jl]@Roa2024.
+We first construct a tensor network model at given inverse temperature $beta$ from a ferromagnetic Ising model on a $10 times 10$ grid, and then sample the model to get the spin configurations.
+We evaluate the energy of the samples to get the energy distribution, and plot the distribution in @fig:ising-energy-distribution.
+
+#figure(image("images/ising-energy-distribution.svg", width: 80%),
+caption: [The binned energy distribution of spin configurations generated unbiasly from the ferromagnetic Ising model ($J_(i j) = -1, L = 10$) at different inverse temperatures $beta$. The method to generate the samples is the tensor network based method detailed in @Roa2024]
+) <fig:ising-energy-distribution>
+
+To characterize a phase transition, physicists prefers to define an *order parameter*, which is a quantity that is non-zero in the ordered phase and zero in the disordered phase.
+For the ferromagnetic Ising model, the order parameter is the magnetization, which is defined as
+$ |m| = lr(|sum_(i=1)^(L^2) s_i\/L^2|). $ <eq:magnetization>
+We are interested in the statistical average of $|m|$ over the configuration space at different temperatures,
+$
+angle.l |m| angle.r_beta = sum_(bold(s) in S) |m(bold(s))| p_beta (bold(s)).
+$ <eq:magnetization-average>
+Since the ground state of the ferromagnetic Ising model is two fold degenerate, all-up and all-down, at zero temperature, the system is frozen in one of the ground states, i.e. $angle.l |m| angle.r_infinity = 1$.
+
+We can use #link("https://github.com/QuEraComputing/GenericTensorNetworks.jl")[GenericTensorNetworks.jl]@Liu2023 to analyse the solution space properties, such as the ground state degeneracy and the connectivity of the solution space.
 ```julia
 julia> using GenericTensorNetworks
 
@@ -217,19 +218,19 @@ julia> solve(problem, ConfigsMin())[]  # solve the spin glass ground state
 julia> solutionspace = solve(problem, ConfigsMin(9))[];  # States with energy E0 ~ E0+8
 julia> show_landscape((x, y)->hamming_distance(x, y) <= 1, solutionspace; layer_distance=-30, optimal_distance=20, filename="grid66.svg");
 ```
-The returned value is a data structure that contains the lowest energy and the associated configurations.
+The returned `solutionspace` object contains the lowest energy and the associated configurations.
 We can see the ground states are two fold degenerate, they are the all-up and all-down configurations.
-
+The `show_landscape` function visualizes the energy landscape (@fig:ising-energy-landscape), and the configurations are connected if they differ by flipping a single spin.
 #figure(image("images/grid66.svg", width: 80%),
 caption: [The energy landscape of low energy states of the ferromagnetic Ising model on a 6x6 grid. The two degenerate ground states are the all-up and all-down configurations. Configurations are connected if they differ by flipping a single spin.]
-)
+) <fig:ising-energy-landscape>
 
-== Integrate a function with importance sampling
+== Integrate a function with Monte Carlo method
 
-How to calculate @eq:magnetization-average?
-Summing over all the configurations is infeasible for large system. Instead, we can sample a portion of the configuration space and estimate the statistical average of the quantity we are interested in.
-To show why is it possible, we first note that the @eq:magnetization-average can be viewed as an integral, with the integrand $|m(bold(s))| p(bold(s))$ and the integration domain $S$. An integral can be estimated by the statistical average of the integrand over a set of sampled points.
-For illustrative purpose, we consider integrating a positive function $f(x)$ defined on a unit square.
+Tensor network based methods have its limitation on the size of the system. For system sizes larger than $30 times 30$, the tensor network based method is infeasible.
+Instead, we resort to the Monte Carlo method to sample a portion of the configuration space and estimate the statistical average of the quantity we are interested in.
+
+Monte Carlo method can be viewed as a efficient way to estimate the integral of a function over a domain. We consider integrating a positive function $f(x)$ defined on a unit square.
 $
 integral f(x) d x
 $
@@ -279,7 +280,7 @@ It is characterized by the transition probability $P(bold(s)'|bold(s))$, the pro
   import draw: *
   let s(it) = text(12pt, it)
   let boxed(it) = box(it, stroke: black, inset: 0.5em)
-  let dx = 3
+  let dx = 2.8
   for i in range(5) {
     content((i * dx, 0), boxed(s[$bold(s)_#i$]), name: "s" + str(i))
   }
@@ -394,16 +395,18 @@ NP problems are decision problems, features the property that given a solution, 
   }
 }
 
-#figure(canvas(length: 1.3cm, {
+#figure(canvas(length: 1.2cm, {
   import draw: *
   let s(it) = text(0.8em, it)
   bob((0, 0), rescale: 1, flip: false, label: s[$n^100$], words: text(1em)[Both of us are difficult to solve.])
   alice((8, 0), rescale: 1, flip: true, label: s[$1.001^n$], words: text(1em)[Sorry, we are not in the same category.])
-})) <fig:np-complete>
+}),
+caption: [There is a huge barrier between problems can and cannot be solved in time polynomial in the problem size.]
+) <fig:np-complete>
 
 
-== From logic circuit to spin glass
-We start by showing the following statement is true: _If you can drive a Spin glass system to the ground state, you can prove any theorem._ Note that theorem proving is not different from other problems in NP. First it is a decision problem, second, with a proof, it is easy to verify whether the solution is correct in polynomial time. A spin glass system can encode a target problem by tuning its couplings $J_(i j)$ and biases $h_i$ in the Hamiltonian @eq:spin-glass-hamiltonian.
+== Spin glass is NP-complete
+We start by showing the following statement is true: _If you can drive a Spin glass system to the ground state, you can prove any theorem._ Note that theorem proving is not different from other problems in NP. First it is a decision problem, second, with a proof, it is easy to verify whether the solution is correct in polynomial time. A spin glass system can encode a target problem by tuning its couplings $J_(i j)$ and biases $h_i$ in the Hamiltonian.
 After driving the spin glass system to the ground state, we can read out the proof from the spin configuration.
 
 #figure(canvas(length: 1.3cm, {
@@ -422,7 +425,7 @@ After driving the spin glass system to the ground state, we can read out the pro
   content((rel: (1.0, 0), to: "line3.mid"), s[Extraction])
 }))
 
-The ground state of a spin glass can encode the truth table of any logic circuit. In @tbl:logic-circuit-to-spin-glass, we show the spin glass gadget for well-known logic gates $not$, $and$ and $or$. These logic gates can be used to construct any logic circuit.
+In the following, we show how to construct a spin glass system that can encode any logic circuit. The ground state of a spin glass can encode the truth table of any logic circuit. In @tbl:logic-circuit-to-spin-glass, we show the spin glass gadget for well-known logic gates $not$, $and$ and $or$. These logic gates can be used to construct any logic circuit.
 
 #figure(table(columns: 4, table.header([Gate], [Gadget], [Ground states], [Lowest energy]),
 [Logical not: $not$], [
@@ -493,8 +496,10 @@ solution = extract_solution(mapres, ground_state) # output: [1, 0, 1, 1, 1]
 ProblemReductions.read_solution(source_problem, solution) # output: (5, 3)
 ```
 
-In this example, the resulting spin glass has $63$ spins, which is beyond the capability of brute force search.
-Here we resort to the generic tensor network solver to find the ground state.
+In this example, we map a integer factoring problem (solving which efficiently indicates a breakdown of RSA cryptography) to a spin glass, the resulting spin glass has $63$ spins.
+Then we resort to the generic tensor network solver to find the ground state.
+The solution can be read out from the spin configuration with the help of intermediate information provided by the mapping procedure.
+Again, the tensor network based method can not handle large systems.
 In the following, we will introduce a physics-inspired algorithm, the simulated annealing, to find the ground state of a spin glass.
 
 == Simulated Annealing

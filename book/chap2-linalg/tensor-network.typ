@@ -21,7 +21,7 @@
 #let labeledge(from, to, label) = {
   import draw: *
   line(from, to, name:"line")
-  content("line.mid", label, align: center, fill:white, frame:"rect", padding:0.12, stroke: none)
+  content("line.mid", label, align: center, fill:silver, frame:"rect", padding:0.07, stroke: none)
 }
 
 #let infobox(title, body, stroke: blue) = {
@@ -37,7 +37,125 @@
 }
 
 = Tensor Networks
-(Work in progress)
+== Definition
+
+_Tensor network_ is a diagrammatic representation of tensor _contractions_.
+In this representation, a tensor is represented as a node, and an index is represented as a hyperedge (a hyperedge can connect to any number of nodes). For example, vectors, matrices and higher order tensors can be represented as
+
+#align(center, text(10pt, canvas({
+  import draw: *
+  tensor((-7, 1), "V", [$V$])
+  labeledge("V", (rel: (0, 1.5)), [$i$])
+  content((rel: (0, -1), to: "V"), [Vector $V_i$])
+  tensor((-3, 1), "M", [$M$])
+  labeledge("M", (rel: (-1.5, 0)), [$i$])
+  labeledge("M", (rel: (1.5, 0)), [$j$])
+  content((rel: (0, -1), to: "M"), [Matrix $M_(i j)$])
+  tensor((1, 1), "A", [$A$])
+  labeledge("A", (rel: (1.5, 0)), [$i$])
+  labeledge("A", (rel: (0, 1.5)), [$j$])
+  labeledge("A", (rel: (-1.5, 0)), [$k$])
+  content((rel: (0, -1), to: "A"), [Rank-3 tensor $A_(i j k)$])
+})))
+
+Tensor contraction is a generalized matrix multiplication, which is defined as the summation of the element products from multiple tensors.
+
+In the same diagram, the tensors associated with the same variable are connected by the same hyperedge. If a variable appears in the output tensor, the hyperedge is left _open_. For example, the diagrammatic representation of the matrix multiplication is given as follows:
+
+#align(center, text(10pt, canvas({
+  import draw: *
+  tensor((-2, 1), "A", [$A$])
+  tensor((0, 1), "B", [$B$])
+  labeledge("A", (rel: (-1.5, 0)), [$i$])
+  labeledge("A", (rel: (1.5, 0)), [$j$])
+  labeledge("B", (rel: (1.5, 0)), [$k$])
+  content((-1, -0.5), [$ C_(i k) := sum_j A_(i j) B_(j k) $])
+})))
+
+#definition([_(Tensor Network)_ A tensor network@Liu2022@Roa2024 is a mathematical framework for defining multilinear maps, which can be represented by a triple $cal(N) = (Lambda, cal(T), V_0)$, where:
+- $Lambda$ is the set of variables present in the network $cal(N)$.
+- $cal(T) = { T_(V_k) }_(k=1)^K$ is the set of input tensors, where each tensor $T_(V_k)$ is associated with the labels $V_k$.
+- $V_0$ specifies the labels of the output tensor.
+])
+Specifically, each tensor $T_(V_k) in cal(T)$ is labeled by a set of variables $V_k subset.eq Lambda$, where the cardinality $|V_k|$ equals the rank of $T_(V_k)$. The multilinear map, or the *contraction*, applied to this triple is defined as
+$
+T_(V_0) = "contract"(Lambda, cal(T), V_0) ouset(=, "def") sum_(m in cal(D)_(Lambda without V_0)) product_(T_V in cal(T)) T_(V|M=m),
+$
+where $M = Lambda without V_0$. $T_(V|M=m)$ denotes a slicing of the tensor $T_V$ with the variables $M$ fixed to the values $m$. The summation runs over all possible configurations of the variables in $M$.
+
+For instance, matrix multiplication can be described as the contraction of a tensor network given by
+$
+(A B)_(i k) = "contract"({i,j,k}, {A_(i j), B_(j k)}, {i, k}),
+$
+where the input matrices $A$ and $B$ are indexed by the variable sets ${i, j}, {j, k}$, respectively, which are subsets of $Lambda = {i, j, k}$. As a remark of notation, when an set is used as subscripts, we omit the comma and the braces. The output tensor is indexed by variables ${i, k}$ and the summation runs over variables $Lambda without {i, k} = {j}$. The contraction corresponds to
+$
+(A B)_(i k) = sum_j A_(i j) B_(j k),
+$
+which is consistent with the matrix multiplication.
+
+== The tree decomposition
+#figure(canvas({
+  import draw: *
+  let locations = ((0, 0), (1, 0), (0, -1), (0, -2), (1, -2), (2, 0), (2, -1), (2, -2))
+  let colors = (color.hsv(30deg, 90%, 70%), color.hsv(120deg, 90%, 70%), color.hsv(210deg, 90%, 70%), color.hsv(240deg, 90%, 70%), color.hsv(330deg, 90%, 70%), color.hsv(120deg, 90%, 70%), color.hsv(210deg, 90%, 70%), color.hsv(240deg, 90%, 70%))
+  let texts = ("A", "B", "C", "D", "E", "F", "G", "H")
+  for (loc, color, t) in locations.zip(colors, texts) {
+    circle(loc, radius: 0.3, name: t)
+    content(loc, text(14pt, color)[#t])
+  }
+  for (a, b) in (("A", "B"), ("A", "C"), ("B", "C"), ("C", "D"), ("C", "E"), ("D", "E"), ("E", "G"), ("G", "H"), ("E", "H"), ("F", "G"), ("F", "B"), ("B", "G")) {
+    line(a, b)
+  }
+  set-origin((5, 0))
+  for (loc, bag) in (((0, 0), "B1"), ((0, -2), "B2"), ((1, -1), "B3"), ((3, -1), "B4"), ((4, 0), "B5"), ((4, -2), "B6")) {
+    circle(loc, radius: 0.5, name: bag)
+  }
+  let topleft = (-0.2, 0.2)
+  let topright = (0.2, 0.2)
+  let bottom = (0, -0.3)
+  let top = (0, 0.3)
+  let bottomleft = (-0.2, -0.2)
+  let bottomright = (0.2, -0.2)
+  let right = (0.3, 0)
+  let left = (-0.3, 0)
+  content((rel:topright, to: "B1"), text(10pt, colors.at(1))[B], name: "b1")
+  content((rel:topleft, to: "B1"), text(10pt, colors.at(0))[A], name: "a1")
+  content((rel:bottom, to: "B1"), text(10pt, colors.at(2))[C], name: "c1")
+
+  content((rel:top, to: "B2"), text(10pt, colors.at(2))[C], name: "c2")
+  content((rel:bottomleft, to: "B2"), text(10pt, colors.at(3))[D], name: "d1")
+  content((rel:right, to: "B2"), text(10pt, colors.at(4))[E], name: "e1")
+
+  content((rel:topright, to: "B3"), text(10pt, colors.at(1))[B], name: "b2")
+  content((rel:left, to: "B3"), text(10pt, colors.at(2))[C], name: "c3")
+  content((rel:bottomright, to: "B3"), text(10pt, colors.at(4))[E], name: "e2")
+
+  content((rel:topleft, to: "B4"), text(10pt, colors.at(1))[B], name: "b3")
+  content((rel:bottomleft, to: "B4"), text(10pt, colors.at(4))[E], name: "e3")
+  content((rel:right, to: "B4"), text(10pt, colors.at(6))[G], name: "g1")
+
+  content((rel:left, to: "B5"), text(10pt, colors.at(1))[B], name: "b4")
+  content((rel:topright, to: "B5"), text(10pt, colors.at(5))[F], name: "f1")
+  content((rel:bottom, to: "B5"), text(10pt, colors.at(6))[G], name: "g2")
+
+  content((rel:left, to: "B6"), text(10pt, colors.at(4))[E], name: "e4")
+  content((rel:top, to: "B6"), text(10pt, colors.at(6))[G], name: "g3")
+  content((rel:bottomright, to: "B6"), text(10pt, colors.at(7))[H], name: "h1")
+
+  line("b1", "b2", stroke: colors.at(1))
+  line("b2", "b3", stroke: colors.at(1))
+  line("b3", "b4", stroke: colors.at(1))
+  line("c1", "c3", stroke: colors.at(2))
+  line("c2", "c3", stroke: colors.at(2))
+  line("e1", "e2", stroke: colors.at(4))
+  line("e2", "e3", stroke: colors.at(4))
+  line("e3", "e4", stroke: colors.at(4))
+  line("g1", "g2", stroke: colors.at(6))
+  line("g1", "g3", stroke: colors.at(6))
+}),
+caption: [A tree decomposition of a tensor network. Removing vertices with long path length will reduce the contraction complexity the most efficiently.]
+)
+
 
 
 Let us define a complex matrix $A in CC^(m times n)$, and let its singular value decomposition be
@@ -140,123 +258,6 @@ where $U_1, U_2, U_3, U_4$ are unitary matrices and $X$ is a rank-4 tensor.
   labeledge("B", "C", [$b$])
   labeledge("C", "D", [$c$])
 })))
-
-= Tensor networks
-
-Tensor network is a diagrammatic representation of tensor _contractions_. Tensor contraction is a generalization of the multiplication of matrices, which is defined as the summation of the product of the corresponding elements of the two tensors.
-In this representation, a tensor is represented as a node, and an index is represented as a hyperedge (a hyperedge connects a single variable to any number of nodes). For example, vectors, matrices and higher order tensors can be represented as
-
-#align(center, text(10pt, canvas({
-  import draw: *
-  tensor((-7, 1), "V", [$V$])
-  labeledge("V", (rel: (0, 1.5)), [$i$])
-  content((rel: (0, -1), to: "V"), [Vector $V_i$])
-  tensor((-3, 1), "M", [$M$])
-  labeledge("M", (rel: (-1.5, 0)), [$i$])
-  labeledge("M", (rel: (1.5, 0)), [$j$])
-  content((rel: (0, -1), to: "M"), [Matrix $M_(i j)$])
-  tensor((1, 1), "A", [$A$])
-  labeledge("A", (rel: (1.5, 0)), [$i$])
-  labeledge("A", (rel: (0, 1.5)), [$j$])
-  labeledge("A", (rel: (-1.5, 0)), [$k$])
-  content((rel: (0, -1), to: "A"), [Tensor $A_(i j k)$])
-})))
-
-In the same diagram, the tensors associated with the same variable are connected by the same hyperedge. If a variable appears in the output tensor, the hyperedge is left _open_. For example, the diagrammatic representation of the matrix multiplication is given as follows:
-
-#align(center, text(10pt, canvas({
-  import draw: *
-  tensor((-2, 1), "A", [$A$])
-  tensor((0, 1), "B", [$B$])
-  labeledge("A", (rel: (-1.5, 0)), [$i$])
-  labeledge("A", (rel: (1.5, 0)), [$j$])
-  labeledge("B", (rel: (1.5, 0)), [$k$])
-  content((-1, -0.5), [$ C_(i k) := sum_j A_(i j) B_(j k) $])
-})))
-
-#definition([_(Tensor Network)_ A tensor network@Liu2022@Roa2024 is a mathematical framework for defining multilinear maps, which can be represented by a triple $cal(N) = (Lambda, cal(T), V_0)$, where:
-- $Lambda$ is the set of variables present in the network $cal(N)$.
-- $cal(T) = { T_(V_k) }_(k=1)^K$ is the set of input tensors, where each tensor $T_(V_k)$ is associated with the labels $V_k$.
-- $V_0$ specifies the labels of the output tensor.
-])
-Specifically, each tensor $T_(V_k) in cal(T)$ is labeled by a set of variables $V_k subset.eq Lambda$, where the cardinality $|V_k|$ equals the rank of $T_(V_k)$. The multilinear map, or the *contraction*, applied to this triple is defined as
-$
-T_(V_0) = "contract"(Lambda, cal(T), V_0) ouset(=, "def") sum_(m in cal(D)_(Lambda without V_0)) product_(T_V in cal(T)) T_(V|M=m),
-$
-where $M = Lambda without V_0$. $T_(V|M=m)$ denotes a slicing of the tensor $T_V$ with the variables $M$ fixed to the values $m$. The summation runs over all possible configurations of the variables in $M$.
-
-For instance, matrix multiplication can be described as the contraction of a tensor network given by
-$
-(A B)_(i k) = "contract"({i,j,k}, {A_(i j), B_(j k)}, {i, k}),
-$
-where the input matrices $A$ and $B$ are indexed by the variable sets ${i, j}, {j, k}$, respectively, which are subsets of $Lambda = {i, j, k}$. As a remark of notation, when an set is used as subscripts, we omit the comma and the braces. The output tensor is indexed by variables ${i, k}$ and the summation runs over variables $Lambda without {i, k} = {j}$. The contraction corresponds to
-$
-(A B)_(i k) = sum_j A_(i j) B_(j k),
-$
-which is consistent with the matrix multiplication.
-
-== The tree decomposition
-#figure(canvas({
-  import draw: *
-  let locations = ((0, 0), (1, 0), (0, -1), (0, -2), (1, -2), (2, 0), (2, -1), (2, -2))
-  let colors = (color.hsv(30deg, 90%, 70%), color.hsv(120deg, 90%, 70%), color.hsv(210deg, 90%, 70%), color.hsv(240deg, 90%, 70%), color.hsv(330deg, 90%, 70%), color.hsv(120deg, 90%, 70%), color.hsv(210deg, 90%, 70%), color.hsv(240deg, 90%, 70%))
-  let texts = ("A", "B", "C", "D", "E", "F", "G", "H")
-  for (loc, color, t) in locations.zip(colors, texts) {
-    circle(loc, radius: 0.3, name: t)
-    content(loc, text(14pt, color)[#t])
-  }
-  for (a, b) in (("A", "B"), ("A", "C"), ("B", "C"), ("C", "D"), ("C", "E"), ("D", "E"), ("E", "G"), ("G", "H"), ("E", "H"), ("F", "G"), ("F", "B"), ("B", "G")) {
-    line(a, b)
-  }
-  set-origin((5, 0))
-  for (loc, bag) in (((0, 0), "B1"), ((0, -2), "B2"), ((1, -1), "B3"), ((3, -1), "B4"), ((4, 0), "B5"), ((4, -2), "B6")) {
-    circle(loc, radius: 0.5, name: bag)
-  }
-  let topleft = (-0.2, 0.2)
-  let topright = (0.2, 0.2)
-  let bottom = (0, -0.3)
-  let top = (0, 0.3)
-  let bottomleft = (-0.2, -0.2)
-  let bottomright = (0.2, -0.2)
-  let right = (0.3, 0)
-  let left = (-0.3, 0)
-  content((rel:topright, to: "B1"), text(10pt, colors.at(1))[B], name: "b1")
-  content((rel:topleft, to: "B1"), text(10pt, colors.at(0))[A], name: "a1")
-  content((rel:bottom, to: "B1"), text(10pt, colors.at(2))[C], name: "c1")
-
-  content((rel:top, to: "B2"), text(10pt, colors.at(2))[C], name: "c2")
-  content((rel:bottomleft, to: "B2"), text(10pt, colors.at(3))[D], name: "d1")
-  content((rel:right, to: "B2"), text(10pt, colors.at(4))[E], name: "e1")
-
-  content((rel:topright, to: "B3"), text(10pt, colors.at(1))[B], name: "b2")
-  content((rel:left, to: "B3"), text(10pt, colors.at(2))[C], name: "c3")
-  content((rel:bottomright, to: "B3"), text(10pt, colors.at(4))[E], name: "e2")
-
-  content((rel:topleft, to: "B4"), text(10pt, colors.at(1))[B], name: "b3")
-  content((rel:bottomleft, to: "B4"), text(10pt, colors.at(4))[E], name: "e3")
-  content((rel:right, to: "B4"), text(10pt, colors.at(6))[G], name: "g1")
-
-  content((rel:left, to: "B5"), text(10pt, colors.at(1))[B], name: "b4")
-  content((rel:topright, to: "B5"), text(10pt, colors.at(5))[F], name: "f1")
-  content((rel:bottom, to: "B5"), text(10pt, colors.at(6))[G], name: "g2")
-
-  content((rel:left, to: "B6"), text(10pt, colors.at(4))[E], name: "e4")
-  content((rel:top, to: "B6"), text(10pt, colors.at(6))[G], name: "g3")
-  content((rel:bottomright, to: "B6"), text(10pt, colors.at(7))[H], name: "h1")
-
-  line("b1", "b2", stroke: colors.at(1))
-  line("b2", "b3", stroke: colors.at(1))
-  line("b3", "b4", stroke: colors.at(1))
-  line("c1", "c3", stroke: colors.at(2))
-  line("c2", "c3", stroke: colors.at(2))
-  line("e1", "e2", stroke: colors.at(4))
-  line("e2", "e3", stroke: colors.at(4))
-  line("e3", "e4", stroke: colors.at(4))
-  line("g1", "g2", stroke: colors.at(6))
-  line("g1", "g3", stroke: colors.at(6))
-}),
-caption: [A tree decomposition of a tensor network. Removing vertices with long path length will reduce the contraction complexity the most efficiently.]
-)
 
 == Tensor network differentiation
 The differentiation rules for tensor network contraction can be represented as the contraction of the tensor network:
