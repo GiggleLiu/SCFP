@@ -1,4 +1,4 @@
-#import "@preview/cetz:0.2.2": canvas, draw, tree
+#import "@preview/cetz:0.2.2": canvas, draw, tree, plot
 #import "@preview/ctheorems:1.1.3": *
 #import "@preview/ouset:0.2.0": ouset
 #import "../book.typ": book-page
@@ -136,7 +136,7 @@ When there are only one or two tensors involved, the strings are easy to read. H
 #align(center, text(10pt, canvas({
   import draw: *
   let s(it) = text(10pt, it)
-  content((-5, 0.5), s[`ai,aj,ak->ijk` = ])
+  content((-5, 0.5), s[`ai,aj,ak->ijk` = \ (Star)])
   tensor((-1.0, 0), "A", s[$A$])
   tensor((1.0, 0), "B", s[$A$])
   tensor((0, 1.0), "C", s[$B$])
@@ -149,7 +149,7 @@ When there are only one or two tensors involved, the strings are easy to read. H
   line("a", "C")
 
   set-origin((-2, -2))
-  content((-3.5, 0.5), [`ia,ajb,bkc,cld,dm->ijklm` = ])
+  content((-3.5, 0.5), [`ia,ajb,bkc,cld,dm->ijklm` = \ (Tensor train)])
 
   tensor((0, 0), "A", [$A$])
   tensor((1.5, 0), "B", [$T_1$])
@@ -255,7 +255,85 @@ The optimal contraction order is closely related to the _tree decomposition_@Mar
 caption: [(a) A tensor network. (b) A line graph for the tensor network. Labels are connected if and only if they appear in the same tensor. (c) A tree decomposition (T. D.) of the line graph.]
 )
 
+#align(center, canvas(length:1.0cm, {
+  import draw: *
+  set-origin((4, 0.35))
+  let DY = 1.2
+  let DX1 = 2.5
+  let DX2 = 1.2
+  let DX3 = 0.7
+  let root = (0, DY)
+  let left = (-DX1, 0)
+  let right = (DX1, 0)
+  let left_left = (-DX1 - DX2, -DY)
+  let left_right = (-DX1 + DX2, -DY)
+  let right_left = (DX1 - DX2, -DY)
+  let right_right = (DX1 + DX2, -DY)
+
+  let left_left_left = (-DX1 - DX2 - DX3, -2*DY)
+  let left_left_right = (-DX1 - DX2 + DX3, -2*DY)
+  let left_right_left = (-DX1 + DX2 - DX3, -2*DY)
+  let left_right_right = (-DX1 + DX2 + DX3, -2*DY)
+  let right_left_left = (DX1 - DX2 - DX3, -2*DY)
+  let right_left_right = (DX1 - DX2 + DX3, -2*DY)
+  let right_right_left = (DX1 + DX2 - DX3, -2*DY)
+  let right_right_right = (DX1 + DX2 + DX3, -2*DY)
+
+  for (a, b) in ((root, left), (root, right), (left, left_left), (left, left_right), (right, right_left), (right, right_right), (left_left, left_left_left), (left_left, left_left_right), (left_right, left_right_left), (left_right, left_right_right), (right_left, right_left_left), (right_left, right_left_right), (right_right, right_right_left), (right_right, right_right_right)){
+    line(a, b)
+  }
+
+  for (l, t) in ((left_left_left, [$W_1$]), (left_left_right, [$B_(12)$]), (left_right_left, [$W_2$]), (left_right_right, [$B_(23)$]), (right_left_left, [$W_3$]), (right_left_right, [$B_(34)$]), (right_right_left, [$W_4$]), (right_right_right, [$B_(41)$])){
+    circle(l, radius:0.3, fill: black)
+    content(l, text(8pt, white)[#t])
+  }
+
+}))
+
 TODO: check the GTN paper and Xuanzhao's blog.
+
+TODO: rotate the tree, twist the tree.
+
+#figure(canvas(length:0.9cm, {
+  import plot
+  import draw: *
+  plot.plot(size: (10,7),
+    x-tick-step: none,
+    y-tick-step: none,
+    x-label: "Time to optimize contraction order",
+    y-label: "Time to contract",
+    y-max: 10,
+    y-min: -2,
+    x-max: 10,
+    x-min: 0,
+    name: "plot",
+    {
+      let greedy = (1, 9)
+      let localsearch = (4, 3)
+      let bipartition = (3, 4)
+      let tw = (9, 1)
+      let tamaki = (5, 2)
+      plot.add(
+        (greedy, bipartition, localsearch, tamaki, tw), style: (stroke: black), mark:"o",
+      )
+      plot.add-anchor("greedy", greedy)
+      plot.add-anchor("localsearch", localsearch)
+      plot.add-anchor("bipartition", bipartition)
+      plot.add-anchor("tw", tw)
+      plot.add-anchor("tamaki", tamaki)
+    }
+  )
+  content((rel: (2.5, 0), to: "plot.greedy"), [Greedy (`GreedyMethod`)])
+  content((rel: (2.5, 0), to: "plot.localsearch"), [Local Search (`TreeSA`)])
+  content((rel: (3.0, 0), to: "plot.bipartition"), [Min cut (`KaHyParBipartite`)])
+  content((rel: (0, -0.8), to: "plot.tw"), box(fill: white, inset: 1pt)[Exact tree-width (`ExactTreewidth`)\ State compression])
+  content((rel: (-1.0, -0.4), to: "plot.tamaki"), box(fill: white, [Positive instance driven], inset: 1pt))
+}),
+caption: [The time to optimize the contraction order for different methods. The x-axis is the time to optimize the contraction order, and the y-axis is the time to contract the tensor network.]
+)
+
+== Slicing tensor networks
+
 
 == Tensor networks for data compression
 Let us define a complex matrix $A in CC^(m times n)$, and let its singular value decomposition be
@@ -333,7 +411,13 @@ where $U_1, U_2, U_3, U_4$ are unitary matrices and $X$ is a rank-4 tensor.
 })))
 
 
-== Tensor train decomposition
+= Tensor train decomposition
+
+== Canonicalization
+
+== Tensor train for efficient sampling
+
+== Representing a function with a tensor train
 
 #align(center, text(10pt, canvas({
   import draw: *

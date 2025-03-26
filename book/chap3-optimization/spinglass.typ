@@ -1,5 +1,5 @@
 #import "../book.typ": book-page, cross-link
-#import "@preview/cetz:0.2.2": canvas, draw, tree, vector, decorations
+#import "@preview/cetz:0.2.2": canvas, draw, tree, vector, decorations, plot
 #import "@preview/ctheorems:1.1.3": *
 #import "@preview/algorithmic:0.1.0"
 #import algorithmic: algorithm
@@ -225,6 +225,109 @@ The `show_landscape` function visualizes the energy landscape (@fig:ising-energy
 caption: [The energy landscape of low energy states of the ferromagnetic Ising model on a 6x6 grid. The two degenerate ground states are the all-up and all-down configurations. Configurations are connected if they differ by flipping a single spin.]
 ) <fig:ising-energy-landscape>
 
+#figure(
+  canvas(length: 0.7cm, {
+  import plot: *
+  import draw: *
+  let f1 = x=>calc.pow(x, 2)
+  plot(
+    size: (8,6),
+    x-tick-step: none,
+    y-tick-step: none,
+    x-label: [$bold(n)$],
+    y-label: [$H(bold(n))$],
+    name: "plot",
+    {
+      add(domain: (-2, 2), f1)
+      add-fill-between(domain:(-2, 2), x=>calc.min(f1(x), 0.6), x=>0.6)
+      add-anchor("p1", (-0.7,f1(-0.7)))
+      add-anchor("p2", (0.7,f1(0.7)))
+      add-anchor("p3", (-0.5,f1(-0.5)))
+      add-anchor("p4", (0.5,f1(0.5)))
+    }
+  )
+  line("plot.p1", "plot.p2", mark: (end: "straight"), stroke:black, name:"line1")
+  content(("line1.start", 1.5, "line1.end"),
+    anchor: "south",
+    padding: 10pt,
+    [Without OGP]
+  )
+  line("plot.p3", "plot.p4", mark: (end: "straight"), stroke:black)
+  content((-1, 1), [$-gamma alpha(G)$])
+
+  set-origin((0, -4))
+  let f3 = x=>{
+    if (x < 0.4) {
+      return 1-calc.pow(x - 0.2, 2) * 25
+    } else {
+      return 0
+    }
+  }
+  plot(
+    size: (8,3),
+    x-tick-step: none,
+    y-tick-step: none,
+    x-label: "Hamming distance",
+    y-label: "Count",
+    name: "plot",
+    {
+      add(domain: (0, 1), f3, fill:true)
+    }
+  )
+
+  set-origin((10, 4))
+  let f2 = x=>calc.cos(3*x+4*calc.pow(x, 2))
+  plot(
+    size: (8,6),
+    x-tick-step: none,
+    y-tick-step: none,
+    x-label: [$bold(n)$],
+    y-label: [$H(bold(n))$],
+    name: "plot",
+    {
+      add(domain: (-2, 2), f2, samples: 200)
+      add-fill-between(domain:(-2, 2), x=>calc.min(f2(x), -0.7), x=>-0.7, samples: 200)
+      add-anchor("p3", (-1.4,f2(-1.4)))
+      add-anchor("p4", (0.5,f2(-1.4)))
+      add-anchor("p1", (-1.4,f2(-1.25)))
+      add-anchor("p2", (-1.25,f2(-1.25)))
+    }
+  )
+  line("plot.p1", "plot.p2", mark: (end: "straight"), stroke:black, name:"line1")
+  content(("line1.start", 1.8, "line1.end"),
+    anchor: "south",
+    padding: 10pt,
+    [With OGP]
+  )
+  line("plot.p3", "plot.p4", mark: (end: "straight"), stroke:black)
+
+  set-origin((0, -4))
+  let f3 = x=>{
+    if (x < 0.2) {
+      return 1-calc.pow(x - 0.1, 2) * 100
+    } else if (x > 0.5 and x < 0.7) {
+      return 1-calc.pow(x - 0.6, 2) * 100
+    } else {
+      return 0
+    }
+  }
+  plot(
+    size: (8,3),
+    x-tick-step: none,
+    y-tick-step: none,
+    x-label: "Hamming distance",
+    y-label: "Count",
+    name: "plot",
+    {
+      add(domain: (0, 1), f3, fill:true)
+    }
+  )
+  content((2.5, 1.6), text(12pt)[intra valley])
+  content((6.5, 1.6), text(12pt)[inter valley])
+
+  }),
+  caption: [The different types of energy landscape revealed by the overlap gap property (OGP)@Gamarnik2021. The left panel show the energy landscape without OGP, the right panel show the energy landscape with OGP.]
+)
 == Integrate a function with Monte Carlo method
 
 Tensor network based methods have its limitation on the size of the system. For system sizes larger than $30 times 30$, the tensor network based method is infeasible.
