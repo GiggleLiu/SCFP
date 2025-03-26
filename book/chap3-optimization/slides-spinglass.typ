@@ -275,6 +275,13 @@ julia> solve(spin_glass, ConfigsMin())[]  # solve the spin glass ground state
 ```
 ]))
 
+== The low energy landscape
+
+#figure(image("images/grid66.svg", width: 70%))
+
+- The two degenerate ground states are the all-up and all-down configurations.
+- Configurations are connected if they differ by flipping a single spin.
+
 == Estimate the observables at finite temperature
 
 $
@@ -286,7 +293,11 @@ $
 1. Draw sample from $p(bold(s))$,
 2. Take the statistical average of $O(bold(s))$.
 
-== Importance sampling
+=== Issues
+- The solution space is exponentially large
+- We do not know the partition function $Z$
+
+== Monte Carlo method
 Consider integrating a *positive* function $f(x)$ defined on a unit square.
 $
 integral f(x) d x
@@ -404,19 +415,31 @@ The transition rule of a 2-spin model:
 
 The bias should be compensated by the acceptance probability.
 
-== Physical quantities that we are interested in
-
-- Energy/spin: $angle.l H^k/n angle.r = integral H(s)^k/n p(s) d s.$
-- Magnetization: $m^k = angle.l (sum_i |s_i|)^k \/ n angle.r = integral (sum_i |s_i|)^k \/n p(s) d s.$
-
-
 == Results: Simple update MCMC
 - $T_c approx 2.269$, below this temperature, the system is in the ferromagnetic phase.
 #grid(columns: 2, column-gutter: 50pt, figure(image("images/ising-spins-1.0.gif", width: 300pt)), figure(image("images/ising-spins-3.0.gif", width: 300pt)), align(center)[$T = 1$], align(center)[$T = 3$])
 
+== Quantities that we are interested in
+
+- Energy/spin: $angle.l H^k/n angle.r = integral H(s)^k/n p(s) d s.$
+- Magnetization: $m^k = angle.l (sum_i |s_i|)^k \/ n angle.r = integral (sum_i |s_i|)^k \/n p(s) d s.$
+
+- Autocorrelation function:
+$
+  A_Q (tau) = (angle.l Q_k Q_(k+tau) angle.r - angle.l Q_k angle.r^2)/(angle.l Q_k^2 angle.r - angle.l Q_k angle.r^2).
+$
+
+
+#figure(image("images/ising-data.png", width: 80%))
+
+
 == Results: Cluster update MCMC
 - Swendsen-Wang update: Instead of updating one spin at a time, we update a cluster of spins at a time.
 #grid(columns: 2, column-gutter: 50pt, figure(image("images/swising-spins-1.0.gif", width: 300pt)), figure(image("images/swising-spins-3.0.gif", width: 300pt)), align(center)[$T = 1$], align(center)[$T = 3$])
+
+
+==
+#figure(image("images/sw-data.png", width: 80%))
 
 == Metric of a good MCMC method
 
@@ -428,6 +451,121 @@ Because a new sample in the MCMC method is generated from the previous sample, w
 Since the correlated samples are not independent, we effectively have less samples than we expect.
 The *autocorrelation time $tau$* is the number of steps it takes for the correlation between two consecutive samples to decay to one half of the maximum correlation.
 The effective number of independent samples is $n\/tau$. A good MCMC method should have a small autocorrelation time.
+
+= Spectral gap and mixing time
+== Example: Ising model on a circle
+
+Let us consider an Ising model with $N$ spins on a circle:
+#figure(canvas({
+  import draw: *
+  let s(it) = text(12pt, it)
+  let N = 6
+  let d = 1.0
+  for i in range(N) {
+    circle((i * d, 0), radius: 0.2, name: "s" + str(i))
+    if i > 0 {
+      line("s" + str(i - 1), "s" + str(i))
+    }
+  }
+  bezier("s0.south", "s" + str(N - 1) + ".south", (0, - 1), (N * d - d, -1))
+
+  // Draw a 3D cube to represent the state space
+  let cube_center = (8, 0)
+  let size = 1.2
+  draw_cube(cube_center, size, perspective: 0.3)
+  circle("f0", radius: 0.05, fill: red, stroke: none, name: "a")
+  circle("f1", radius: 0.05, fill: blue, stroke: none, name: "b")
+  bezier("a.east", "b.east", (8, -1), mark: (end: "straight"), stroke: (dash: "dashed"))
+  // Add label
+  content((cube_center.at(0), cube_center.at(1) - size - 0.3), s[State space for $N=3$])
+}))
+
+$ H(bold(s)) = J sum_(i=1)^(N) s_i s_(i+1), quad s_1 = s_(N+1). $
+
+
+For a given state $bold(s)$, it has $N$ directions to move to the adjacent states $bold(s)', |bold(s') - bold(s)| = 1$, where the norm is the Hamming distance.
+So the transition probability from $bold(s)$ to $bold(s')$ is
+$ P(bold(s)'|bold(s)) = 1/N min(1, e^(-beta (H(bold(s)') - H(bold(s))))). $
+
+
+== The spectral gap
+
+The transition matrix $P$ of a Markov chain has eigenvalues $1 = lambda_1 > lambda_2 >= lambda_3 >= ... >= lambda_n >= -1$. The spectral gap is defined as:
+
+$
+Delta = 1 - lambda_2
+$
+
+This gap determines how quickly the Markov chain converges to its stationary distribution (the Boltzmann distribution in our case). A larger spectral gap means faster convergence:
+
+- If $Delta$ is large, the system thermalizes quickly
+- If $Delta$ is small, the system thermalizes slowly
+- If $Delta approx 0$, the system may never thermalize in practical time
+
+For a Metropolis-Hastings algorithm sampling from the Boltzmann distribution, the mixing time (time to reach equilibrium) scales as $t_"mix" ~ 1/Delta$.
+
+
+== Live coding: Computing the transition matrix
+
+Spectral gap v.s. $1\/T$ of the Ising model ($J = -1$) on a circle of length $N=6$.
+#figure(image("images/spectralgap.svg", width: 400pt))
+
+== Estimate the gap: Cheeger's inequality
+
+Cheeger's inequality is a fundamental result in spectral graph theory that relates the *conductance* of a graph to its *spectral gap*.
+
+For a graph $G = (V, E)$ with vertex set $V$ and edge set $E$, the *Cheeger constant* (or conductance) $h(G)$ is defined as the probability of escaping from the most inescapable set:
+
+$
+h(G) = min_(S subset V, 0 < |S| <= |V|/2) frac(|E(S, V backslash S)|, min("vol"(S), "vol"(V backslash S)))
+$
+
+where:
+- $E(S, V backslash S)$ is the set of edges between $S$ and its complement
+- $"vol"(S) = sum_(v in S) d_v$ is the volume of set $S$, with $d_v$ being the degree of vertex $v$
+
+== Cheeger's inequality - Intuition
+
+
+#figure(image("images/grid66.svg", width: 70%))
+
+== Cheeger's inequality
+Cheeger's inequality relates the Cheeger constant $h(G)$ to the second smallest eigenvalue $lambda_2$ of the normalized Laplacian matrix $L = I - D^(-1/2) A D^(-1/2)$, where $D$ is the degree matrix and $A$ is the adjacency matrix:
+
+$
+frac(lambda_2, 2) <= h(G) <= sqrt(2 lambda_2)
+$
+
+This inequality provides both lower and upper bounds on the Cheeger constant in terms of the spectral gap.
+
+== Relation to mixing time
+
+For a reversible Markov chain, the mixing time $t_"mix"$ is related to the spectral gap $(1 - lambda_2)$ of the transition matrix:
+
+$
+t_"mix" approx frac(1, 1 - lambda_2)
+$
+
+By Cheeger's inequality, we know that:
+
+$
+1 - lambda_2 >= frac(h(G)^2, 2)
+arrow.double.r
+t_"mix" <= frac(2, h(G)^2)
+$
+
+This means that a graph with a large Cheeger constant (good expansion properties) will have a small mixing time, allowing MCMC methods to converge quickly to the stationary distribution.
+
+
+= Hands-on
+== Hands-on: Implement and improve a simple Lanczos algorithm
+1. Run the demo code in folder: `IsingModel/examples` with:
+   ```bash
+   $ make init-IsingModel
+   $ make example-IsingModel
+   ```
+2. Read the code in `IsingModel/src/ising2d.jl`, change the ferromagenetic coupling to antiferromagnetic, and run the simulation again.
+3. Read the code in `IsingModel/src/ising2d.jl`, change the ferromagenetic coupling to random coupling, and run the simulation again.
 
 = Spin glass
 
@@ -750,95 +888,6 @@ Common cooling schedules include:
 
 - _Remark_: Theoretically, with a logarithmic cooling schedule that decreases slowly enough, simulated annealing will converge to the global optimum with probability 1.
 
-== The spectral gap
-
-The transition matrix $P$ of a Markov chain has eigenvalues $1 = lambda_1 > lambda_2 >= lambda_3 >= ... >= lambda_n >= -1$. The spectral gap is defined as:
-
-$
-Delta = 1 - lambda_2
-$
-
-This gap determines how quickly the Markov chain converges to its stationary distribution (the Boltzmann distribution in our case). A larger spectral gap means faster convergence:
-
-- If $Delta$ is large, the system thermalizes quickly
-- If $Delta$ is small, the system thermalizes slowly
-- If $Delta approx 0$, the system may never thermalize in practical time
-
-For a Metropolis-Hastings algorithm sampling from the Boltzmann distribution, the mixing time (time to reach equilibrium) scales as $t_"mix" ~ 1/Delta$.
-
-== Discussion: Can SA successfully cool down a spin glass?
-
-== Example: Spectral gap and mixing time
-
-Let us consider an Ising model with $N$ spins on a circle:
-#figure(canvas({
-  import draw: *
-  let s(it) = text(12pt, it)
-  let N = 6
-  let d = 1.0
-  for i in range(N) {
-    circle((i * d, 0), radius: 0.2, name: "s" + str(i))
-    if i > 0 {
-      line("s" + str(i - 1), "s" + str(i))
-    }
-  }
-  bezier("s0.south", "s" + str(N - 1) + ".south", (0, - 1), (N * d - d, -1))
-
-  // Draw a 3D cube to represent the state space
-  let cube_center = (8, 0)
-  let size = 1.2
-  draw_cube(cube_center, size, perspective: 0.3)
-  circle("f0", radius: 0.05, fill: red, stroke: none, name: "a")
-  circle("f1", radius: 0.05, fill: blue, stroke: none, name: "b")
-  bezier("a.east", "b.east", (8, -1), mark: (end: "straight"), stroke: (dash: "dashed"))
-  // Add label
-  content((cube_center.at(0), cube_center.at(1) - size - 0.3), s[State space for $N=3$])
-}))
-
-$ H(bold(s)) = J sum_(i=1)^(N) s_i s_(i+1), quad s_1 = s_(N+1). $
-
-
-For a given state $bold(s)$, it has $N$ directions to move to the adjacent states $bold(s)', |bold(s') - bold(s)| = 1$, where the norm is the Hamming distance.
-So the transition probability from $bold(s)$ to $bold(s')$ is
-$ P(bold(s)'|bold(s)) = 1/N min(1, e^(-beta (H(bold(s)') - H(bold(s))))). $
-
-
-== Julia code for computing the transition matrix
-#box(text(16pt)[```julia
-function transition_matrix(model::SpinGlass, beta::T) where T
-    N = num_variables(model)
-    P = zeros(T, 2^N, 2^N)  # P[i, j] = probability of transitioning from j to i
-    readbit(cfg, i::Int) = (cfg >> (i - 1)) & 1  # read the i-th bit of cfg
-    int2cfg(cfg::Int) = [readbit(cfg, i) for i in 1:N]
-    for j in 1:2^N
-        for i in 1:2^N
-            if count_ones((i-1) ⊻ (j-1)) == 1  # Hamming distance is 1
-                P[i, j] = 1/N * min(one(T), exp(-beta * (energy(model, int2cfg(i-1)) - energy(model, int2cfg(j-1)))))
-            end
-        end
-        P[j, j] = 1 - sum(P[:, j])  # rejected transitions
-    end
-    return P
-end
-```
-])
-
-== Julia code for computing the spectral gap
-The spectral gap can be computed as follows:
-#box(text(16pt)[```julia
-using LinearAlgebra: eigvals
-
-function spectral_gap(P)
-    eigenvalues = eigvals(P, sortby=x -> real(x))
-    return 1.0 - real(eigenvalues[end-1])
-end
-```
-])
-
-== Spectral gap v.s. inverse temperature
-Spectral gap v.s. $1\/T$ of the Ising model ($J = -1$) on a circle of length $N=6$.
-#figure(image("images/spectralgap.svg", width: 400pt))
-
 == The landscape matters
 #figure(canvas({
   import draw: *
@@ -860,55 +909,6 @@ Spectral gap v.s. $1\/T$ of the Ising model ($J = -1$) on a circle of length $N=
   content((dx/2 + 1.5, 1.1), s[$arrow.double.r$])
 }))
 
-== Estimate the gap: Cheeger's inequality
-
-Cheeger's inequality is a fundamental result in spectral graph theory that relates the *conductance* of a graph to its *spectral gap*.
-
-For a graph $G = (V, E)$ with vertex set $V$ and edge set $E$, the *Cheeger constant* (or conductance) $h(G)$ is defined as the probability of escaping from the most inescapable set:
-
-$
-h(G) = min_(S subset V, 0 < |S| <= |V|/2) frac(|E(S, V backslash S)|, min("vol"(S), "vol"(V backslash S)))
-$
-
-where:
-- $E(S, V backslash S)$ is the set of edges between $S$ and its complement
-- $"vol"(S) = sum_(v in S) d_v$ is the volume of set $S$, with $d_v$ being the degree of vertex $v$
-
-== Cheeger's inequality
-
-Cheeger's inequality relates the Cheeger constant $h(G)$ to the second smallest eigenvalue $lambda_2$ of the normalized Laplacian matrix $L = I - D^(-1/2) A D^(-1/2)$, where $D$ is the degree matrix and $A$ is the adjacency matrix:
-
-$
-frac(lambda_2, 2) <= h(G) <= sqrt(2 lambda_2)
-$
-
-This inequality provides both lower and upper bounds on the Cheeger constant in terms of the spectral gap.
-
-== Relation to mixing time
-
-For a reversible Markov chain, the mixing time $t_"mix"$ is related to the spectral gap $(1 - lambda_2)$ of the transition matrix:
-
-$
-t_"mix" approx frac(1, 1 - lambda_2)
-$
-
-By Cheeger's inequality, we know that:
-
-$
-1 - lambda_2 >= frac(h(G)^2, 2)
-arrow.double.r
-t_"mix" <= frac(2, h(G)^2)
-$
-
-This means that a graph with a large Cheeger constant (good expansion properties) will have a small mixing time, allowing MCMC methods to converge quickly to the stationary distribution.
-
-= Hands-on
-== Hands-on: Implement and improve a simple Lanczos algorithm
-1. Run the demo code in folder: `SpinGlass/examples` with:
-   ```bash
-   $ make init-SpinGlass
-   $ make example-SpinGlass
-   ```
 
 ==
 #bibliography("refs.bib")
