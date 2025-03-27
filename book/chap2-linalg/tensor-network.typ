@@ -103,6 +103,27 @@ In the diagramatic representation, the tensors associated with the same variable
 ]
 
 In the program, a tensor network is also known as `einsum`, which uses a string to denote the tensor network topology. For example, the matrix multiplication can be represented as `ij,jk->ik`. The intputs and outputs are separated by `->`, and the indices of different input tensors are separated by commas.
+
+#exampleblock([
+*Example: Proving trace permutation rule*
+
+Let $A, B$ and $C$ be three square matrices with the same size. Represent the trace operation $tr(A B C)$ with a tensor network diagram.
+
+*Solution*
+#figure(canvas({
+  import draw: *
+  tensor((1, 1), "A", "A")
+  tensor((3, 1), "B", "B")
+  tensor((5, 1), "C", "C")
+  labeledge("A", "B", "j")
+  labeledge("B", "C", "k")
+  bezier("A.north", "C.north", (1, 3), (5, 3), name:"line")
+  content("line.mid", "i", align: center, fill:white, frame:"rect", padding:0.1, stroke: none)
+}))
+
+The corresponding einsum notation is `ij,jk,ki->`. From this diagram, we can see the trace permutation rule: $tr(A B C) = tr(C A B) = tr(B C A)$.
+])
+
 In the following example, we use the `OMEinsum` package to compute some simple tensor network contractions:
 
 ```julia
@@ -171,6 +192,13 @@ When there are only one or two tensors involved, the strings are easy to read. H
 
 
 == Tensor network contraction orders
+
+Tensor networks can be contracted pairwise, with a given contraction order.
+The contraction complexity is determined by the chosen contraction order represented by a binary tree.
+Finding the optimal contraction order, i.e., the contraction order with minimal complexity, is NP-complete@Markov2008.
+Luckily, a close-to-optimal contraction order is usually acceptable, which could be found in a reasonable time with a heuristic optimizer.
+In the past decade, methods have been developed to optimize the contraction orders, including both exact ones and heuristic ones.
+Among these methods, multiple heuristic methods can handle networks with more than $10^4$ tensors efficiently@Gray2021,@Roa2024.
 
 The optimal contraction order is closely related to the _tree decomposition_@Markov2008 of the line graph of the tensor network.
 
@@ -259,9 +287,8 @@ caption: [(a) A tensor network. (b) A line graph for the tensor network. Labels 
   import draw: *
   set-origin((4, 0.35))
   let DY = 1.2
-  let DX1 = 2.5
-  let DX2 = 1.2
-  let DX3 = 0.7
+  let DX1 = 1.5
+  let DX2 = 0.9
   let root = (0, DY)
   let left = (-DX1, 0)
   let right = (DX1, 0)
@@ -270,23 +297,15 @@ caption: [(a) A tensor network. (b) A line graph for the tensor network. Labels 
   let right_left = (DX1 - DX2, -DY)
   let right_right = (DX1 + DX2, -DY)
 
-  let left_left_left = (-DX1 - DX2 - DX3, -2*DY)
-  let left_left_right = (-DX1 - DX2 + DX3, -2*DY)
-  let left_right_left = (-DX1 + DX2 - DX3, -2*DY)
-  let left_right_right = (-DX1 + DX2 + DX3, -2*DY)
-  let right_left_left = (DX1 - DX2 - DX3, -2*DY)
-  let right_left_right = (DX1 - DX2 + DX3, -2*DY)
-  let right_right_left = (DX1 + DX2 - DX3, -2*DY)
-  let right_right_right = (DX1 + DX2 + DX3, -2*DY)
+  for (l, t, lb) in ((root, [$$], "C"), (left, [$I_12$], "A"), (right, [$I_34$], "B"), (left_left, [$T_1$], "T_1"), (left_right, [$T_2$], "T_2"), (right_left, [$T_3$], "T_3"), (right_right, [$T_4$], "T_4")){
+    tensor(l, lb, t)
+    content(l, text(8pt, white)[#t])
+  }
 
-  for (a, b) in ((root, left), (root, right), (left, left_left), (left, left_right), (right, right_left), (right, right_right), (left_left, left_left_left), (left_left, left_left_right), (left_right, left_right_left), (left_right, left_right_right), (right_left, right_left_left), (right_left, right_left_right), (right_right, right_right_left), (right_right, right_right_right)){
+  for (a, b) in (("C", "A"), ("C", "B"), ("A", "T_1"), ("A", "T_2"), ("B", "T_3"), ("B", "T_4")){
     line(a, b)
   }
 
-  for (l, t) in ((left_left_left, [$W_1$]), (left_left_right, [$B_(12)$]), (left_right_left, [$W_2$]), (left_right_right, [$B_(23)$]), (right_left_left, [$W_3$]), (right_left_right, [$B_(34)$]), (right_right_left, [$W_4$]), (right_right_right, [$B_(41)$])){
-    circle(l, radius:0.3, fill: black)
-    content(l, text(8pt, white)[#t])
-  }
 
 }))
 
@@ -331,6 +350,128 @@ TODO: rotate the tree, twist the tree.
 }),
 caption: [The time to optimize the contraction order for different methods. The x-axis is the time to optimize the contraction order, and the y-axis is the time to contract the tensor network.]
 )
+
+#let triangle(loc, radius) = {
+  import draw: *
+  let (x, y) = loc
+  let r1 = (x, y)
+  let r2 = (x + 0.5 * radius, y - radius)
+  let r3 = (x - 0.5 * radius, y - radius)
+  line(r1, r2, r3, close:true, fill:white, stroke:black)
+}
+#figure(canvas(length:0.6cm, {
+  import draw: *
+  // petersen graph
+  let rootroot = (0, 0)
+  let root = (-0.8, -1)
+  let left = (-1.6, -2)
+  let right = (0.0, -2)
+  let leftleft = (-2.4, -3)
+  let leftright = (-0.8, -3)
+  let rightleft = (-0.8, -3)
+  let rightright = (0.8, -3)
+  
+  line(rootroot, root, stroke: (dash: "dashed"))
+
+  for (a, b) in ((root, left), (root, right), (left, leftleft), (left, leftright)){
+    line(a, b)
+  }
+
+  for (l, i) in ((right, "C"), (leftleft, "A"), (leftright, "B")){
+    // manual-square(l, radius:0.4)
+    triangle(l, 1.0)
+    content((l.at(0), l.at(1) - 0.6), i)
+  }
+
+  content((1.2, 0), text(16pt)[$arrow$])
+  content((1.2, -3), text(16pt)[$arrow$])
+
+  set-origin((5, 2))
+  line(rootroot, root, stroke: (dash: "dashed"))
+  for (a, b) in ((root, left), (root, right), (left, leftleft), (left, leftright)){
+    line(a, b)
+  }
+  for (l, i) in ((leftleft, "C"), (leftright, "B"), (right, "A")){
+    // manual-square(l, radius:0.4)
+    triangle(l, 1.0)
+    content((l.at(0), l.at(1) - 0.6), i)
+  }
+
+  set-origin((0, -4))
+  line(rootroot, root, stroke: (dash: "dashed"))
+  for (a, b) in ((root, left), (root, right), (left, leftleft), (left, leftright)){
+    line(a, b)
+  }
+  for (l, i) in ((leftleft, "A"), (leftright, "C"), (right, "B")){
+    // manual-square(l, radius:0.4)
+    triangle(l, 1.0)
+    content((l.at(0), l.at(1) - 0.6), i)
+  }
+
+  set-origin((4, 2))
+  line(rootroot, root, stroke: (dash: "dashed"))
+  for (a, b) in ((root, left), (root, right), (right, rightright), (right, rightleft)){
+    line(a, b)
+  }
+  for (l, i) in ((left, "A"), (rightleft, "B"), (rightright, "C")){
+    // manual-square(l, radius:0.4)
+    triangle(l, 1.0)
+    content((l.at(0), l.at(1) - 0.6), i)
+  }
+
+  content((2, 0), text(16pt)[$arrow$])
+  content((2, -3), text(16pt)[$arrow$])
+
+  set-origin((5, 2))
+  line(rootroot, root, stroke: (dash: "dashed"))
+  for (a, b) in ((root, left), (root, right), (right, rightright), (right, rightleft)){
+    line(a, b)
+  }
+  for (l, i) in ((left, "C"), (rightleft, "B"), (rightright, "A")){
+    // manual-square(l, radius:0.4)
+    triangle(l, 1.0)
+    content((l.at(0), l.at(1) - 0.6), i)
+  }
+
+  set-origin((0, -4))
+  line(rootroot, root, stroke: (dash: "dashed"))
+  for (a, b) in ((root, left), (root, right), (right, rightright), (right, rightleft)){
+    line(a, b)
+  }
+  for (l, i) in ((left, "B"), (rightleft, "A"), (rightright, "C")){
+    // manual-square(l, radius:0.4)
+    triangle(l, 1.0)
+    content((l.at(0), l.at(1) - 0.6), i)
+  }
+}),
+caption: [The four basic local transformations on the contraction tree, which preserve the result of the contraction.]
+) <fig:tree-transform>
+
+The local search method@Kalachev2021 is a heuristic method based on the idea of simulated annealing.
+The method starts from a random contraction order and then applies the following four possible transforms as shown in @fig:tree-transform, which correspond to the different ways to contract three sub-networks:
+$
+  (A * B) * C = (A * C) * B = (C * B) * A, \
+  A * (B * C) = B * (A * C) = C * (B * A),
+$
+where we slightly abuse the notation ``$*$'' to denote the tensor contraction, and $A, B, C$ are the sub-networks to be contracted.
+Due to the commutative property of the tensor contraction, such transformations do not change the result of the contraction.
+Even through these transformations are simple, all possible contraction orders can be reached from any initial contraction order.
+The local search method starts from a random contraction tree.
+In each step, the above rules are randomly applied to transform the tree and then the cost of the new tree is evaluated, which is defined as
+$
+  cal(L) = "tc" + w_s "sc" + w_("rw") "rwc",
+$
+where $w_s$ and $w_("rw")$ are the weights of the space complexity and read-write complexity compared to the time complexity, respectively.
+\rev{The optimal choice of weights depends on the specific device and tensor contraction algorithm. One can freely tune the weights to achieve a best performance for their specific problem.}
+Then the transformation is accepted with a probability given by the Metropolis criterion, which is
+$
+  p_("accept") = min(1, e^(-beta Delta cal(L))),
+$
+where $beta$ is the inverse temperature, and $Delta cal(L)$ is the difference of the cost of the new and old contraction trees.
+During the process, the temperature is gradually decreased, and the process stop when the temperature is low enough.
+Additionally, the `TreeSA` method supports the slicing technique.
+When the space complexity is too large, one can loop over a subset of indices, and then contract the intermediate results in the end.
+Such technique can reduce the space complexity, but slicing $n$ indices will increase the time complexity by $2^n$.
 
 == Slicing tensor networks
 
@@ -479,24 +620,6 @@ overline(B)_(V_b) = "contract"(Lambda, {A_(V_a), overline(C)_(V_c)}, V_b)
 $
 ])
 
-
-=== Exercise: Representing trace operation
-
-Let $A, B$ and $C$ be three square matrices with the same size. Represent the trace operation $tr(A B C)$ with a tensor network diagram.
-
-*Solution*
-#figure(canvas({
-  import draw: *
-  tensor((1, 1), "A", "A")
-  tensor((3, 1), "B", "B")
-  tensor((5, 1), "C", "C")
-  labeledge("A", "B", "j")
-  labeledge("B", "C", "k")
-  bezier("A.north", "C.north", (1, 3), (5, 3), name:"line")
-  content("line.mid", "i", align: center, fill:white, frame:"rect", padding:0.1, stroke: none)
-}))
-
-The corresponding einsum notation is `ij,jk,ki->`. From this diagram, we can see the trace permutation rule: $tr(A B C) = tr(C A B) = tr(B C A)$.
 
 == Hidden Markov model
 
