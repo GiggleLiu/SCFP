@@ -22,11 +22,13 @@
     #chapter("chap2-linalg/sparse.typ")[Sparse Matrices and Graphs]
     #chapter("chap2-linalg/tensor-network.typ")[Tensor networks]
     = Optimization
-    #chapter("chap3-optimization/spinglass.typ")[Spin systems and MCMC]
+    #chapter("chap3-optimization/simulated-annealing.typ")[Simulated annealing]
     #chapter("chap3-optimization/linear_integer.typ")[Linear/Integer programming]
     //#chapter("chap3-optimization/ad.typ")[Automatic differentiation]
-    = Quantum systems
-    //#chapter("chap4-quantum/quantum-simulation.typ")[Quantum simulation]
+    = Simulation
+    #chapter("chap4-simulation/MCMC.typ")[Monte Carlo methods]
+    //#chapter("chap4-simulation/tensor-network2.typ")[Tensor networks for statistical physics]
+    //#chapter("chap4-simulation/quantum-simulation.typ")[Quantum simulation]
     = Appendix
     #chapter("appendix/plotting.typ")[Plotting (CairoMakie)]
   ]
