@@ -446,5 +446,15 @@ Common cooling schedules include:
   content((dx/2 + 1.5, 1.1), s[$arrow.double.r$])
 }))
 
+== Spin dynamics
+
+Adiabatic simulated bifurcation (aSB) dynamics@Goto2021:
+$
+  V_("aSB") = sum_(i=1)^N (x_i^4 / 4 + (a_0 - a(t))/2 x_i^2)- c_0 sum_(i < j) J_(i j) x_i x_j\
+  H_("aSB") = a_0/2 sum_(i=1)^N p_i^2 + V_("aSB")\
+  dot(p)_i = - (partial V_("aSB"))/(partial x_i)\
+  dot(x)_i = (partial H_("aSB"))/(partial p_i)
+$
+
 == References
 #bibliography("refs.bib")
