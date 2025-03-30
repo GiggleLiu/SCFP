@@ -85,7 +85,7 @@
 #let m = (m.methods.info)(
   self: m,
   title: [Simulated Annealing],
-  subtitle: [],
+  subtitle: [Monte Carlo Method for Optimization],
   author: [Jin-Guo Liu],
   date: datetime.today(),
   institution: [HKUST(GZ) - FUNH - Advanced Materials Thrust],
@@ -101,12 +101,23 @@
 
 #outline-slide()
 
+== Challenge resolved: A PR to KrylovKit.jl
+
+#box(stroke: black, inset: 0.5em, [
+  Resolve the following issue in KrylovKit.jl: https://github.com/Jutho/KrylovKit.jl/issues/87 . If you can resolve the issue, please submit a pull request to the repository. If your PR is merged, your final grade will be $A+$.
+])
+
+Link: https://github.com/Jutho/KrylovKit.jl/pull/125
 
 
+= Spin glass and computational complexity
 
-= Spin glass
+== Cooling a system to the ground state
+#figure(image("../chap4-simulation/images/ising-energy-distribution.svg", width: 70%),
+caption: [The binned energy distribution of spin configurations generated unbiasly from the ferromagnetic Ising model ($J_(i j) = -1, L = 10$) at different inverse temperatures $beta$. The method to generate the samples is the tensor network based method detailed in @Roa2024]
+) <fig:ising-energy-distribution>
 
-== The hardness
+
 #align(center, box(stroke: black, inset: 0.5em, [
     Coupling $J_(i j)$ and bias $h_i$ freely tuned $arrow.r$ We get a spin glass!
   ])
@@ -114,7 +125,28 @@
 
 Spin glass ground state finding problem is hard, it is NP-complete (hardest problems in NP), which is believed to be impossible to solve in polynomial time.
 
-*NP problems*: Decision problems, features the property that given a solution, it is easy to verify whether the solution is correct in polynomial time.
+*NP problems*: _Decision problems_, features the property that given a solution, it is _easy to verify_ whether the solution is correct in polynomial time.
+
+== Example: Factoring a number
+
+Solving is hard (foundation of RSA encryption):
+```julia
+c = BigInt(21267647932558653302378126310941659999)
+@test a * b == c
+```
+
+Verification is easy:
+```julia
+a = BigInt(4611686018427387847)
+b = BigInt(4611686018427387817)
+@test a * b == c
+```
+
+#align(center, box(stroke: black, inset: 0.5em, [
+  Easy to verify $!=$ easy to solve (we believe)
+]))
+
+== What is an "easy" problem?
 
 #let alice(loc, rescale: 1, flip: false, label: none, words: none) = {
   import draw: *
@@ -160,6 +192,7 @@ Spin glass ground state finding problem is hard, it is NP-complete (hardest prob
   alice((15, 0), rescale: 2, flip: true, label: s[$1.001^n$], words: text(16pt)[Sorry, we are not in the same category.])
 })) <fig:np-complete>
 
+- $n$ is the size of the input (measured by the number of bits).
 
 == NP problem hierarchy
 #let pointer(start, end, angle: 45deg) = {
@@ -209,6 +242,8 @@ columns: 2, gutter: 20pt)
 
 - NP: the problem set that can be solved by a "magic coin" - a coin that gives the best outcome with probability 1, i.e. it is non-deterministic.
 
+== Circuit SAT is the hardest problem in NP
+
 == NP-complete problems can be reduced to each other
 
 - Reduction: Problem $A$ can be reduced to problem $B$ if $A$ can be "solved by" solving $B$.
@@ -223,7 +258,7 @@ columns: 2, gutter: 20pt)
       (-8, -1, "Max Cut", white),
       (-8, 3, "Coloring", white),
       (-5, 1, "k-SAT", white),
-      (0, -1, "Circuit SAT", white),
+      (0, -1, "Circuit SAT", yellow),
       (5, 3, "Vertex Matching", gray),
       (3, -3, "Independent Set on KSG", white),
       (-4, -3, "QUBO on Grid", white),
@@ -363,6 +398,7 @@ ProblemReductions.read_solution(source_problem, solution) # output: (5, 3)
 ```
 ])
 
+= Simulated annealing
 == Simulate the cooling process to find the ground state?
 - Fact 1: Spin-glass can encode any problem in NP, including the famous factoring problem: $N = p times q$.
 - Fact 2: A physical system thermalizes through the Hamiltonian dynamics
@@ -445,6 +481,288 @@ Common cooling schedules include:
   content((dx/2 + 1.5, 1.5), s[Add more "triangles"])
   content((dx/2 + 1.5, 1.1), s[$arrow.double.r$])
 }))
+
+= Spin dynamics
+
+== Summarize the dynamics
+#timecounter(2)
+In the molecular dynamics simulation, we have the following equation of motion:
+$ m (partial^2 bold(x))/(partial t^2) = bold(f)(bold(x)). $
+
+Equivalently, by denoting $bold(v) = (partial bold(x))/(partial t)$, we have the first-order differential equations:
+$
+cases(m (partial bold(v))/(partial t) &= bold(f)(bold(x)),
+(partial bold(x))/(partial t) &= bold(v))
+$
+
+It is a typical Hamiltonian dynamics, which can be solved numerically by the Verlet algorithm @Verlet1967.
+
+
+== Dynamics is determined by the energy model
+#timecounter(3)
+
+The *force* is the gradient of the energy:
+$
+bold(f)_i = -nabla_i E(bold(x)_1, bold(x)_2, dots, bold(x)_N)
+$
+where $nabla_i = (partial_(x_i), partial_(y_i), partial_(z_i))$ is the gradient operator with respect to the $i$-th particle.
+
+The classical dynamics is governed by the *energy model*:
+$
+E(bold(x)_1, bold(x)_2, dots, bold(x)_N) = sum_(i=1)^N V(bold(x)_i) + sum_(i, j) V(bold(x)_i, bold(x)_j) + sum_(i, j, k) V(bold(x)_i, bold(x)_j, bold(x)_k) + dots
+$
+where $bold(x)_i$ is the position of the $i$-th particle, $V(bold(x)_i)$ is the potential energy of the $i$-th particle, and $V(bold(x)_i, bold(x)_j, dots)$ is the potential energy of the interaction between the $i$-th, $j$-th particles, and so on.
+
+== Summarize the dynamics
+#timecounter(2)
+In the molecular dynamics simulation, we have the following equation of motion:
+$ m (partial^2 bold(x))/(partial t^2) = bold(f)(bold(x)). $
+
+Equivalently, by denoting $bold(v) = (partial bold(x))/(partial t)$, we have the first-order differential equations:
+$
+cases(m (partial bold(v))/(partial t) &= bold(f)(bold(x)),
+(partial bold(x))/(partial t) &= bold(v))
+$
+
+It is a typical Hamiltonian dynamics, which can be solved numerically by the Verlet algorithm @Verlet1967.
+
+== The Euler Algorithm
+#timecounter(2)
+
+The Euler algorithm is the simplest algorithm for solving the differential equation of motion. 
+It is given by:
+$
+(bold(x)(t+d t), bold(p)(t + d t)) = (bold(x)(t) + (bold(p)(t))/ m d t,  bold(p)(t) + bold(f)(bold(x)(t)) d t)
+$
+where $bold(p) = m bold(v)$ is the momentum of the particle.
+
+Q: Will this simple algorithm work?
+
+== Euler Method for Harmonic Oscillator
+
+- Consider a particle in a harmonic potential $V(x) = 1/2 x^2$, and kinetic energy given by $E_k (p) = 1/2 p^2$.
+- Parameters: $d t = 0.05$, $t = 20$, initial condition: $bold(x)(0) = 1$, $bold(p)(0) = 0$
+
+// Implement the Euler algorithm for a harmonic oscillator
+// Returns the position and momentum trajectories
+#let euler_oscillator(x0, p0, t, dt) = {
+  // Initialize arrays to store trajectories
+  let x_traj = (x0,)
+  let p_traj = (p0,)
+  let e_traj = (0.5 * calc.pow(x0, 2) + 0.5 * calc.pow(p0, 2),)  // Initial energy
+  
+  // Current state
+  let x = x0
+  let p = p0
+  
+  // Number of steps
+  let steps = calc.floor(t / dt)
+  
+  // Simulate the dynamics
+  for i in range(steps) {
+    // Force for harmonic oscillator: f = -x
+    let f = -x
+    
+    // Update position and momentum using Euler method
+    x = x + p * dt
+    p = p + f * dt
+    
+    // Calculate energy
+    let energy = 0.5 * calc.pow(x, 2) + 0.5 * calc.pow(p, 2)
+    
+    // Store the current state
+    x_traj.push(x)
+    p_traj.push(p)
+    e_traj.push(energy)
+  }
+  
+  // Return the trajectories
+  return (x_traj, p_traj, e_traj)
+}
+
+#let show_trajectory(x_traj, p_traj, e_traj, t_max, t_array) = {
+  import draw: *
+  // Set up the plot
+  plot.plot(
+    size: (6, 4),
+    x-label: "Time",
+    y-label: [$bold(x)$],
+    y-min: -2,
+    y-max: 2,
+    x-min: 0,
+    x-max: t_max,
+    x-tick-step: 8,
+    legend: "legend.north",
+    y-tick-step: 1,
+    
+    // Position trajectory
+    plot.add(
+      t_array.zip(x_traj),
+      label: "Position",
+    ))
+  set-origin((9, 0))
+  plot.plot(
+    size: (6, 4),
+    x-label: "Time",
+    y-label: [$E$],
+    y-min: -2,
+    y-max: 2,
+    x-min: 0,
+    x-max: t_max,
+    x-tick-step: 8,
+    legend: "legend.north",
+    y-tick-step: 1,
+    // Momentum trajectory
+    plot.add(
+      t_array.zip(e_traj),
+      label: "Energy",
+    )
+  )
+  set-origin((9, 0))
+  plot.plot(
+    size: (6, 4),
+    x-label: [$bold(x)$],
+    y-label: [$bold(p)$],
+    y-min: -2,
+    y-max: 2,
+    x-min: -2,
+    x-max: 2,
+    x-tick-step: 1,
+    legend: "legend.north",
+    y-tick-step: 1,
+    // Energy trajectory
+    plot.add(
+      x_traj.zip(p_traj),
+      label: "Phase space",
+    )
+  )
+}
+
+#figure(canvas({
+  import draw: *
+  // Set up the canvas dimensions
+  let margin = 40
+  
+  // Run simulation
+  let t_max = 20
+  let dt = 0.05
+  let (x_traj, p_traj, e_traj) = euler_oscillator(1.0, 0.0, t_max, dt)
+  
+  // Create time array for plotting
+  let t_array = range(x_traj.len()).map(i => i * dt)
+  show_trajectory(x_traj, p_traj, e_traj, t_max, t_array)
+}))
+
+== The Verlet Algorithm
+#timecounter(5)
+
+To overcome the issue, the Verlet algorithm is proposed.
+The algorithm is as follows:
+
+#algorithm({
+  import algorithmic: *
+  Function("Verlet", args: ([$bold(x)$], [$bold(v)$], [$bold(f)$], [$m$], [$d t$], [$n$]), {
+    Assign([$bold(v)$], [$bold(v) + (bold(f)(bold(x)))/m d t \/ 2$ #h(2em)#Ic([update velocity at time $d t \/ 2$])])
+    For(cond: [$i = 1 dots n$], {
+      Cmt[time step $t = i d t$]
+      Assign([$bold(x)$], [$bold(x) + bold(v) d t$ #h(2em)#Ic([update position at time $t$])])
+      Assign([$bold(v)$], [$bold(v) + (bold(f)(bold(x)))/m d t$ #h(2em)#Ic([update velocity at time $t + d t\/2$])])
+    })
+    Assign([$bold(v)$], [$bold(v) - (bold(f)(bold(x)))/m d t \/ 2$ #h(2em)#Ic([velocity at time $n d t$])])
+    Return[$bold(x)$, $bold(v)$]
+  })
+})
+
+The Verlet algorithm is a simple yet robust algorithm for solving the differential equation of motion. It is the most widely used algorithm in molecular dynamics simulation.
+
+== The Verlet Algorithm
+
+#figure(canvas({
+  import draw: *
+  let n = 2
+  let dx = 6
+  line((0, 0), (2 + (n + 0.5) * dx, 0), mark: (end: "straight"))
+  bezier((1, dx/2), (1 + (0.5) * dx, 0), (1.8, dx/2), stroke: (dash: "dashed"), mark: (end: "straight"))
+  for (i, (n1, n2)) in (([$bold(v)(t-Delta t)$], [$bold(x)(t-(Delta t)/2)$]), ([$bold(v)(t)$], [$bold(x)(t + (Delta t)/2)$])).enumerate() {
+    bezier((1 + i * dx, 0), (1 + (i+1) * dx, 0), (1 + (i+0.5) * dx, dx), mark: (end: "straight"))
+    bezier((1 + (i+0.5) * dx, 0), (1 + (i+1.5) * dx, 0), (1 + (i+1) * dx, dx), stroke: (dash: "dashed"), mark: (end: "straight"))
+    content((1 + i * dx, -0.5), text(16pt, n1))
+    content((1 + (i+0.5) * dx, -0.5), text(16pt, n2))
+  }
+  bezier((1 + n * dx, 0), (1 + (n + 0.5) * dx, dx/2), (1 + (n + 0.25) * dx, dx/2))
+  content((1 + n * dx, -0.5), text(16pt, [$bold(v)(t + Delta t)$]))
+  content((1 + (n+0.5) * dx, -0.5), text(16pt, [$bold(x)(t + 3/2 Delta t)$]))
+}))
+
+== The Verlet Algorithm on Harmonic Oscillator
+
+#let verlet_oscillator(x0, p0, t, dt) = {
+  // Initialize arrays to store trajectories
+  let x_traj = (x0,)
+  let p_traj = (p0,)
+  let e_traj = (0.5 * calc.pow(x0, 2) + 0.5 * calc.pow(p0, 2),)  // Initial energy
+  
+  // Current state
+  let x = x0
+  let p = p0
+  
+  // Number of steps
+  let steps = calc.floor(t / dt)
+  
+  // First half-step update of momentum (Verlet algorithm)
+  let f = -x  // Force for harmonic oscillator: f = -x
+  p = p + f * dt / 2
+  
+  // Simulate the dynamics using Verlet algorithm
+  for i in range(steps) {
+    // Update position
+    x = x + p * dt
+    
+    // Calculate force at new position
+    f = -x
+    
+    // Update momentum (full step)
+    p = p + f * dt
+    
+    // Calculate energy
+    let energy = 0.5 * calc.pow(x, 2) + 0.5 * calc.pow(p, 2)
+    
+    // Store the current state
+    x_traj.push(x)
+    p_traj.push(p)
+    e_traj.push(energy)
+  }
+  
+  // Final half-step adjustment to get velocity at the same time as position
+  p = p - f * dt / 2
+  // Return the trajectories
+  return (x_traj, p_traj, e_traj)
+}
+
+#figure(canvas({
+  import draw: *
+  let t_max = 20
+  let dt = 0.05
+  let (x_traj, p_traj, e_traj) = verlet_oscillator(1.0, 0.0, t_max, dt)
+  let t_array = range(x_traj.len()).map(i => i * dt)
+  show_trajectory(x_traj, p_traj, e_traj, t_max, t_array)
+}))
+
+The results are in good agreement with the theoretical values, the energy and position are not drifting away from the theoretical values.
+It is because the Verlet algorithm is *symplectic*, which conserves the energy of the system.
+
+== Lyapunov instability
+#timecounter(2)
+
+#columns(2, [The many-body nature of the system makes the trajectory of the system sensitive to the initial condition. As shown in @fig-lyapunov-instability, within this relatively short time, the two trajectories become essentially uncorrelated.
+This is known as the *Lyapunov instability*.
+
+In MD simulation, the precise trajectory is not very important, what we care about is the statistical properties of the system, e.g. the distribution of the particles.
+
+#figure(image("images/instability.png", width: 80%), caption: [Illustration of the Lyapunov instability in a simulation of a Lennard-Jones system. The figure shows the time dependence of the sum of squared distances between two trajectories that were initially very close. The total length of the run in reduced units was 5, which corresponds to 1000 time steps.]) <fig-lyapunov-instability>
+])
+
+
 
 == Spin dynamics
 

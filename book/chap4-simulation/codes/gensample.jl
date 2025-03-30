@@ -40,7 +40,7 @@ function plot_energy_histogram(energies_list, βs)
     # Add labels and title
     ax.xlabel = "Energy"
     ax.ylabel = "Frequency"
-    ax.title = "Energy Distributions of Spin Glass Samples for Different β Values"
+    ax.title = "Energy Distributions of Ferromagnetic Ising Model Samples for Different β Values"
     
     # Add legend
     axislegend(ax)
@@ -60,3 +60,4 @@ for β in βs
 end
 
 fig = plot_energy_histogram(energies_list, βs)
+save(joinpath(dirname(@__DIR__), "images", "ising-energy-distribution.svg"), fig)
