@@ -130,7 +130,7 @@ Spin glass ground state finding problem is hard, it is NP-complete (hardest prob
   line((anchor: 57%, name: "line1"), (loc.at(0) + xr, loc.at(1) - 5 * r))
   hobby((anchor: if flip { 20deg } else { 160deg }, name: "alice"), (rel: (-2 * xr, 0), to: "alice"), (rel: (-xr * 1.5, -r), to: "alice"), rescale: 0.5)
   if label != none {
-    content((loc.at(0), loc.at(1) - 2.5 * r), label)
+    content((loc.at(0), loc.at(1) - 2.8 * r), label)
   }
   if words != none {
     content((loc.at(0) + 5 * xr, loc.at(1) - 0.5 * r), box(width: rescale * 100pt, words))
@@ -496,7 +496,7 @@ Factoring problem is the cornerstone of modern cryptography, it is the problem o
 
   let gate(loc, label, size: 1, name:none) = {
     rect((loc.at(0) - size/2, loc.at(1) - size/2), (loc.at(0) + size/2, loc.at(1) + size/2), stroke: black, fill: white, name: name)
-    content(loc, text(12pt)[$label$])
+    content(loc, text(11pt)[$label$])
   }
   set-origin((-1.5, -3))
   line((4.5, 0), (-1, 0))  // q
@@ -706,12 +706,7 @@ $
 $
 where $bold(p) = m bold(v)$ is the momentum of the particle.
 
-Q: Will this simple algorithm work?
-
-== Euler Method for Harmonic Oscillator
-
-- Consider a particle in a harmonic potential $V(x) = 1/2 x^2$, and kinetic energy given by $E_k (p) = 1/2 p^2$.
-- Parameters: $d t = 0.05$, $t = 20$, initial condition: $bold(x)(0) = 1$, $bold(p)(0) = 0$
+This simple algorithm suffers from the energy drift problem, which is the energy of the system is not conserved. Consider a particle in a harmonic potential $V(x) = 1/2 x^2$, and kinetic energy given by $E_k (p) = 1/2 p^2$.
 
 // Implement the Euler algorithm for a harmonic oscillator
 // Returns the position and momentum trajectories
@@ -822,7 +817,8 @@ Q: Will this simple algorithm work?
   // Create time array for plotting
   let t_array = range(x_traj.len()).map(i => i * dt)
   show_trajectory(x_traj, p_traj, e_traj, t_max, t_array)
-}))
+}), caption: [The energy of the system is drifting away from the theoretical value. The parameters are $d t = 0.05$, $t = 20$, initial condition: $bold(x)(0) = 1$, $bold(p)(0) = 0$.]
+) <fig:euler-oscillator>
 
 == The Verlet Algorithm
 
@@ -844,8 +840,6 @@ The algorithm is as follows:
 })
 
 The Verlet algorithm is a simple yet robust algorithm for solving the differential equation of motion. It is the most widely used algorithm in molecular dynamics simulation.
-
-== The Verlet Algorithm
 
 #figure(canvas(length: 0.65cm, {
   import draw: *
