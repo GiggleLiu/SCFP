@@ -165,26 +165,21 @@ Spin glass ground state finding problem is hard, it is NP-complete (hardest prob
 caption: [There is a huge barrier between problems can and cannot be solved in time polynomial in the problem size.]
 ) <fig:np-complete>
 
-Among those polynomial time solution have not been found, the NP category is the most interesting one. They are the set of problems that can be solved by a non-deterministic Turing machine - a machine that can guess the solution in polynomial time. If the machine spits out a solution, we can verify whether the solution is correct in polynomial time. For example, when we ask whether the Hamiltonian in @eq:spin-glass-hamiltonian has a ground state with energy lower than $E_0$, the machine can guess a spin configuration and we can verify whether it is a valid solution immediately. Easy to verify does not mean easy to solve, we do not know any algorithm that can find a valid solution in polynomial time in the worst case.
+Among those polynomial time solution have not been found, the NP category is the most interesting one. They are the set of problems that can be solved by a _non-deterministic Turing machine_ - a hypothetical machine that always go to the correct branch and find the solution in polynomial time. If the machine spits out a solution, we can verify whether the solution is correct in polynomial time. For example, when we ask whether the Hamiltonian in @eq:spin-glass-hamiltonian has a ground state with energy lower than $E_0$, we can verify whether a spin configuration satisfies the condition immediately.
 #align(center, box(stroke: black, inset: 0.5em, [
   Easy to verify $!=$ easy to solve (we believe)
 ]))
+Easy to verify does not mean easy to solve, we do not know any algorithm that can find a such a spin configuration in polynomial time in the worst case.
 
 Another example is the integer factorization problem, which is the foundation of RSA encryption. Its verification is easy, given two integers $a$ and $b$, we can verify whether $a times b$ equals $c$ in polynomial time.
 ```julia
-a = BigInt(4611686018427387847)
-b = BigInt(4611686018427387817)
-@test a * b == c
-```
-
-However, its solving is hard, we do not know any algorithm that can find the two integers that multiply to $c$ in polynomial time in the worst case.
-```julia
 c = BigInt(21267647932558653302378126310941659999)
-@test a * b == c
+@test a * b == c  # find a and b
 ```
+However, its solving is hard, we do not know any algorithm that can find the two integers that multiply to $c$ in polynomial time in the worst case.
 
-We do not have a valid strategy to prove any problem in NP can not be solved in time polynomial in the problem size. Hence whether $"P" = "NP"$ is still an open question. Instead, we create a complexity hierarchy to study computational hardness.
-If a problem $A$ can be solved by solving problem $B$, and the overhead is polynomial in the problem size, we say $A$ is reducible to $B$ and write $A <=_p B$.
+Even worse, although we know some problems are hard, we do not have a valid strategy to prove any problem in NP can not be solved in time polynomial in the problem size. Let us denote those solvable problems in polynomial time as $P$. Whether $"P" = "NP"$ is still an open question. To characterize the hardness of problems, researchers create a complexity hierarchy based on the reduction relation.
+If a problem $A$ can be solved by solving problem $B$, and the overhead is polynomial in the problem size, we say $A$ is reducible to $B$ and write $ A <=_p B, quad quad "A can be solved by solving B". $
 Although we do not know a problem is absolutely hard, we know some problems are not easier than others.
 With this in mind, we can create a hierarchy of computational hardness in @fig:np-complete-hierarchy.
 
@@ -228,7 +223,7 @@ With this in mind, we can create a hierarchy of computational hardness in @fig:n
 caption: [Complexity classes of computational problems. *NP* is the set of decision problems that can be solved by a "magic coin" - a coin that gives the best outcome with probability 1, i.e. it is non-deterministic. *P* is the set of problems that can be solved in polynomial time. *NP-complete* is the set of hardest problems in NP. *BQP* is the set of problems that can be solved in polynomial time on a quantum computer.]
 ) <fig:np-complete-hierarchy>
 
-NP-complete problems can be reduced to each other in polynomial time, hence solving any NP-complete problem in polynomial time would solve all NP problems in polynomial time.
+NP-complete problems are the hardest problems in NP, all problems in NP, including themselves, can be reduced to any NP-complete problem in polynomial time, hence solving any NP-complete problem in polynomial time would solve all NP problems in polynomial time.
 In @fig:np-complete-reduction, we show the reduction from some NP-complete problems to each other. Most of the reduction rules have already been implemented in the Julia package #link("https://github.com/GiggleLiu/ProblemReduction.jl", [ProblemReduction.jl]).
 
 
@@ -284,7 +279,7 @@ In @fig:np-complete-reduction, we show the reduction from some NP-complete probl
 To show a problem is NP-complete, we need to notice the fact that the *circuit SAT problem is the hardest problem in NP*. Circuit SAT is the problem of determining whether a given logic circuit has a satisfying assignment. That logic circuit includes a circuit that verifies a solution to a problem in NP, i.e. a circuit that takes a solution as input and outputs 1 if the solution is correct, otherwise 0.
 Then we fix the output of the circuit to 1, and the problem becomes finding a satisfying assignment for the circuit. Since the size of the circuit is polynomial in the size of the original problem, if we can find a satisfying assignment for the circuit in polynomial time, we can find a solution to the original problem in polynomial time.
 
-#figure(canvas(length: 1.3cm, {
+#figure(canvas(length: 1.2cm, {
   import draw: *
   let s(it) = text(11pt, it)
   let boxed(it) = box(it, stroke: black, inset: 0.5em)
@@ -357,9 +352,9 @@ In the following, we show how to construct a spin glass system that can encode a
 With these gadgets, we can construct any logic circuits utilizing the composibility of logic gadgets. Given two logic gadgets $H_1$ and $H_2$, in the ground state of the combined gadget $H_1 compose H_2$, both $H_1$ and $H_2$ are in their own ground state. i.e. the logic expressions associated with $H_1$ and $H_2$ are both satisfied. Therefore, the ground state of $H_1 compose H_2$ is the same as the truth table of the composed logic circuit.
 
 In the following, we show an implementation of NAND operation through composing the logic $and$ and $not$ gadgets.
-#figure(canvas({
+#figure(canvas(length: 0.6cm, {
   import draw: *
-  let s(it) = text(16pt, it)
+  let s(it) = text(11pt, it)
   triangle((1, -2, -2), (1, 1, -2))
 
   for (i, (x, y, color, t)) in ((2.5, 0, white, "2"), (5, 0, red, none)).enumerate() {
@@ -569,24 +564,18 @@ In the following, we will introduce a physics-inspired algorithm, the simulated 
 Simulated annealing is an algorithm for finding the global optimum of a given function, which mimics the physical process of cooling down a material. In its simplest form, it is based on the following facts:
 - A physical system thermalizes under the Hamiltonian dynamics
 - The thermal state at zero temperature is the ground state.
+- The thermal distribution are $beta$ and $beta + Delta beta$ are very close when $Delta beta$ is small (@fig:ising-energy-distribution).
 
 #figure(image("../chap4-simulation/images/ising-energy-distribution.svg", width: 70%),
 caption: [The binned energy distribution of spin configurations generated unbiasly from the ferromagnetic Ising model ($J_(i j) = -1, L = 10$) at different inverse temperatures $beta$. The method to generate the samples is the tensor network based method detailed in @Roa2024]
 ) <fig:ising-energy-distribution>
 
-
-Simulated annealing is used in various fields. For example, in discrete optimization, it is used to find the global optimum of a given quadratic binary optimization (QUBO) problem @Glover2019:
+Simulated annealing is a Monte Carlo method that samples the thermal distribution $p_beta$ of a system, with a gradual decrease of temperature. The mixing time of the system is very short when the temperature is high, and the system can be thermalized quickly. As the temperature decreases, the system becomes more likely to be in the low-energy states, and the mixing time becomes longer. We hope the gradual decrease of temperature can make the system thermalize faster given the thermal distribution at the previous temperature.
+Simulated annealing is very generic and has been used in various fields. For example, in discrete optimization, it is used to find the global optimum of a given quadratic binary optimization (QUBO) problem @Glover2019:
   $ &min x^T Q x\ &A x = b, quad x in {0, 1}^n $
 In quantum circuit simulation, it is used to find the tensor network contraction order @Kalachev2021.
 In very-large-scale integration (VLSI) design, it is used to find the optimal layout of transistors @Wong2012.
 
-
-A cooling process is characterized by lowering the temperature $T$ from a high initial temperature $T_"init"$ to a low final temperature $T_"final"$ following a cooling schedule. The temperature determining the probability distribution of states through the Boltzmann statistics:
-$
-  p(bold(s)) ~ e^(-H(bold(s))\/T)
-$
-At the thermal equilibrium, the system effectively finds the distribution with the lowest free energy:
-$F = angle.l H angle.r - T S$, where $S$ is the entropy. When the temperature $T$ is high, the system tends to find the distribution with large entropy, making the system behave more randomly. As the temperature decreases, the system tends to find the distribution with lower energy, making the system more likely to be in the low-energy states. This transition can not happen abruptly, otherwise the system will get stuck in a local minimum. We have to wait the dynamics to thermalize the system.
 
 The algorithm works as follows:
 
@@ -658,8 +647,7 @@ Parallel tempering (also known as replica exchange) is a Monte Carlo method desi
 
 = Spin dynamics
 
-== Summarize the dynamics
-In the molecular dynamics simulation, we have the following equation of motion:
+The dynamics of a Hamiltonian system is governed by the following equation of motion:
 $ m (partial^2 bold(x))/(partial t^2) = bold(f)(bold(x)). $
 
 Equivalently, by denoting $bold(v) = (partial bold(x))/(partial t)$, we have the first-order differential equations:
@@ -668,34 +656,7 @@ cases(m (partial bold(v))/(partial t) &= bold(f)(bold(x)),
 (partial bold(x))/(partial t) &= bold(v))
 $
 
-It is a typical Hamiltonian dynamics, which can be solved numerically by the Verlet algorithm @Verlet1967.
-
-
-== Dynamics is determined by the energy model
-
-The *force* is the gradient of the energy:
-$
-bold(f)_i = -nabla_i E(bold(x)_1, bold(x)_2, dots, bold(x)_N)
-$
-where $nabla_i = (partial_(x_i), partial_(y_i), partial_(z_i))$ is the gradient operator with respect to the $i$-th particle.
-
-The classical dynamics is governed by the *energy model*:
-$
-E(bold(x)_1, bold(x)_2, dots, bold(x)_N) = sum_(i=1)^N V(bold(x)_i) + sum_(i, j) V(bold(x)_i, bold(x)_j) + sum_(i, j, k) V(bold(x)_i, bold(x)_j, bold(x)_k) + dots
-$
-where $bold(x)_i$ is the position of the $i$-th particle, $V(bold(x)_i)$ is the potential energy of the $i$-th particle, and $V(bold(x)_i, bold(x)_j, dots)$ is the potential energy of the interaction between the $i$-th, $j$-th particles, and so on.
-
-== Summarize the dynamics
-In the molecular dynamics simulation, we have the following equation of motion:
-$ m (partial^2 bold(x))/(partial t^2) = bold(f)(bold(x)). $
-
-Equivalently, by denoting $bold(v) = (partial bold(x))/(partial t)$, we have the first-order differential equations:
-$
-cases(m (partial bold(v))/(partial t) &= bold(f)(bold(x)),
-(partial bold(x))/(partial t) &= bold(v))
-$
-
-It is a typical Hamiltonian dynamics, which can be solved numerically by the Verlet algorithm @Verlet1967.
+It can be solved numerically by various algorithms, including the Verlet algorithm @Verlet1967 and the Euler algorithm.
 
 == The Euler Algorithm
 
@@ -823,24 +784,7 @@ This simple algorithm suffers from the energy drift problem, which is the energy
 == The Verlet Algorithm
 
 To overcome the issue, the Verlet algorithm is proposed.
-The algorithm is as follows:
-
-#algorithm({
-  import algorithmic: *
-  Function("Verlet", args: ([$bold(x)$], [$bold(v)$], [$bold(f)$], [$m$], [$d t$], [$n$]), {
-    Assign([$bold(v)$], [$bold(v) + (bold(f)(bold(x)))/m d t \/ 2$ #h(2em)#Ic([update velocity at time $d t \/ 2$])])
-    For(cond: [$i = 1 dots n$], {
-      Cmt[time step $t = i d t$]
-      Assign([$bold(x)$], [$bold(x) + bold(v) d t$ #h(2em)#Ic([update position at time $t$])])
-      Assign([$bold(v)$], [$bold(v) + (bold(f)(bold(x)))/m d t$ #h(2em)#Ic([update velocity at time $t + d t\/2$])])
-    })
-    Assign([$bold(v)$], [$bold(v) - (bold(f)(bold(x)))/m d t \/ 2$ #h(2em)#Ic([velocity at time $n d t$])])
-    Return[$bold(x)$, $bold(v)$]
-  })
-})
-
-The Verlet algorithm is a simple yet robust algorithm for solving the differential equation of motion. It is the most widely used algorithm in molecular dynamics simulation.
-
+The update of position and velocity are separated in time, and is reversible:
 #figure(canvas(length: 0.65cm, {
   import draw: *
   let n = 2
@@ -859,7 +803,26 @@ The Verlet algorithm is a simple yet robust algorithm for solving the differenti
   content((1 + (n+0.5) * dx, -0.5), s[$bold(x)(t + 3/2 Delta t)$])
 }))
 
-== The Verlet Algorithm on Harmonic Oscillator
+
+The algorithm is as follows:
+
+#algorithm({
+  import algorithmic: *
+  Function("Verlet", args: ([$bold(x)$], [$bold(v)$], [$bold(f)$], [$m$], [$d t$], [$n$]), {
+    Assign([$bold(v)$], [$bold(v) + (bold(f)(bold(x)))/m d t \/ 2$ #h(2em)#Ic([update velocity at time $d t \/ 2$])])
+    For(cond: [$i = 1 dots n$], {
+      Cmt[time step $t = i d t$]
+      Assign([$bold(x)$], [$bold(x) + bold(v) d t$ #h(2em)#Ic([update position at time $t$])])
+      Assign([$bold(v)$], [$bold(v) + (bold(f)(bold(x)))/m d t$ #h(2em)#Ic([update velocity at time $t + d t\/2$])])
+    })
+    Assign([$bold(v)$], [$bold(v) - (bold(f)(bold(x)))/m d t \/ 2$ #h(2em)#Ic([velocity at time $n d t$])])
+    Return[$bold(x)$, $bold(v)$]
+  })
+})
+
+The Verlet algorithm is a simple yet robust algorithm for solving the differential equation of motion. It is the most widely used algorithm in molecular dynamics simulation.
+
+The most significant advantage of the Verlet algorithm is that it is symplectic, which (approximately) conserves the energy of the system.
 
 #let verlet_oscillator(x0, p0, t, dt) = {
   // Initialize arrays to store trajectories
@@ -914,16 +877,24 @@ The Verlet algorithm is a simple yet robust algorithm for solving the differenti
 }))
 
 The results are in good agreement with the theoretical values, the energy and position are not drifting away from the theoretical values.
-It is because the Verlet algorithm is *symplectic*, which conserves the energy of the system.
 
-== Spin dynamics
+== Simulated bifurcation dynamics
 
-Adiabatic simulated bifurcation (aSB) dynamics@Goto2021:
+Thermal dynamics can be viewed as the long time limit of the dynamics of the system. Here we use the adiabatic simulated bifurcation (aSB) dynamics@Goto2021 to evolve the spin system to the ground state. Instead of considering boolean spins, we consider the continuous variables $x_i in RR$ that evolve according to the following Hamiltonian:
 $
   V_("aSB") = sum_(i=1)^N (x_i^4 / 4 + (a_0 - a(t))/2 x_i^2)- c_0 sum_(i < j) J_(i j) x_i x_j\
   H_("aSB") = a_0/2 sum_(i=1)^N p_i^2 + V_("aSB")\
   dot(p)_i = - (partial V_("aSB"))/(partial x_i)\
   dot(x)_i = (partial H_("aSB"))/(partial p_i)
 $
+In our implementation, we set the parameters as follows:
+- $c_0$ is a constant that tunes the strength of the spin glass energy function. In our case, we set it to $c_0 = 0.5/(sqrt(N) angle.l J angle.r)$, where $angle.l J angle.r = sqrt((sum_(i j) J_(i j)^2)/(N(N-1)))$ is the Frobenius norm of the interaction matrix $J$.
+- $a_0$ is set to $1$.
+
+Given the total annealing time $t_"total"$, we slowly drive $a_0$ from $0$ to $2$ with a constant rate $2/t_"total"$. At the initial time, $a(t) = 0$, the ground state of the system is $x_i = 0$ for all $i$. At the final time, $a(t_"total") = 2$, the ground state of the system is the ground state of the spin glass. If the annealing time is long enough, we will find the final state is the ground state of the spin glass.
+
+#figure(image("images/bifurcation_energy_evolution.svg", width: 80%),
+caption: [Evolution of energy (left panel) and states (right panel) under different two particle Hamiltonian dynamics (aSB, bSB and dSB) in @Goto2021. $J_12 = J_21 = 1$, times are in units of $0.01$, $c_0 = 0.2$ for all.]
+) <fig:bifurcation-energy-evolution>
 
 #bibliography("refs.bib")

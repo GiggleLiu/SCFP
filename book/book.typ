@@ -23,7 +23,7 @@
     #chapter("chap2-linalg/tensor-network.typ")[Tensor networks]
     = Optimization
     #chapter("chap3-optimization/simulated-annealing.typ")[Simulated annealing]
-    #chapter("chap3-optimization/linear_integer.typ")[Linear/Integer programming]
+    #chapter("chap3-optimization/linear_integer.typ")[Mathematical Optimization]
     //#chapter("chap3-optimization/ad.typ")[Automatic differentiation]
     = Simulation
     #chapter("chap4-simulation/MCMC.typ")[Monte Carlo methods]
