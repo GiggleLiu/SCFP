@@ -133,7 +133,7 @@ Spin glass ground state finding problem is hard, it is NP-complete (hardest prob
     content((loc.at(0), loc.at(1) - 2.5 * r), label)
   }
   if words != none {
-    content((loc.at(0) + 5 * xr, loc.at(1) - 0.5 * r), box(width: rescale * 7em, words))
+    content((loc.at(0) + 5 * xr, loc.at(1) - 0.5 * r), box(width: rescale * 100pt, words))
   }
 }
 
@@ -152,7 +152,7 @@ Spin glass ground state finding problem is hard, it is NP-complete (hardest prob
     content((loc.at(0), loc.at(1) - 1.5 * r), label)
   }
   if words != none {
-    content((loc.at(0) + 6 * xr, loc.at(1) - 1.5 * r), box(width: rescale * 7em, words))
+    content((loc.at(0) + 6 * xr, loc.at(1) - 1.5 * r), box(width: rescale * 100pt, words))
   }
 }
 
@@ -931,7 +931,5 @@ $
   dot(p)_i = - (partial V_("aSB"))/(partial x_i)\
   dot(x)_i = (partial H_("aSB"))/(partial p_i)
 $
-
-== References
 
 #bibliography("refs.bib")
