@@ -178,7 +178,7 @@ c = BigInt(21267647932558653302378126310941659999)
 ```
 However, its solving is hard, we do not know any algorithm that can find the two integers that multiply to $c$ in polynomial time in the worst case.
 
-Even worse, although we know some problems are hard, we do not have a valid strategy to prove any problem in NP can not be solved in time polynomial in the problem size. Let us denote those solvable problems in polynomial time as $P$. Whether $"P" = "NP"$ is still an open question. To characterize the hardness of problems, researchers create a complexity hierarchy based on the reduction relation.
+Even worse, although we know some problems are hard, we do not have a valid strategy to prove any problem in NP-complete can not be solved in time polynomial in the problem size. Let us denote those solvable problems in polynomial time as $P$. Whether $"P" = "NP"$ is still an open question. To characterize the hardness of problems, researchers create a complexity hierarchy based on the reduction relation.
 If a problem $A$ can be solved by solving problem $B$, and the overhead is polynomial in the problem size, we say $A$ is reducible to $B$ and write $ A <=_p B, quad quad "A can be solved by solving B". $
 Although we do not know a problem is absolutely hard, we know some problems are not easier than others.
 With this in mind, we can create a hierarchy of computational hardness in @fig:np-complete-hierarchy.
@@ -357,7 +357,7 @@ In the following, we show an implementation of NAND operation through composing 
   let s(it) = text(11pt, it)
   triangle((1, -2, -2), (1, 1, -2))
 
-  for (i, (x, y, color, t)) in ((2.5, 0, white, "2"), (5, 0, red, none)).enumerate() {
+  for (i, (x, y, color, t)) in ((2.5, 0, white, "-2"), (5, 0, red, none)).enumerate() {
     circle((x, y), radius: 0.6, fill: color.lighten(40%), name: "s" + str(i))
     content((x, y), box(s[#t], inset: 0.1em))
   }
@@ -539,6 +539,7 @@ Factoring problem is the cornerstone of modern cryptography, it is the problem o
 
 
 ```julia
+using ProblemReductions, GenericTensorNetworks
 source_problem = Factoring(3, 2, 15)
 
 # Construct the spin glass
