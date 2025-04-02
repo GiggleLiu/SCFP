@@ -615,6 +615,7 @@ Theoretically, with a logarithmic cooling schedule that decreases slowly enough,
 == Parallel tempering
 
 The energy landscape of a spin glass is rough, with many local minima separated by high barriers. Normal Metropolis sampling is inefficient at low temperatures, as the system gets trapped in a local minimum.
+It has been shown that for the spin glass with overlap gap property (right panel) @Gamarnik2021, a local algorithm can not find the global optimum in time faster than exponential time!
 
 #figure(canvas({
   import draw: *

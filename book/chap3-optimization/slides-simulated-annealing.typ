@@ -102,6 +102,7 @@
 #outline-slide()
 
 == Challenge resolved: A PR to KrylovKit.jl
+#timecounter(15)
 
 #box(stroke: black, inset: 0.5em, [
   Resolve the following issue in KrylovKit.jl: https://github.com/Jutho/KrylovKit.jl/issues/87 . If you can resolve the issue, please submit a pull request to the repository. If your PR is merged, your final grade will be $A+$.
@@ -112,12 +113,8 @@ Link: https://github.com/Jutho/KrylovKit.jl/pull/125
 
 = Spin glass and computational complexity
 
-== Cooling a system to the ground state
-#figure(image("../chap4-simulation/images/ising-energy-distribution.svg", width: 70%),
-caption: [The binned energy distribution of spin configurations generated unbiasly from the ferromagnetic Ising model ($J_(i j) = -1, L = 10$) at different inverse temperatures $beta$. The method to generate the samples is the tensor network based method detailed in @Roa2024]
-) <fig:ising-energy-distribution>
-
-
+== Spin glass
+#timecounter(1)
 #align(center, box(stroke: black, inset: 0.5em, [
     Coupling $J_(i j)$ and bias $h_i$ freely tuned $arrow.r$ We get a spin glass!
   ])
@@ -128,6 +125,8 @@ Spin glass ground state finding problem is hard, it is NP-complete (hardest prob
 *NP problems*: _Decision problems_, features the property that given a solution, it is _easy to verify_ whether the solution is correct in polynomial time.
 
 == Example: Factoring a number
+
+#timecounter(1)
 
 Solving is hard (foundation of RSA encryption):
 #box(text(16pt)[```julia
@@ -147,6 +146,7 @@ b = BigInt(4611686018427387817)
 ]))
 
 == What is an "easy" problem?
+#timecounter(1)
 
 #let alice(loc, rescale: 1, flip: false, label: none, words: none) = {
   import draw: *
@@ -194,7 +194,10 @@ b = BigInt(4611686018427387817)
 
 - $n$ is the size of the input (measured by the number of bits).
 
+Q: What is the size of input for factoring $1000$?
+
 == NP problem hierarchy
+#timecounter(1)
 #let pointer(start, end, angle: 45deg) = {
   import draw: *
   draw.get-ctx(ctx => {
@@ -243,6 +246,8 @@ columns: 2, gutter: 20pt)
 - NP: the problem set that can be solved by a "magic coin" - a coin that gives the best outcome with probability 1, i.e. it is non-deterministic.
 
 == Circuit SAT is the hardest problem in NP
+
+#timecounter(1)
 
 === Example: Encoding the factoring problem to a spin glass
 We introduce how to convert the factoring problem into a spin glass problem.
@@ -416,6 +421,7 @@ figure(canvas({
 
 
 == NP-complete problems can be reduced to each other
+#timecounter(1)
 
 - Reduction: Problem $A$ can be reduced to problem $B$ if $A$ can be "solved by" solving $B$.
 
@@ -469,7 +475,8 @@ figure(canvas({
 
 
 
-== A generic reduction strategy
+== Solving NP-complete problems through spin glass
+#timecounter(1)
 
 #figure(canvas(length: 1.3cm,{
   import draw: *
@@ -493,8 +500,8 @@ figure(canvas({
 4. Find the ground state of $S(C_A)$ using a generic spin glass solver.
 5. Read out the spin configuration associated with $bold(s)$ from the ground state.
 
-
 == Logic circuit to spin glass
+#timecounter(2)
 #figure(table(columns: 4, table.header([Gate], [Gadget], [Ground states], [Lowest energy]),
 [Logical not: $not$], [
   #canvas(length: 0.6cm, {
@@ -525,6 +532,7 @@ figure(canvas({
 The spin glass gadget for logic gates@Gao2024. The blue/red spin is the input/output spins. The numbers on the vertices are the biases $h_i$ of the spins, the numbers on the edges are the couplings $J_(i j)$.
 
 == Composibility of logic gadgets
+#timecounter(1)
 
 An implmentation of NAND operation through composing the logic $and$ and $not$ gadgets.
 #figure(canvas({
@@ -548,6 +556,7 @@ An implmentation of NAND operation through composing the logic $and$ and $not$ g
 If and only if all gadgets have correct assignments, the energy of the combined gadget is minimized.
 
 == Live Coding: Julia implementation of the reduction
+#timecounter(3)
 #box(text(16pt)[```julia
 source_problem = Factoring(3, 2, 15)
 
@@ -567,6 +576,7 @@ ProblemReductions.read_solution(source_problem, solution) # output: (5, 3)
 
 = Simulated annealing
 == Simulate the cooling process to find the ground state?
+#timecounter(1)
 
 Based on the following facts:
 - Fact 1: A physical system thermalizes under the Hamiltonian dynamics
@@ -578,7 +588,15 @@ Used in:
 - In quantum circuit simulation, it is used to find the tensor network contraction order. @Kalachev2021
 - In very-large-scale integration (VLSI) design, it is used to find the optimal layout of transistors. @Wong2012
 
+== Cooling a system to the ground state
+#timecounter(1)
+#figure(image("../chap4-simulation/images/ising-energy-distribution.svg", width: 70%),
+caption: [The binned energy distribution of spin configurations generated unbiasly from the ferromagnetic Ising model ($J_(i j) = -1, L = 10$) at different inverse temperatures $beta$. The method to generate the samples is the tensor network based method detailed in @Roa2024]
+) <fig:ising-energy-distribution>
+
+
 == Simulated Annealing
+#timecounter(1)
 
 Simulated annealing is an algorithm for finding the *global optimum* of a given function, which mimics the physical process of cooling down a material.
 #algorithm(
@@ -605,19 +623,13 @@ Simulated annealing is an algorithm for finding the *global optimum* of a given 
 )
 $T_"init"$ is the initial temperature, $alpha < 1$ is the cooling rate, $n_"steps"$ is the number of steps.
 
-== Simulated Annealing
+== Cooling schedule
+#timecounter(1)
 
-The temperature determining the probability distribution of states through the Boltzmann statistics:
+*Key assumption*: The system stays in the thermal equilibrium.
 $
   p(bold(s)) ~ e^(-H(bold(s))\/T)
 $
-At the thermal equilibrium, the system effectively finds the distribution with the lowest free energy:
-$F = angle.l H angle.r - T S$, where $S$ is the entropy.
-- When the temperature $T$ is high, the system tends to find the distribution with large entropy, making the system behave more randomly.
-- As the temperature decreases, the system tends to find the distribution with lower energy, making the system more likely to be in the low-energy states.
-
-== Cooling schedule
-*Key assumption*: The system stays in the thermal equilibrium.
 
 - Cool too quickly, the system may get trapped in a local minimum.
 - Cool too slowly, the algorithm becomes computationally expensive.
@@ -631,6 +643,10 @@ Common cooling schedules include:
 - _Remark_: Theoretically, with a logarithmic cooling schedule that decreases slowly enough, simulated annealing will converge to the global optimum with probability 1.
 
 == The landscape matters
+#timecounter(1)
+
+Problem solved? With overlap gap property (right panel) @Gamarnik2021, a local algorithm can not find the global optimum in time faster than exponential time!
+
 #figure(canvas({
   import draw: *
   let s(it) = text(12pt, it)
@@ -650,6 +666,12 @@ Common cooling schedules include:
   content((dx/2 + 1.5, 1.5), s[Add more _frustration_])
   content((dx/2 + 1.5, 1.1), s[$arrow.double.r$])
 }))
+
+== Hands-on: Simulated annealing
+#timecounter(30)
+
+1. Read the code demo: https://github.com/GiggleLiu/ScientificComputingDemos/tree/main/Spinglass
+2. Answer: what is the annealing scheduler type? What happens if we use a different annealing scheduler? Try to compare the performance of the different annealing schedulers and explain why.
 
 = Spin dynamics @Goto2021
 
@@ -708,6 +730,7 @@ where $bold(p) = m bold(v)$ is the momentum of the particle.
 Q: Will this simple algorithm work?
 
 == Euler Method for Harmonic Oscillator
+#timecounter(1)
 
 - Consider a particle in a harmonic potential $V(x) = 1/2 x^2$, and kinetic energy given by $E_k (p) = 1/2 p^2$.
 - Parameters: $d t = 0.05$, $t = 20$, initial condition: $bold(x)(0) = 1$, $bold(p)(0) = 0$
@@ -845,7 +868,7 @@ The algorithm is as follows:
 The Verlet algorithm is a simple yet robust algorithm for solving the differential equation of motion. It is the most widely used algorithm in molecular dynamics simulation.
 
 == The Verlet Algorithm
-
+#timecounter(1)
 #figure(canvas({
   import draw: *
   let n = 2
@@ -864,7 +887,7 @@ The Verlet algorithm is a simple yet robust algorithm for solving the differenti
 }))
 
 == The Verlet Algorithm on Harmonic Oscillator
-
+#timecounter(1)
 #let verlet_oscillator(x0, p0, t, dt) = {
   // Initialize arrays to store trajectories
   let x_traj = (x0,)
@@ -920,9 +943,15 @@ The Verlet algorithm is a simple yet robust algorithm for solving the differenti
 The results are in good agreement with the theoretical values, the energy and position are not drifting away from the theoretical values.
 It is because the Verlet algorithm is *symplectic*, which conserves the energy of the system.
 
-== Spin dynamics
+== Hands-on: Spin dynamics
+#timecounter(1)
 
-Adiabatic simulated bifurcation (aSB) dynamics@Goto2021:
+1. Read the code demo: https://github.com/GiggleLiu/ScientificComputingDemos/tree/main/SpinDynamics
+2. Complete the second question in the homework.
+
+== Adiabatic simulated bifurcation (aSB) dynamics@Goto2021:
+#timecounter(1)
+
 $
   V_("aSB") = sum_(i=1)^N (x_i^4 / 4 + (a_0 - a(t))/2 x_i^2)- c_0 sum_(i < j) J_(i j) x_i x_j\
   H_("aSB") = a_0/2 sum_(i=1)^N p_i^2 + V_("aSB")\
