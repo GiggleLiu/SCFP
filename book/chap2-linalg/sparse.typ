@@ -17,7 +17,8 @@
   }
 }
 
-= Sparse Matrices and Graphs
+#align(center, [= Sparse Matrices and Graphs\
+_Jin-Guo Liu_])
 
 - Code: https://github.com/GiggleLiu/ScientificComputingDemos/tree/main/SimpleKrylov
 

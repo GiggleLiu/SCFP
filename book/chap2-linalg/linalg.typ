@@ -5,7 +5,8 @@
 #let exampleblock(it) = block(fill: rgb("#ffffff"), inset: 1em, radius: 4pt, stroke: black, it)
 #set math.equation(numbering: "(1)")
 
-= Matrix Computation
+#align(center, [= Matrix Computation\
+_Jin-Guo Liu_])
 
 - Code: https://github.com/GiggleLiu/ScientificComputingDemos/tree/main/SpringSystem
 

@@ -3,7 +3,8 @@
 #import "../shared/characters.typ": ina, christina, murphy
 #show: book-page.with(title: "Version Control")
 
-= Version Control
+#align(center, [= Version Control\
+_Jin-Guo Liu_])
 
 Maintaining a software project is challenging, especially when multiple developers are working on the same codebase. When introducing new features, maintainers may face the following issues:
 

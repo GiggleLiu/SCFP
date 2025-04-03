@@ -42,7 +42,9 @@
   )
 }
 
-= Tensor Networks
+#align(center, [= Tensor Networks\
+_Jin-Guo Liu_])
+
 == Tensor network representation
 
 _Tensor network_ is a diagrammatic representation of tensor _contractions_.

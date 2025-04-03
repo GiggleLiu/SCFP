@@ -3,7 +3,8 @@
 
 #show: book-page.with(title: "Terminal Environment")
 
-= Terminal Environment
+#align(center, [= Terminal Environment\
+_Jin-Guo Liu_])
 
 A terminal provides direct access to your operating system and is essential for efficient programming and system administration.
 In the following, we will introduce how to get a terminal, how to edit files with the terminal (Vim), and how to use the terminal to interact with remote machines (SSH).

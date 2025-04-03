@@ -4,6 +4,9 @@
 #import algorithmic: algorithm
 #show: book-page.with(title: "Julia Basic")
 
+
+#align(center, [= Julia Basic\
+_Jin-Guo Liu_])
 = Julia REPL
 
 Julia REPL is the command line interface for Julia. Once you install Julia, you can start it by typing `julia` in your terminal.

@@ -1,7 +1,8 @@
 #import "../book.typ": book-page, cross-link
 #show: book-page.with(title: "Setup Julia")
 
-= Setup Julia
+#align(center, [= Setup Julia\
+_Jin-Guo Liu_])
 
 == Introduction to Julia
 #link("https://julialang.org/")[Julia] is a modern, high-performance programming language designed for technical computing. Created at MIT in 2012 and now maintained by JuliaHub Inc., Julia combines the ease of use of Python with the speed of C/C++.

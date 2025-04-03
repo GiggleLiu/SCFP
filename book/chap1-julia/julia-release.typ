@@ -16,7 +16,9 @@
   }
 }
 
-= My First Package
+#align(center, [= Julia Package Development\
+_Jin-Guo Liu_])
+
 Julia package development workflow is useful for both project code and package development. It enables developers to manage project dependencies, automate unit tests and documentation, and publish packages.
 The Julia package development workflow incoporates the following modern software engineering practices:
 

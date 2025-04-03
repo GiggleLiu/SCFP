@@ -2,7 +2,8 @@
 #show: book-page.with(title: "Compressed Sensing")
 #import "@preview/cetz:0.1.2"
 
-= Compressed sensing
+#align(center, [= Compressed Sensing and Restricted Boltzmann Machines\
+_Jin-Guo Liu_])
 
 // Import statements would need to be handled differently in Typst
 // The Julia imports are kept as comments for reference

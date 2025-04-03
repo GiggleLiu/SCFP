@@ -5,7 +5,8 @@
 #let exampleblock(it) = block(fill: rgb("#ffffff"), inset: 1em, radius: 4pt, stroke: black, it)
 #set math.equation(numbering: "(1)")
 
-= Matrix Computation (Advanced Topics)
+#align(center, [= Matrix Computation (Advanced Topics)\
+_Jin-Guo Liu_])
 
 - Code: https://github.com/GiggleLiu/ScientificComputingDemos/tree/main/SimpleLinearAlgebra
 

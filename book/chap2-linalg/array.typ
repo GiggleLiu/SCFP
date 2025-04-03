@@ -3,7 +3,8 @@
 
 #show: book-page.with(title: "Manipulating array")
 
-= Manipulating arrays
+#align(center, [= Manipulating arrays\
+_Jin-Guo Liu_])
 
 == Array initialization
 
