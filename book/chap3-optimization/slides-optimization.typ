@@ -766,6 +766,25 @@ The result is
 ```])
 which means the minimum set cover is $S_6$ and $S_7$.
 
+== SCIP: parameter tuning
+https://www.scipopt.org/doc/html/PARAMETERS.php
+
+== Hands-on: Integer programming for crystal structure prediction
+Run the example in GitHub: https://github.com/Br0kenSmi1e/CrystalStructurePrediction.jl
+
+#box(text(16pt)[```bash
+git clone https://github.com/Br0kenSmi1e/CrystalStructurePrediction.jl
+cd CrystalStructurePrediction.jl
+cd ~/.julia/dev/CrystalStructurePrediction
+make init  # initialize the project
+make run-example  # run the SrTiO3 example
+```
+])
+*It implements*: Gusev, V.V., et al., 2023. Optimality guarantees for crystal structure prediction. Nature 619, 68–72. https://doi.org/10.1038/s41586-023-06071-y
+
+*Task*: Improve the performance of SCIP solver by tuning the parameters. Try pushing the lattice size to `(4, 4, 4)`.
+
+==
 #bibliography("refs.bib")
 
 // = Appendix: Integer programming for error correction
