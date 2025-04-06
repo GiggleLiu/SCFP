@@ -47,12 +47,133 @@
 
 #outline-slide()
 
+= Introduction to optimization
 == Convex optimization
 Convex: $f(a x + (1-a) y) <= a f(x) + (1-a) f(y)$, e.g. a quadratic function $f(x) = x^2$ is convex, but $f(x) = x^3$ is not.
 
+#figure(
+  canvas(length: 0.8cm, {
+    import draw: *
+    let f1 = x => x * x
+    let f2 = x => calc.pow(x, 4) / 4 - calc.pow(x, 2) / 2
+    plot.plot(
+      name: "plot",
+      size: (6, 4),
+      x-label: none,
+      y-label: none,
+      x-tick-step: 2,
+      y-tick-step: 2,
+      legend: "legend.north",
+      {
+        plot.add(
+          f1,
+          domain: (-3, 3),
+          samples: 100,
+          label: text(14pt)[Convex: $f(x) = x^2$]
+        )
+        let xmid = -2 + 3 * 0.3
+        plot.add-anchor("ca", (-2, 4))
+        plot.add-anchor("cb", (1, 1))
+        plot.add-anchor("yt", (xmid, 1 + 3 * 0.7))
+        plot.add-anchor("ft", (xmid, f1(xmid)))
+    })
+      
+    // Draw points on the convex curve
+    circle("plot.ca", radius: 0.1, fill: blue)
+    circle("plot.cb", radius: 0.1, fill: blue)
+    
+    // Draw the line segment connecting the points
+    line("plot.ca", "plot.cb", stroke: (dash: "dashed"))
+    
+    circle("plot.yt", radius: 0.1, fill: black)
+    circle("plot.ft", radius: 0.1, fill: blue)
+    
+    // Draw a vertical line to show the difference
+    line("plot.yt", "plot.ft", stroke: (dash: "dotted"))
+
+    set-origin((8.5, 0))
+    plot.plot(
+      name: "plot",
+      size: (6, 4),
+      x-label: none,
+      y-label: none,
+      x-tick-step: 2,
+      y-tick-step: 10,
+      legend: "legend.north",
+      {
+        plot.add(
+          f2,
+          domain: (-1.5, 1.5),
+          samples: 100,
+          label: text(14pt)[Non-convex: $f(x) = x^4\/4 - x^2\/2$]
+        )
+        let a = -0.5
+        let b = 1
+        let xmid = a * 0.7 + b * 0.3
+        plot.add-anchor("ca", (a, f2(a)))
+        plot.add-anchor("cb", (b, f2(b)))
+        plot.add-anchor("yt", (xmid, 0.7 * f2(a) + f2(b) * 0.3))
+        plot.add-anchor("ft", (xmid, f2(xmid)))
+    })
+    // Draw points on the convex curve
+    circle("plot.ca", radius: 0.1, fill: blue)
+    circle("plot.cb", radius: 0.1, fill: blue)
+    
+    // Draw the line segment connecting the points
+    line("plot.ca", "plot.cb", stroke: (dash: "dashed"))
+    
+    circle("plot.yt", radius: 0.1, fill: black)
+    circle("plot.ft", radius: 0.1, fill: blue)
+    
+    // Draw a vertical line to show the difference
+    line("plot.yt", "plot.ft", stroke: (dash: "dotted"))
+
+
+  })
+)
+
+
+== Convex objective function is not enough
 Convex optimization:
-- The feasible region is convex.
 - The objective function is convex.
+- The feasible region is convex.
+
+Q: Is the following feasible region convex?
+#figure(canvas({
+  import draw: *
+  rect((-2, -2), (2, 2))
+  circle((0, 0), radius: 1, fill: blue, stroke: none)
+  content((0, -2.5), text(14pt)[A])
+
+  set-origin((5, 0))
+  rect((-2, -2), (2, 2))
+  circle((0, -1), radius: 0.5, fill: blue, stroke: none)
+  circle((0, 1), radius: 0.5, fill: blue, stroke: none)
+  content((0, -2.5), text(14pt)[B])
+
+  set-origin((5, 0))
+  rect((-2, -2), (2, 2))
+  line((-1, -1), (-1, 1), (1, 1), (1, -1), (0, 0), close: true, fill: blue, stroke: none)
+  content((0, -2.5), text(14pt)[C])
+
+  set-origin((5, 0))
+  rect((-2, -2), (2, 2))
+  line((-1, -1), (-1, 1), (1, -1), close: true, fill: blue, stroke: none)
+  content((0, -2.5), text(14pt)[D])
+}))
+
+== Convex optimization problems are easy to solve
+
+- Golden section search
+- Gradient descent, Newton's method
+- Simplex method
+- Interior point method
+
+Relevant Julia packages:
+- #link("https://github.com/jump-dev/JuMP.jl", "JuMP.jl")
+- #link("https://github.com/FluxML/Optimisers.jl", "Optimisers.jl"), stochastic gradient descent, e.g. Adam, AdaGrad, RMSProp, etc. Features robust to noise, cheap to compute, and can be used for training neural networks.
+- #link("https://github.com/JuliaNLSolvers/Optim.jl", "Optim.jl"), 
+
 
 = Linear Programming (LP)
 _Linear Programming_ deals with the problem of optimizing a *linear objective function* subject to *linear equality and inequality constraints* on *real* variables. It is a convex optimization problem, hence it is easy to solve. A linear programming problem of $n$ variables is formulated as the following _canonical form_:
@@ -146,7 +267,7 @@ The minimum cost is 23 RMB per day.
 = Integer Programming (IP)
 == Definition
 
-_Integer Programming_ is similar, but deals with *integer* variables, i.e. replacing the real variables in linear programming problem with integer variables:
+_Integer Programming_ is similar to linear programming, but deals with *integer* variables, i.e. replacing the real variables in linear programming problem with integer variables:
 $
 #box(stroke: black, inset: 5pt, [$x in bb(R)^n$], baseline: 5pt) quad arrow.r quad #box(stroke: black, inset: 5pt, [$x in bb(Z)^n$], baseline: 5pt)
 $
