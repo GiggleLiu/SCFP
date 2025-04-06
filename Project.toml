@@ -1,7 +1,7 @@
 [deps]
-COSMO = "1e616198-aa4e-51ec-90a2-23f7fbd31d8d"
 CairoMakie = "13f3f980-e62b-5c42-98c6-ff1f3baf88f0"
 ChainRulesCore = "d360d2e6-b24c-11e9-a2a3-2a2ae2dbcce4"
+Clarabel = "61c947e1-3e6d-4ee4-985a-eec8c727bd6e"
 DifferentiationInterface = "a0c0ee7d-e4b9-4e03-894e-1c5f64a51d63"
 FFTW = "7a1cc6ca-52ef-59f5-83cd-3a7055c09341"
 GenericTensorNetworks = "3521c873-ad32-4bb4-b63d-f4f178f42b49"

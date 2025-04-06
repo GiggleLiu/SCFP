@@ -45,6 +45,26 @@
 #let (slide, empty-slide, title-slide, outline-slide, new-section-slide, ending-slide) = utils.slides(m)
 #show: slides.with()
 
+#let bob(loc, rescale: 1, flip: false, label: none, words: none) = {
+  import draw: *
+  let r = 0.4 * rescale
+  let xr = if flip { -r } else { r }
+  circle(loc, radius: (0.8 * r, r), name: "bob")
+  circle((rel: (xr * 0.4, 0.2 * r), to: loc), radius: (0.2 * r, 0.18 * r), name: "eye", stroke: none, fill: black)
+  line((rel: (-1.5 * xr, -r), to: "bob"), (rel: (-0.6 * xr, -3.5 * r), to: "bob"), (rel: (0.7 * xr, -3.5 * r), to: "bob"), (rel: (1.2 * xr, -r), to: "bob"), stroke: (paint: black, thickness: 1pt), name: "line1", close: true)
+  line((anchor: 31%, name: "line1"), (loc.at(0) - 0.5 * xr, loc.at(1) - 5 * r))
+  line((anchor: 40%, name: "line1"), (loc.at(0) + 0.5 * xr, loc.at(1) - 5 * r))
+  line((anchor: 20%, name: "line1"), (loc.at(0) + 0.5 * xr, loc.at(1) - 2 * r))
+  line((anchor: 59%, name: "line1"), (loc.at(0) + 2 * xr, loc.at(1) - 2 * r))
+  if label != none {
+    content((loc.at(0), loc.at(1) - 1.5 * r), label)
+  }
+  if words != none {
+    content((loc.at(0) + 10 * xr, loc.at(1) - 1.5 * r), box(width: rescale * 270pt, words))
+  }
+}
+
+
 #outline-slide()
 
 = Introduction to optimization
@@ -190,7 +210,7 @@ where $c in bb(R)^n$ is the objective function coefficient vector, $A in bb(R)^(
 - Linear programming is convex, hence it is easy to solve.
 - The positivity constraint $x >= 0$ is not absolutely necessary. Adding this extra constraint does not sacrifice the generality of linear programming, because any linear program can be written into a canonical form by shifting the variables.
 
-== Example: The Diet Problem
+== Example 1: The Diet Problem
 In the diet model, a list of available foods is given together with the nutrient content and the cost per unit weight of each food. A certain amount of each nutrient is required per day. For example, here is the data corresponding to two types of food (fish and rice) and three types of nutrients (starch, proteins, vitamins) in unit of kg:
 #align(center, table(
   columns: (auto, auto, auto, auto, auto),
@@ -216,59 +236,46 @@ min_(x_1, x_2) & z = 6x_1 + 3.5x_2\
 & x_1 ≥ 0, x_2 ≥ 0.
 $
 
-== Julia code
-
-#box(text(16pt)[```julia
-using JuMP, HiGHS
-
-model = Model(HiGHS.Optimizer)
-
-@variable(model, x1 >= 0)
-@variable(model, x2 >= 0)
-
-@constraint(model, 0x1 + 7x2 >= 8)
-@constraint(model, 4x1 + 2x2 >= 15)
-@constraint(model, 2x1 + x2 >= 3)
-
-@objective(model, Min, 6x1 + 3.5x2)
-
-optimize!(model)
-
-value(x1), value(x2), objective_value(model)
-```
-])
-
 ==
 
-The result is
-#box(text(16pt)[```output
-(3.25, 1.0, 23.0)
-```])
-The minimum cost is 23 RMB per day.
+#figure(canvas(length: 1.8cm, {
+  import draw: *
+  bob((0, 0), rescale: 1, flip: true, words: box(stroke: black, inset: 10pt)[*Live coding*: the diet problem])
+}))
 
+== Strategies to solve linear programming problems
+- Simplex method
+- Interior point method
 
-// Its _dual problem_ is
-// $
-//   min_(y) &w = b^T y,\
-//   "s.t." &A^T y >= c,\
-//   &y >= 0\
-//   &y in bb(R)^m
-// $
-// and the original problem is the _primal problem_. The dual of the dual is the primal.
+== Formulating spin glass as a "linear" programming problem
+The spin glass energy function is defined as
+$
+E(sigma) = sum_(i < j) J_(i j) sigma_i sigma_j + sum_i h_i sigma_i
+$
+where $sigma_i = plus.minus 1$ is the spin of the $i$-th particle, $J_(i j)$ is the interaction strength between the $i$-th and $j$-th particles, and $h_i$ is the external magnetic field.
 
-// #box(stroke: black, inset: 10pt, width: 100%, [(Weak duality) If $x^*$ is optimal for the primal and $y^*$ is optimal for the dual, then $z^* <= w^*$.])
+== Handle the quadratic term
+Let us first introduce some boolean variables $s_i = (1 - sigma_i) \/ 2$.
+Then we introduce auxiliary variables $d_(i j) = s_i plus.circle s_j$, which can be achieved by adding the following four linear constraints:
+$
+d_(i j) &<= s_i + s_j,\
+d_(i j) &<= 2 - s_i - s_j,\
+d_(i j) &>= s_i - s_j,\
+d_(i j) &>= s_j - s_i.
+$
 
-// #proof([Let $x^*$ be feasible for the primal and $y^*$ be feasible for the dual. Then we have
-// $
-//   z^* = c^T x^* <= y^(* T)A x^* <= y^(* T)b = w^* arrow.double.r z^* <= w^*
-// $])
+Finally, we have the new representation of the energy function
+$
+E = sum_(i < j) J_(i j) (1 - 2 d_(i j)) + sum_i h_i (1 - 2 s_i),
+$
+which is linear in the variables $s_i$ and $d_(i j)$.
 
-// What is more surprising is the fact that this inequality is in most cases an equality
+== Hey, it is not possible!
 
-// #align(center, box(stroke: 1pt, inset: 10pt, width: 100%, [(Strong duality) If $z^*$ is finite then so is $w^*$ and $z^* = w^*$.])
-// )
+- Spin glass is in the complexity class of NP-complete.
+- Linear programming is convex, hence it is easy to solve.
 
-// #proof([])
+Q: Why there is a contradiction?
 
 = Integer Programming (IP)
 == Definition
@@ -277,10 +284,9 @@ _Integer Programming_ is similar to linear programming, but deals with *integer*
 $
 #box(stroke: black, inset: 5pt, [$x in bb(R)^n$], baseline: 5pt) quad arrow.r quad #box(stroke: black, inset: 5pt, [$x in bb(Z)^n$], baseline: 5pt)
 $
-It is a non-convex optimization problem, and belongs to the complexity class of NP-complete.
-For convex optimization problems, both the feasible region and the objective function are convex. However, for integer programming problems, the feasible region $bb(Z)^n$ is not convex.
+- _Remark_: Integer programming is a non-convex optimization problem, and belongs to the complexity class of NP-complete. The feasible region $bb(Z)^n$ is not convex.
 
-== Example: Branching and cut for solving integer programming
+== Example 2: Branching and cut for solving integer programming
 Let us consider the following integer programming problem (source: #link("https://youtu.be/upcsrgqdeNQ?si=B5uilXqSrI5Jg976", "Youtube")):
 $
   max_(x_1, x_2) quad &z = 5x_1 + 6x_2,\
@@ -367,14 +373,19 @@ $
   circle("plot.p7", radius: 0.1, fill: red)
   content((rel: (0, 0.4), to: "plot.p7"), [$p_7$])
 }),
-caption: [Solving an integer programming problem. The fesible region of linear programming problem is the green area, while the feasible region of integer programming problem are the discrete points marked by small circles.],
 ) <fig:integer-programming>
 
-By relaxing the integer constraint, it becomes a linear programming problem that is easy to solve. The feasible region is the green polygon in @fig:integer-programming, and the optimal solution is the point $p_1$ at the line crossing.
 
-$p_1$ is not feasible for the integer programming problem due to $x_2$ being non-integer. To force the variables to be integer, we add some inequalities constraints to the linear programming problem as shown in @fig:branching-and-cutting. Since $x_2$ is non-integer, we create two sub-problems (or branches) by adding two inequalities constraints $x_2 <= 2$ and $x_2 >= 3$ to the linear programming problem.
-It turns out the sub-problem 2 with $x_2 <= 2$ accepts integer solution $p_2$ as the optimal solution. So we stop this branch and continue to solve the sub-problem 3 with $x_2 >= 3$.
+Solving an integer programming problem. The feasible region of linear programming problem is the green area, while the feasible region of integer programming problem are the discrete points marked by small circles.
 
+== Branch and cut
+1. By relaxing the integer constraint, it becomes a linear programming problem that is easy to solve. The feasible region is the green polygon in @fig:integer-programming, and the optimal solution is the point $p_1$ at the line crossing.
+
+2. $p_1$ is not feasible for the integer programming problem due to $x_2$ being non-integer. To force the variables to be integer, we add some inequalities constraints to the linear programming problem as shown in @fig:branching-and-cutting. Since $x_2$ is non-integer, we create two sub-problems (or branches) by adding two inequalities constraints $x_2 <= 2$ and $x_2 >= 3$ to the linear programming problem.
+
+3. It turns out the sub-problem 2 with $x_2 <= 2$ accepts integer solution $p_2$ as the optimal solution. So we stop this branch and continue to solve the sub-problem 3 with $x_2 >= 3$.
+
+== Branch and cut
 #figure(canvas(length: 0.85cm, {
   import draw: *
   let boxed(c) = box(stroke: black, inset: (x: 7pt, y: 5pt), c)
@@ -421,245 +432,77 @@ It turns out the sub-problem 2 with $x_2 <= 2$ accepts integer solution $p_2$ as
   line("sub-problem-5", "sub-problem-7", mark: (end: "straight"), name: "l57")
   content((rel: (0.8, 0.1), to: "l57.mid"), text(10pt)[$x_2 <= 3$])
 }),
-caption: [Branching and cutting for solving integer programming. The additional constraints are marked along the lines. The optimal solution is annotated in each sub-problem.],
 ) <fig:branching-and-cutting>
+
+Branching and cutting for solving integer programming. The additional constraints are marked along the lines. The optimal solution is annotated in each sub-problem.
 
 Finally, we compare all sub-problems producing integer solutions, and find the optimal solution is $p_2$.
 
 In Julia programming language, we can solve the linear/integer programming problem by using #link("https://github.com/jump-dev/JuMP.jl", "JuMP") package.
 
-#box(text(16pt)[```julia
-# Sub-problem 1
-using JuMP, HiGHS
+== Julia implementation
 
-model = Model(HiGHS.Optimizer)
+#figure(canvas(length: 1.8cm, {
+  import draw: *
+  bob((0, 0), rescale: 1, flip: true, words: box(stroke: black, inset: 10pt)[*Live coding*: branch and cut for solving integer programming])
+}))
 
-@variable(model, x1 >= 0)
-@variable(model, x2 >= 0)
-@constraint(model, x1 + x2 <= 5)
-@constraint(model, 4 * x1 + 7 * x2 <= 28)
 
-@objective(model, Max, 5 * x1 + 6 * x2)
+== Comparison of Integer Programming Solvers
 
-optimize!(model)
-value(x1), value(x2), objective_value(model)
-```
-])
-
-You can see the result of the linear programming problem.
-#box(text(16pt)[```output
-(2.3333333333333335, 2.6666666666666665, 27.666666666666668)
-```])
+#align(center, text(16pt, table(
+  columns: (auto, auto, auto, auto, auto),
+  inset: 8pt,
+  align: center,
+  table.header(
+    [*Solver*], 
+    [*License Type*], 
+    [*Performance*], 
+    [*Features*], 
+    [*Best For*]
+  ),
+  [HiGHS], 
+  [Open Source (MIT)], 
+  [Good], 
+  [LP, MIP, QP support, Dual simplex, Interior point], 
+  [Academic use, Open source projects],
+  
+  [SCIP], 
+  [Academic free, Commercial paid], 
+  [Very good], 
+  [LP, MIP, MINLP, Branch-and-cut, Cutting planes], 
+  [Research, Complex constraint programming],
+  
+  [Gurobi], 
+  [Commercial (free academic)], 
+  [Excellent], 
+  [LP, MIP, MIQP, MIQCP, Parallel solving, Advanced heuristics], 
+  [Industry applications, Large-scale problems],
+  
+  [CPLEX], 
+  [Commercial (free academic)], 
+  [Excellent], 
+  [LP, MIP, QP, MIQP, Network flows, Distributed optimization], 
+  [Enterprise applications, Integration with IBM tools]
+)))
 
 ==
-#box(text(16pt)[```julia
-# Sub-problem 2: uncomment the following line
-# @constraint(model, x2 <= 2)
+The choice of solver depends on your specific needs:
+- For open-source projects or educational purposes, HiGHS is a good starting point
+- For research with complex constraints, SCIP offers powerful modeling capabilities
+- For industrial applications with large-scale problems, commercial solvers like Gurobi or CPLEX typically provide better performance and support
 
-# Sub-problem 3: uncomment the following line
-# @constraint(model, x2 >= 3)
+All these solvers can be used with JuMP in Julia through their respective packages.
 
-# Sub-problem 4: uncomment the following 2 lines
-# @constraint(model, x2 >= 3)
-# @constraint(model, x1 >= 2)
+Please refer to the #link("https://jump.dev/JuMP.jl/stable/installation/#Supported-solvers")[documentation] to check alternative solvers supporting integer programming.
 
-# Sub-problem 5: uncomment the following 2 lines
-# @constraint(model, x2 <= 2)
-# @constraint(model, x1 <= 1)
+== Example 3: Solving spin glass problem with integer programming
 
-# Sub-problem 6: uncomment the following 2 lines
-# @constraint(model, x1 <= 1)
-# @constraint(model, x2 >= 4)
+#figure(canvas(length: 1.8cm, {
+  import draw: *
+  bob((0, 0), rescale: 1, flip: true, words: box(stroke: black, inset: 10pt)[*Live coding*: solving spin glass problem with integer programming])
+}))
 
-# Sub-problem 7: uncomment the following 2 lines
-# @constraint(model, x1 <= 1)
-# @constraint(model, x2 <= 3)
-```
-])
-By uncommenting the lines in the sub-problem, we can solve different sub-problems.
-In practice, you do not need to write the branch and cut by yourself.
-The solvers in `JuMP` package will do it for you.
-
-#box(text(16pt)[```julia
-using JuMP, HiGHS
-
-model = Model(HiGHS.Optimizer)
-
-@variable(model, x1 >= 0, Int)
-@variable(model, x2 >= 0, Int)
-@constraint(model, x1 + x2 <= 5)
-@constraint(model, 4 * x1 + 7 * x2 <= 28)
-
-@objective(model, Max, 5 * x1 + 6 * x2)
-
-optimize!(model)
-value(x1), value(x2), objective_value(model)
-```
-])
-You can see the result of the integer programming problem.
-#box(text(16pt)[```output
-(3.0, 2.0, 27.0)
-```])
-
-Note here, the `HiGHS` solver backend is used. Please refer to the #link("https://jump.dev/JuMP.jl/stable/installation/#Supported-solvers")[documentation] to check alternative solvers supporting integer programming.
-
-== Example 2: Spin glass problem
-The spin glass energy function is defined as
-$
-E(sigma) = sum_(i < j) J_(i j) sigma_i sigma_j + sum_i h_i sigma_i
-$
-where $sigma_i = plus.minus 1$ is the spin of the $i$-th particle, $J_(i j)$ is the interaction strength between the $i$-th and $j$-th particles, and $h_i$ is the external magnetic field.
-
-Finding a spin configuration with the minimum energy is a famous NP-complete problem.
-At a first look, it is not an integer programming problem because there is a quadratic term in the energy function.
-However, it turns out that the problem can be reduced to an integer programming problem by introducing a auxiliary variables.
-Let us first introduce some boolean variables $s_i = (1 - sigma_i) \/ 2$.
-Then we introduce auxiliary variables $d_(i j) = s_i plus.circle s_j$, which can be achieved by adding the following four linear constraints:
-$
-d_(i j) &<= s_i + s_j,\
-d_(i j) &<= 2 - s_i - s_j,\
-d_(i j) &>= s_i - s_j,\
-d_(i j) &>= s_j - s_i.
-$
-
-Finally, we have the new representation of the energy function
-$
-E = sum_(i < j) J_(i j) (1 - 2 d_(i j)) + sum_i h_i (1 - 2 s_i),
-$
-which is linear in the variables $s_i$ and $d_(i j)$.
-
-The Julia implementation is as follows:
-
-#box(text(16pt)[```julia
-using JuMP, HiGHS, LinearAlgebra
-
-function solve_spin_glass(J::Matrix, h::Vector; verbose = false)
-    n = length(h)
-    @assert size(J, 1) == size(J, 2) == n "The size of J and h must be the same!"
-    @assert ishermitian(J) "J must be a Hermitian matrix!"
-
-    model = Model(HiGHS.Optimizer)
-    !verbose && set_silent(model)
-
-    @variable(model, 0 <= s[i = 1:n] <= 1, Int)            # spin: 0 -> 1, 1 -> -1
-    @variable(model, 0 <= d[i = 1:n, j = i+1:n] <= 1, Int) # d[i,j] = s_i s_j
-
-    for i = 1:n
-        for j = i+1:n
-            # map: (0, 0), (1, 1) -> 0 and (0, 1), (1, 0) -> 1
-            @constraint(model, d[i,j] <= s[i] + s[j])
-            @constraint(model, d[i,j] <= 2 - s[i] - s[j])
-            @constraint(model, d[i,j] >= s[i] - s[j])
-            @constraint(model, d[i,j] >= s[i] - s[j])
-        end
-    end
-    
-    @objective(model, Min, sum(J[i,j] * (1 - 2 * d[i,j]) for i = 1:n, j = i+1:n) + sum((1 - 2 * s[i]) * h[i] for i = 1:n))
-    optimize!(model)
-    energy = objective_value(model)
-    @assert is_solved_and_feasible(model) "The problem is infeasible!"
-    return energy, 1 .- 2 .* value.(s)
-end
-
-J = triu(fill(1.0, 10, 10), 1)
-J += J'  # anti-ferromagnetic complete graph
-h = zeros(size(J, 1))
-Emin, configuration = solve_spin_glass(J, h)
-```
-])
-The result is
-#box(text(16pt)[```output
-(-5.000000000000282, [1.0, 1.0000000000000648, 0.9999999999999196, -1.0, 0.9999999999999708, 1.0, -1.0, -1.0, -1.0, -1.0])
-```
-])
-
-== Example 3: Tropical matrix factorization
-
-Tropical number is defined by replacing the addition and multiplication of real numbers by the maximum and addition of real numbers. i.e. the tropical addition and multiplication are defined as
-$
-a plus.circle b &= max(a, b)\
-a times.circle b &= a + b\
-bb(0) &= -infinity\
-bb(1) &= 0
-$
-where $bb(0)$ and $bb(1)$ are the additive identity and multiplicative identity of the tropical numbers.
-
-The tropical matrix multiplication is easy to compute. e.g.
-$
-mat(1, 2; -infinity, 4) times.circle mat(5, 2; 0, 1) = mat(6, 3; 4, 5)
-$
-
-However, the inverse problem turns out to be NP-complete.
-
-#definition([_(Tropical matrix factorization problem)_ Given an $m times n$ tropical matrix $C_(m times n)$ and an integer $k$, are there two tropical matrices $A_(m times k)$ and $B_(k times n)$ such that $C = A times.circle B$.])
-
-This problem is NP-complete for $k >= 7$@Shitov2014. Even in the special case that all variables are either $-infinity$ or $0$, the problem is not easy. By mapping $-infinity$ to `false` and $0$ to `true`, we have the following boolean constraints:
-$
-C_(i j) = or.big_(l=1)^k A_(i l) and B_(l j).\
-$
-
-It can be solved by reducing to an integer programming problem.
-To facilitate the reduction, we introduce a auxiliary tensor $D_(i l j) = A_(i l) and B_(l j)$. The resulting integer programming problem is as follows:
-
-$
-min quad &1\
-"s.t." quad &D_(i l j) <= A_(i l)\
-&D_(i l j) <= B_(l j) \
-&D_(i l j) >= A_(i l) + B_(l j) - 1\
-&C_(i j) <= sum_(l=1)^k D_(i l j)\ 
-&D_(i l j) <= C_(i j)\ 
-&A_(i l), B_(l j), D_(i l j) in {0,1}
-$
-
-Since we do not have any objective function, we set the 
-The lines 2-4 encode the constraint $D_(i l j) = A_(i l) and B_(l j)$ with inequalities. The lines 5-6 encodes the tropical matrix multiplication constraints.
-
-#box(text(16pt)[```julia
-using JuMP, HiGHS, TropicalNumbers
-
-function tropical_factorization(C::Matrix{TropicalAndOr}, k::Int; verbose = false)
-    # C = A * B
-    # A: m x k, B: k x n
-
-    m,n = size(C)
-    model = Model(HiGHS.Optimizer)
-    !verbose && set_silent(model)
-
-    @variable(model, 0 <= a[i = 1:m*k] <= 1, Int) # a[i,l] = a[(l-1)*m+i]
-    @variable(model, 0 <= b[i = 1:k*n] <= 1, Int)   # b[l,j] = b[(j-1)*k+l]
-    @variable(model, 0 <= d[i = 1:m*k*n] <= 1, Int) # d[i,l,j] = d[(j-1)*k*m+(l-1)*m+i]
-    
-    for i in 1:m
-        for j in 1:n
-            if C[i,j].n
-                for l in 1:k
-                    @constraint(model, d[(j-1)*k*m+(l-1)*m+i] <= a[(l-1)*m+i])
-                    @constraint(model, d[(j-1)*k*m+(l-1)*m+i] <= b[(j-1)*k+l])
-                end
-                @constraint(model, sum(d[(j-1)*k*m+(l-1)*m+i] for l in 1:k) >= 1)
-            else
-                for l in 1:k
-                    @constraint(model, d[(j-1)*k*m+(l-1)*m+i] + 1 >= a[(l-1)*m+i] + b[(j-1)*k+l])
-                    @constraint(model, d[(j-1)*k*m+(l-1)*m+i] <= 0)
-                end
-            end
-        end
-    end
-    optimize!(model)
-    @assert is_solved_and_feasible(model) "The problem is infeasible!"
-    return reshape([TropicalAndOr(v ≈ 1.0) for v in value.(a)],m,k), reshape([TropicalAndOr(v ≈ 1.0) for v in value.(b)],k,n)
-end
-
-A, B = TropicalAndOr.(rand(Bool, 10, 5)), TropicalAndOr.(rand(Bool, 5, 10))
-C = A * B
-
-A2, B2 = tropical_factorization(C, 5)
-A2 * B2 == C
-```
-])
-
-In this example, there are $m times k times n$ variables.
-For such a large number of variables, the integer programming solver can handle a problem of size $50 times 6 times 50$ in a few seconds.
 
 == Benchmarking
 
@@ -684,21 +527,83 @@ $
 Here $A_1,...,A_k$ and $b_1,...,b_k$ are input constraints. It is very common to have: $f(X) = tr(C X)$ for some $C$. I.e. to have our objective be a linear function in $X$. Let us vectorize $X$ as $x in bb(R)^(n^2)$ and compare the above problem with the LP, the only difference is that $X$ is constrained to be PSD instead of requiring every element of $X$ to be non-negative.
 SDP is more general than LP because a linear programming problem can be viewed as a special case of semidefinite programming problem where $X$ is a diagonal matrix.
 
-== Example 5: Spin-glass ground state problem
-Let us consider obtaining an approximate solution to the spin-glass ground state problem.
-The tightest known approximation ratio for the maximum cut problem (a special case of the spin-glass ground state problem) is 0.878,
-which is achieved by using semidefinite programming @Goemans1995.
-Recall that the spin-glass ground state problem is a quadratic integer programming problem that is difficult to solve exactly:
+== Example 4: Approximating the spin-glass ground state
+
+*Max-Cut Problem (a special case of the spin-glass ground state problem)*: Given a graph $G = (V, E)$, find a partition of the vertices $V$ into two sets $S$ and $V \\ S$ such that the number of edges crossing the partition is maximized.
+
+#let show-graph-maxcut(vertices, edges_1, edges_2, cutted, radius:0.2) = {
+  import draw: *
+  for (k, (i, j)) in vertices.enumerate() {
+    circle((i, j), radius:radius, name: str(k), fill:white)
+  }
+  for k in cutted {
+    let (i, j) = vertices.at(k)
+    circle((i, j), radius:radius, name: str(k), fill:red)
+  }
+  for (k, l) in edges_1 {
+    line(str(k), str(l))
+  }
+  for (k, l) in edges_2 {
+    line(str(k), str(l), stroke: (paint: blue, thickness: 1pt, dash: "dashed"))
+  }
+}
+#let vrotate(v, theta) = {
+  let (x, y) = v
+  return (x * calc.cos(theta) - y * calc.sin(theta), x * calc.sin(theta) + y * calc.cos(theta))
+}
+
+#figure(canvas(length: 1.0cm, {
+  import draw: *
+  // petersen graph
+  let vertices1 = range(5).map(i=>vrotate((0, 2), i*72/180*calc.pi))
+  let vertices2 = range(5).map(i=>vrotate((0, 1), i*72/180*calc.pi))
+  let edges = ((0, 1), (1, 2), (2, 3), (3, 4), (4, 0), (0, 5), (1, 6), (2, 7), (3, 8), (4, 9), (5, 7), (6, 8), (7, 9), (8, 5), (9, 6))
+
+  let edges_1 = ((2, 3), (0, 5), (9, 6))
+  let edges_2 = ((0, 1), (1, 2), (3, 4), (4, 0), (1, 6), (2, 7), (3, 8), (4, 9), (5, 7), (6, 8), (7, 9), (8, 5))
+
+  show-graph-maxcut((vertices1 + vertices2).map(v=>(v.at(0) + 4, v.at(1)+4)), edges_1, edges_2, (1, 4, 7, 8), radius:0.2)
+  hobby((2, 2.8), (4, 2.8), (5, 2.8), (6, 5.3), (5, 3.8), (4, 3.8), (3, 3.8), (2.5, 5), (2.5, 6), stroke: blue)
+}))
+
+Imagine we're organizing a party and need to divide people into two rooms. Some pairs of people like each other (connected by an edge), and some don't. To maximize drama and entertainment, we want to place as many friends as possible in different rooms - maximizing the number of friendships that cross between rooms.
+
+== Max-Cut formulated as a spin-glass ground state problem
+Mathematically, we can formulate this as:
 $
-min quad &sum_(i j) J_(i j) sigma_i sigma_j\
-"s.t." quad &sigma_i in {-1, 1}, forall i = 1, ..., n
+max sum_(i,j in E) (1 - sigma_i sigma_j)/2
 $
-where we do not consider the external magnetic field $h_i$ for simplicity.
+
+where $sigma_i in {-1, 1}$ indicates which room person $i$ is assigned to. When friends $i$ and $j$ are in different rooms ($sigma_i != sigma_j$), we get a contribution of 1 to our objective.
+
+
+This is equivalent to minimizing:
+$
+min sum_(i,j in E) sigma_i sigma_j
+$
+
+which is exactly the spin glass ground state problem with $J_(i j) = 1$ for $(i,j) in E$ and $J_(i j) = 0$ otherwise.
+
+== Relaxation to SDP
+
+*Goal*: obtaining an approximate solution to the max-cut problem through _relaxation_ to semidefinite programming (SDP).
+
+- _Remark_: SDP gives the tightest known approximation ratio for the maximum cut problem, which is 0.878 @Goemans1995. This algorithm is known as the Goemans-Williamson algorithm.
+
+== SDP relaxation
+
+The relaxation of the max-cut problem is:
+$ sigma_i in {-1, 1} arrow.double.r x_i in bb(S)^n $
+where $bb(S)$ is the unit sphere in $bb(R)^n$.
 
 To find an approximate solution of this problem, we first arrange the spin-spin correlation function into a matrix $X$ as follows:
 $
 X_(i j) = mat(sigma_1^2, sigma_1 sigma_2, ..., sigma_1 sigma_n; sigma_1 sigma_2, sigma_2^2, ..., sigma_2 sigma_n; dots, dots, dots, dots; sigma_1 sigma_n, sigma_2 sigma_n, ..., sigma_n^2)
 $
+where the product $sigma_i sigma_j$ is replaced by the inner product $x_i^dagger x_j$.
+
+==
+
 It immediately follows that $X$ is a PSD matrix with the following constraints:
 - The rank of $X$ is 1.
 - $X$ is binary.
@@ -711,6 +616,8 @@ min quad & tr(J X)\
 $ <eq:spin-glass-sdp>
 This relaxation effectively generalizes the $sigma_i in {-1, 1}$ to a $n$-dimensional embedding on the unit sphere $x_i in bb(S)^n$ (@fig:spin-glass-sdp).
 The spin correlation function $sigma_i sigma_j in {-1, 1}$ is mapped to the inner product of the embedding vectors $1 <= x_i^dagger x_j <= 1$, and $X_(i j) = x_i^dagger x_j.$
+
+== Recovering the binary solution
 Given the optimal solution to $X$, we can recover $(x_1, ..., x_n)$ through the cholesky decomposition: $X = U^dagger U$ and set $x_i$ to be the $i$-th column of $U$ (blue arrow in @fig:spin-glass-sdp).
 To obtain a binary solution $(sigma_1, ..., sigma_n)$, we map $(x_1, ..., x_n)$ to the binary values by introducing a *random* hyper-plane $H$ through the origin (the blue plane in @fig:spin-glass-sdp). If the $i$-th component of $u_1$ is "above" the hyper-plane, we set $sigma_i = 1$; otherwise, we set $sigma_i = -1$.
 
@@ -738,53 +645,18 @@ To obtain a binary solution $(sigma_1, ..., sigma_n)$, we map $(x_1, ..., x_n)$ 
   rotate(40deg)
   circle((0, 0), radius: (0.2, 2.0), fill: aqua.transparentize(50%), stroke: (dash: "dashed"), name: "0")
 }),
-caption: [The hyper-plane $H$ (in blue) deciding the cut of graph $G = ({1, 2, 3, 4}, {(1, 2), (1, 3), (1, 4), (2, 3), (3, 4)}).$ The edges are in red, the embedding of $sigma$ is in a hyper-sphere is denoted as blue vectors of unit length.]
 ) <fig:spin-glass-sdp>
 
-The Julia code is as follows:
-#box(text(16pt)[```julia
-using JuMP, COSMO, Graphs, LinearAlgebra
+The hyper-plane $H$ (in blue) deciding the cut of graph $G = ({1, 2, 3, 4}, {(1, 2), (1, 3), (1, 4), (2, 3), (3, 4)}).$ The edges are in red, the embedding of $sigma$ is in a hyper-sphere is denoted as blue vectors of unit length.
 
-function maxcut_sdp(G::SimpleGraph)
-    n = nv(G)
-    model = Model(COSMO.Optimizer)
-    @variable(model, X[1:n, 1:n], PSD)
-    for i in 1:n
-        @constraint(model, X[i, i] == 1)
-    end
-    @objective(model, Min, sum(X[e.src, e.dst] for e in edges(G)))
-    optimize!(model)
-    return project_hyperplane(value(X), randn(n))
-end
+==
 
-# `X` is the optimal solution of the SDP
-# `H` is a vector orthogonal to the hyperplane
-function project_hyperplane(X::AbstractMatrix{Float64}, H::Vector{Float64})
-    n = length(H)
-    @assert size(X, 1) == size(X, 2) == n
-    # solve the Cholesky decomposition through eigen decomposition (stabler)
-    res = eigen(X)
-    U = Diagonal(sqrt.(max.(res.values, 0))) * res.vectors'
-    return [dot(U[:, i], H) > 0 ? 1 : -1 for i in 1:n]
-end
+#figure(canvas(length: 1.8cm, {
+  import draw: *
+  bob((0, 0), rescale: 1, flip: true, words: box(stroke: black, inset: 10pt)[*Live coding*: solving spin glass problem with SDP])
+}))
 
-G = random_regular_graph(100, 3)
-approx_maxcut = maxcut_sdp(G)
-
-cut_size = sum(approx_maxcut[e.src] != approx_maxcut[e.dst] for e in edges(G))
-```
-])
-A typical result is
-#box(text(16pt)[```output
-130
-```])
-It is very suppising that even the hyper-plane is randomly generated, the result is very close to the optimal solution: $135$, i.e. here $alpha approx 0.963$ is achieved.
-
-_Analysis_. We are interested to know how good this approximate solution is in theory.
-For simplicity, we consider the case that $J$ being an adjacency matrix of some graph $G = (V, E)$. Then finding the ground state energy is equivalent to finding the maximum cut of $G$.
-#definition([_(Maximum cut problem)_ Given a graph $G = (V, E)$, the maximum cut problem is to find the largest set of edges $E' subset E$ such that $V$ can be partitioned into two subsets $V_1$ and $V_2$ such that $E' = {(i, j) | i in V_1, j in V_2}$.])
-
-To connect the maximum cut problem with the anti-ferromagnetic spin-glass ground state problem, we use spin $sigma_i = +1$ and $-1$ to represent the $i$-th vertex being in $V_1$ and $V_2$ respectively. Each cut contributes $-2 J_(i j) sigma_i sigma_j$ to the energy function, where $sigma_i$ is the spin of the $i$-th vertex. Maximizing the cut size is equivalent to minimizing the energy function.
+==
 
 #theorem([There exists $alpha = 0.879$ with the following property. If $(x_1, ..., x_n)$ is optimal for the SDP for spin glass ground state problem, with an objective value $-overline("Maxcut")(G)$, $H$ is a random hyperplane through the origin, and $"Cut"(H)$ is the size of the edge cut consisting of those edges $(i, j) in E$ for which $x_i$ and $x_j$ are separated by $H$, then
 $
@@ -793,6 +665,7 @@ $
 where $bb(E)$ is the expectation operator. Since $overline("Maxcut")(G)$ upper bounds the maximum cut size, $alpha$ is also an approximation ratio for the maximum cut problem.
 ])
 
+==
 #proof([
 Let $theta_(i j) = arccos(x_i x_j), 0 <= theta_(i j) < pi$, #highlight([the probability that an edge is cut by $H$ is $theta_(i j)/pi$]). Then the expected cut size is
 $
@@ -801,6 +674,7 @@ bb(E)["Cut"(H)] &= sum_(i,j in E) theta_(i j)/pi\
 &>= 2/(beta pi) times overline("Maxcut")(G) arrow.double.r alpha = 2/(beta pi)
 $
 ])
+==
 From the first line to the second line, we have used an important observation that $1 - cos(theta)$ is upper bounded by $beta theta$ for some $beta > 0$ as shown in @fig:maxcut-sdp.
 By solving the equation, we obtain $beta = 0.879$.
 
@@ -838,64 +712,6 @@ import plot
 
 = Hands-on
 
-== (Integer programming) The minimum set cover problem
-#definition([_(Minimum set cover problem)_ Given a set of elements $cal(S) = {1, 2, ..., n}$ and a collection of subsets $S_1, S_2, ..., S_m$ of $cal(S)$, the minimum set cover problem is to find the smallest collection of subsets that covers all elements in $cal(S)$.])
-
-Consider the following example:
-$
-  cal(S) &= {1, 2, 3, 4, 5, 6, 7, 8, 9, 10},\
-  S_1 &= {1, 2, 3, 4},\
-  S_2 &= {2, 3, 4, 5},\
-  S_3 &= {3, 4, 5, 6},\
-  S_4 &= {1, 7, 8, 9},\
-  S_5 &= {1, 4, 7, 10},\
-  S_6 &= {2, 4, 6, 8, 10},\
-  S_7 &= {1, 3, 5, 7, 9}
-$
-Use the integer programming to solve this problem.
-
-_Solution_:
-The minimum set cover problem can be formulated as an integer programming problem. The variables are $x = {x_1, x_2, ..., x_m}$, which are binary variables indicating whether the corresponding subset is included in the cover.
-$
-min_(x) & sum_(i=1)^m x_i\
-"s.t." & (sum_(i : j in S_i) x_i) >= 1, forall j = 1, 2, ..., n\
-& x_i in bb(Z)_2, forall i = 1, 2, ..., m
-$
-
-The Julia code is as follows:
-
-#box(text(16pt)[```julia
-using JuMP, HiGHS
-
-function minimum_set_cover(n::Int, S::Vector{Vector{Int}})
-    m = length(S)
-    model = Model(HiGHS.Optimizer)
-    @variable(model, x[1:m], Bin)
-
-    for j in 1:n
-        @constraint(model, sum(x[i] for i=1:m if j in S[i]) >= 1)
-    end
-
-    @objective(model, Min, sum(x))
-
-    optimize!(model)
-    return findall(value.(x) .> 0.5)
-end
-
-minimum_set_cover(10, [[1, 2, 3, 4], [2, 3, 4, 5], [3, 4, 5, 6], [1, 7, 8, 9], [1, 4, 7, 10], [2, 4, 6, 8, 10], [1, 3, 5, 7, 9]])
-```
-])
-The result is
-#box(text(16pt)[```output
-2-element Vector{Int64}:
- 6
- 7
-```])
-which means the minimum set cover is $S_6$ and $S_7$.
-
-== SCIP: parameter tuning
-https://www.scipopt.org/doc/html/PARAMETERS.php
-
 == Hands-on: Integer programming for crystal structure prediction
 Run the example in GitHub: https://github.com/Br0kenSmi1e/CrystalStructurePrediction.jl
 
@@ -910,6 +726,12 @@ make run-example  # run the SrTiO3 example
 *It implements*: Gusev, V.V., et al., 2023. Optimality guarantees for crystal structure prediction. Nature 619, 68–72. https://doi.org/10.1038/s41586-023-06071-y
 
 *Task*: Improve the performance of SCIP solver by tuning the parameters. Try pushing the lattice size to `(4, 4, 4)`.
+
+== SCIP: performance and parameter tuning
+
+#figure(image("images/ipbenchmark.png", width: 80%))
+
+The SCIP @Achterberg2009 is open source, licensed under the Apache License 2.0. It provides more freedom for parameter tuning: https://www.scipopt.org/doc/html/PARAMETERS.php
 
 ==
 #bibliography("refs.bib")
