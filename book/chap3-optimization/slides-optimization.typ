@@ -710,6 +710,22 @@ import plot
 })
 ) <fig:maxcut-sdp>
 
+== Choose the right solver
+
+When solving semidefinite programming problems like the SDP relaxation for MaxCut, choosing the right solver is crucial.
+
+#figure(
+  table(
+    columns: (auto, auto, auto, auto),
+    inset: 10pt,
+    align: center,
+    [*Solver*], [*License*], [*Features*], [*Precision*],
+    [Mosek], [Commercial (free for academics)], [Highly optimized, interior point method], [High],
+    [COSMO\ @Garstka2021], [Apache 2.0 (open source)], [Conic programming, first order method], [Medium],
+    [Clarabel\ @Goulart2024], [Apache 2.0 (open source)], [Interior point method], [High],
+  ),
+)
+
 = Hands-on
 
 == Hands-on: Integer programming for crystal structure prediction
