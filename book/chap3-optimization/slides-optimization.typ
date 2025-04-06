@@ -49,7 +49,8 @@
 
 = Introduction to optimization
 == Convex optimization
-Convex: $f(a x + (1-a) y) <= a f(x) + (1-a) f(y)$, e.g. a quadratic function $f(x) = x^2$ is convex, but $f(x) = x^3$ is not.
+*Optimization* is the study of minimizing an *objective function* over a *feasible region*.
+*Convex*: $f(a x + (1-a) y) <= a f(x) + (1-a) f(y)$, e.g. a quadratic function $f(x) = x^2$ is convex, but $f(x) = x^3$ is not.
 
 #figure(
   canvas(length: 0.8cm, {
@@ -131,7 +132,7 @@ Convex: $f(a x + (1-a) y) <= a f(x) + (1-a) f(y)$, e.g. a quadratic function $f(
 
   })
 )
-
+Q: What is the feasible region of the above two functions?
 
 == Convex objective function is not enough
 Convex optimization:
@@ -164,19 +165,19 @@ Q: Is the following feasible region convex?
 
 == Convex optimization problems are easy to solve
 
-- Golden section search
-- Gradient descent, Newton's method
-- Simplex method
-- Interior point method
-
-Relevant Julia packages:
-- #link("https://github.com/jump-dev/JuMP.jl", "JuMP.jl")
-- #link("https://github.com/FluxML/Optimisers.jl", "Optimisers.jl"), stochastic gradient descent, e.g. Adam, AdaGrad, RMSProp, etc. Features robust to noise, cheap to compute, and can be used for training neural networks.
-- #link("https://github.com/JuliaNLSolvers/Optim.jl", "Optim.jl"), 
-
+#align(center, table(inset: 9pt,
+  columns: (auto, auto, auto, auto),
+  table.header([*Julia Package*], [*Features*], [*Algorithms*], [*Applications*]),
+  table.cell(fill:yellow)[#link("https://github.com/jump-dev/JuMP.jl", "JuMP.jl")\ @Dunning2017], table.cell(fill:yellow)[Mathematical optimization modeling], table.cell(fill:yellow)[Linear programming\ Integer programming\ SDP, etc.], table.cell(fill:yellow)[Combinatorial optimization, planning and scheduling],
+  [#link("https://github.com/JuliaNLSolvers/Optim.jl", "Optim.jl")\ @Mogensen2018], [Gradient and non-gradient based optimization], [L-BFGS, Newton's method, Nelder-Mead method, etc.], [General purpose optimization],
+  [#link("https://github.com/FluxML/Optimisers.jl", "Optimisers.jl")], [Robust to noise, cheap to compute], [Stochastic gradient descent (Adam, AdaGrad, RMSProp, etc.)], [Training neural networks],
+))
 
 = Linear Programming (LP)
-_Linear Programming_ deals with the problem of optimizing a *linear objective function* subject to *linear equality and inequality constraints* on *real* variables. It is a convex optimization problem, hence it is easy to solve. A linear programming problem of $n$ variables is formulated as the following _canonical form_:
+_Linear Programming_ deals with the problem of optimizing a
+- *linear objective function*
+- subject to *linear equality and inequality constraints*
+- on *real* variables.
 $
   max_(x) quad &z = c^T x,\
   "s.t." quad &A x <= b,\
@@ -184,10 +185,13 @@ $
   &#box(stroke: black, inset: 5pt, [$x in bb(R)^n$])
 $ <eq:linear-programming>
 where $c in bb(R)^n$ is the objective function coefficient vector, $A in bb(R)^(m times n)$ is the constraint matrix, and $b in bb(R)^m$ is the constraint vector.
-Note here, the positivity constraint $x >= 0$ is not absolutely necessary. Adding this extra constraint does not sacrifice the generality of linear programming, because any linear program can be written into a canonical form by shifting the variables.
+
+== Remarks
+- Linear programming is convex, hence it is easy to solve.
+- The positivity constraint $x >= 0$ is not absolutely necessary. Adding this extra constraint does not sacrifice the generality of linear programming, because any linear program can be written into a canonical form by shifting the variables.
 
 == Example: The Diet Problem
-In the diet model, a list of available foods is given together with the nutrient content and the cost per unit weight of each food. A certain amount of each nutrient is required per day. For example, here is the data corresponding to two types of food (fish and rice) and three types of nutrients (starch, proteins, vitamins):
+In the diet model, a list of available foods is given together with the nutrient content and the cost per unit weight of each food. A certain amount of each nutrient is required per day. For example, here is the data corresponding to two types of food (fish and rice) and three types of nutrients (starch, proteins, vitamins) in unit of kg:
 #align(center, table(
   columns: (auto, auto, auto, auto, auto),
   table.header([], [Starch], [Proteins], [Vitamins], [Cost (RMB/kg)]),
@@ -195,14 +199,14 @@ In the diet model, a list of available foods is given together with the nutrient
   [rice], [7], [2], [1], [3.5],
 ))
 
-Nutrient content and cost per kg of food. The requirement per day of starch, proteins and vitamins is 8, 15 and 3 respectively. The problem is to find how much of each food to consume per day so as to get the required amount per day of each nutrient at minimal cost.
+- *Requirement*: per day of starch, proteins and vitamins is 8, 15 and 3 respectively.
+- *Objective*: find how much of each food to consume per day so as to get the required amount per day of each nutrient at minimal cost.
 
-_Solution_:
+== Solution
 In the diet problem, a very natural choice of decision variables is:
 - $x_1$: number of units of fish to be consumed per day,
 - $x_2$: number of units of rice to be consumed per day.
 
-The objective function is the function to be minimized. In this case, the objective is to minimize the total cost per day which is given by $z = 6x_1 + 3.5x_2$. Finally, we need to describe the different constraints that need to be satisfied by $x_1$ and $x_2$.
 This diet problem can therefore be formulated by the following linear program:
 $
 min_(x_1, x_2) & z = 6x_1 + 3.5x_2\
@@ -212,7 +216,7 @@ min_(x_1, x_2) & z = 6x_1 + 3.5x_2\
 & x_1 ≥ 0, x_2 ≥ 0.
 $
 
-The Julia code is as follows:
+== Julia code
 
 #box(text(16pt)[```julia
 using JuMP, HiGHS
@@ -233,6 +237,8 @@ optimize!(model)
 value(x1), value(x2), objective_value(model)
 ```
 ])
+
+==
 
 The result is
 #box(text(16pt)[```output
