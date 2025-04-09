@@ -238,14 +238,66 @@ $
 
 ==
 
+
+In Julia programming language, we can solve the integer programming problem by using #link("https://github.com/jump-dev/JuMP.jl", "JuMP") package.
+#figure(image("images/jump.png", width: 2cm))
 #figure(canvas(length: 1.8cm, {
   import draw: *
   bob((0, 0), rescale: 1, flip: true, words: box(stroke: black, inset: 10pt)[*Live coding*: the diet problem])
 }))
 
-== Strategies to solve linear programming problems
-- Simplex method
-- Interior point method
+== Algorithms for solving linear programming problems
+
+#let s(item) = table.cell(align: left)[#item]
+#align(center, text(16pt, table(inset: 9pt,
+  columns: (auto, auto, auto),
+  table.header([*Algorithm*], [*Advantages*], [*Disadvantages*]),
+  [*Simplex Method* \ @Dantzig1963], s[
+    - Very efficient in practice
+    - Finds exact solutions
+    - Works well for sparse problems
+    - Easy to warm-start from previous solutions
+  ], s[
+    - Exponential worst-case complexity
+    - Can be inefficient for dense problems
+    - Vulnerable to cycling in degenerate cases
+  ],
+  [*Interior Point Methods* \ @Karmarkar1984], s[
+    - Polynomial worst-case complexity
+    - Excellent for large, dense problems
+    - More predictable solution times
+  ], s[
+    - Less efficient for sparse problems
+    - Harder to warm-start
+    - More complex implementation
+  ],
+  [*Ellipsoid Method* \ @Khachiyan1979], s[
+    - Polynomial worst-case complexity
+    - Theoretically important
+    - Can handle some non-differentiable objectives
+  ], s[
+    - Very slow in practice
+    - Rarely used for actual computation
+  ],
+)))
+
+// === Simplex Method
+
+// The Simplex Method, developed by George Dantzig in 1947, works by:
+// 1. Starting at a vertex of the feasible region
+// 2. Moving along edges to adjacent vertices that improve the objective value
+// 3. Terminating when no further improvement is possible
+
+// While it has exponential worst-case complexity, the Simplex Method is remarkably efficient for most practical problems and remains widely used today.
+
+// === Interior Point Methods
+
+// Interior Point Methods follow a different approach:
+// 1. Start from a point inside the feasible region
+// 2. Follow a path through the interior toward the optimal solution
+// 3. Approach the boundary of the feasible region as the algorithm progresses
+
+// These methods gained popularity in the 1980s and offer polynomial-time complexity, making them particularly valuable for large-scale problems.
 
 == Formulating spin glass as a "linear" programming problem
 The spin glass energy function is defined as
@@ -275,7 +327,7 @@ which is linear in the variables $s_i$ and $d_(i j)$.
 - Spin glass is in the complexity class of NP-complete.
 - Linear programming is convex, hence it is easy to solve.
 
-Q: Why there is a contradiction?
+Q: Why there is a "contradiction"?
 
 = Integer Programming (IP)
 == Definition
@@ -379,14 +431,14 @@ $
 Solving an integer programming problem. The feasible region of linear programming problem is the green area, while the feasible region of integer programming problem are the discrete points marked by small circles.
 
 == Branch and cut
-1. By relaxing the integer constraint, it becomes a linear programming problem that is easy to solve. The feasible region is the green polygon in @fig:integer-programming, and the optimal solution is the point $p_1$ at the line crossing.
+Step 1. Relaxing the integer constraint, it becomes a linear programming problem that is easy to solve.
 
-2. $p_1$ is not feasible for the integer programming problem due to $x_2$ being non-integer. To force the variables to be integer, we add some inequalities constraints to the linear programming problem as shown in @fig:branching-and-cutting. Since $x_2$ is non-integer, we create two sub-problems (or branches) by adding two inequalities constraints $x_2 <= 2$ and $x_2 >= 3$ to the linear programming problem.
+// 2. $p_1$ is not feasible for the integer programming problem due to $x_2$ being non-integer. To force the variables to be integer, we add some inequalities constraints to the linear programming problem as shown in @fig:branching-and-cutting. Since $x_2$ is non-integer, we create two sub-problems (or branches) by adding two inequalities constraints $x_2 <= 2$ and $x_2 >= 3$ to the linear programming problem.
 
-3. It turns out the sub-problem 2 with $x_2 <= 2$ accepts integer solution $p_2$ as the optimal solution. So we stop this branch and continue to solve the sub-problem 3 with $x_2 >= 3$.
+// 3. It turns out the sub-problem 2 with $x_2 <= 2$ accepts integer solution $p_2$ as the optimal solution. So we stop this branch and continue to solve the sub-problem 3 with $x_2 >= 3$.
 
 == Branch and cut
-#figure(canvas(length: 0.85cm, {
+#figure(canvas(length: 0.8cm, {
   import draw: *
   let boxed(c) = box(stroke: black, inset: (x: 7pt, y: 5pt), c)
   content((0, 0), boxed(text(10pt)[Sub-problem 1
@@ -433,12 +485,7 @@ Solving an integer programming problem. The feasible region of linear programmin
   content((rel: (0.8, 0.1), to: "l57.mid"), text(10pt)[$x_2 <= 3$])
 }),
 ) <fig:branching-and-cutting>
-
-Branching and cutting for solving integer programming. The additional constraints are marked along the lines. The optimal solution is annotated in each sub-problem.
-
-Finally, we compare all sub-problems producing integer solutions, and find the optimal solution is $p_2$.
-
-In Julia programming language, we can solve the linear/integer programming problem by using #link("https://github.com/jump-dev/JuMP.jl", "JuMP") package.
+2. "Branch" and "cut" over the non-integer variables by adding more constraints.
 
 == Julia implementation
 
@@ -486,11 +533,10 @@ In Julia programming language, we can solve the linear/integer programming probl
   [Enterprise applications, Integration with IBM tools]
 )))
 
-==
+== Choice of solver
 The choice of solver depends on your specific needs:
-- For open-source projects or educational purposes, HiGHS is a good starting point
-- For research with complex constraints, SCIP offers powerful modeling capabilities
-- For industrial applications with large-scale problems, commercial solvers like Gurobi or CPLEX typically provide better performance and support
+- For open-source projects or educational purposes, HiGHS and SCIP are good starting points.
+- For industrial applications with large-scale problems, commercial solvers like Gurobi or CPLEX typically provide better performance and support.
 
 All these solvers can be used with JuMP in Julia through their respective packages.
 
@@ -514,9 +560,9 @@ Recall that a symmetric matrix $A in bb(R)^(n times n)$ is positive semidefinite
 1. $A$ has all non-negative eigenvalues.
 2. $A$ can be written as $A = U^T U$ (Cholesky decomposition) for some $U in bb(R)^(n times n)$, i.e., $A_(i j) = u_i^T u_j$ where $u_i$ is the $i$-th column of $U$.
 
-The goal of semidefinite programming is to solve optimization problems where the input is a matrix that is constrained to be PSD. I.e. we optimize over $X in bb(R)^(n times n)$ where $X in K$ and: $K = {M | M succ.eq 0}$.
+The goal of semidefinite programming is to solve optimization problems where the input is a matrix that is constrained to be PSD. I.e. we optimize over $X in bb(R)^(n times n)$ where $X succ.eq 0$.
 
-#box(stroke: black, inset: 10pt, width: 100%, [Quiz: Show that $K$ is a convex set.])
+#box(stroke: black, inset: 10pt, width: 100%, [Q: Show that $K$ is a convex set.])
 
 _Semidefinite program (SDP)_. Let $f$ be a convex function. We seek to find $X in bb(R)^(n times n)$ which solves:
 $
@@ -524,8 +570,8 @@ min quad &f(X)\
 "s.t." quad &X succ.eq 0,\
 &tr(A_i X) >= b_i, quad i = 1,...,k
 $
-Here $A_1,...,A_k$ and $b_1,...,b_k$ are input constraints. It is very common to have: $f(X) = tr(C X)$ for some $C$. I.e. to have our objective be a linear function in $X$. Let us vectorize $X$ as $x in bb(R)^(n^2)$ and compare the above problem with the LP, the only difference is that $X$ is constrained to be PSD instead of requiring every element of $X$ to be non-negative.
-SDP is more general than LP because a linear programming problem can be viewed as a special case of semidefinite programming problem where $X$ is a diagonal matrix.
+Here $A_1,...,A_k$ and $b_1,...,b_k$ are input constraints. It is very common to have: $f(X) = tr(C X)$ for some $C$. I.e. to have our objective be a linear function in $X$.
+- _Remark_: SDP is more general (and is harder) than LP because a linear programming problem can be viewed as a special case of semidefinite programming problem where $X$ is a diagonal matrix.
 
 == Example 4: Approximating the spin-glass ground state
 
