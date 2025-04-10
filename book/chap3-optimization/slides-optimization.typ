@@ -562,7 +562,7 @@ Recall that a symmetric matrix $A in bb(R)^(n times n)$ is positive semidefinite
 
 The goal of semidefinite programming is to solve optimization problems where the input is a matrix that is constrained to be PSD. I.e. we optimize over $X in bb(R)^(n times n)$ where $X succ.eq 0$.
 
-#box(stroke: black, inset: 10pt, width: 100%, [Q: Show that $K$ is a convex set.])
+#box(stroke: black, inset: 10pt, width: 100%, [Q: Show that $X$ is a convex set.])
 
 _Semidefinite program (SDP)_. Let $f$ be a convex function. We seek to find $X in bb(R)^(n times n)$ which solves:
 $
