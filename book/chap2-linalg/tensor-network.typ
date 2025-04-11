@@ -126,6 +126,35 @@ Let $A, B$ and $C$ be three square matrices with the same size. Represent the tr
 The corresponding einsum notation is `ij,jk,ki->`. From this diagram, we can see the trace permutation rule: $tr(A B C) = tr(C A B) = tr(B C A)$.
 ])
 
+For example, the contraction of two tensors $A_(i j k)$ and $B_(k l)$, i.e. $sum_k A_(i j k) B_(k l)$, can be diagrammatically represented as
+
+#align(center, canvas({
+  import draw: *
+  tensor((1, 1), "A", "A")
+  tensor((3, 1), "B", "B")
+  labeledge("A", "B", "k")
+  labeledge("B", (rel: (1.5, 0)), "l")
+  labeledge("A", (rel: (0, 1.5)), "j")
+  labeledge("A", (rel: (-1.5, 0)), "i")
+}))
+
+The kronecker product of two matrices $A_(i j)$ and $B_(k l)$, i.e. $A_(i j) times.circle B_(k l)$, can be diagrammatically represented as
+
+#pad(canvas({
+  import draw: *
+  tensor((1, 1), "A", "A")
+  tensor((3, 1), "B", "B")
+  labeledge("A", (rel: (0, -1.5)), "j")
+  labeledge("A", (rel: (0, 1.5)), "i")
+  labeledge("B", (rel: (0, -1.5)), "l")
+  labeledge("B", (rel: (0, 1.5)), "k")
+  set-origin((5.5, 0))
+  content((0, 1), $arrow$)
+  set-origin((2, 0))
+  content((0, 1), `ij,kl->ijkl`)
+}), x:25pt)
+
+
 In the following example, we use the `OMEinsum` package to compute some simple tensor network contractions:
 
 ```julia
@@ -711,34 +740,68 @@ which solves the decoding problem.
 Since this tensor network has a chain structure, its contraction is computationally efficient.
 This algorithm is equivalent to the Viterbi algorithm.
 
-== Spin-glass and tensor networks
+== Example: Spin-glass and tensor networks
 
-For example, the contraction of two tensors $A_(i j k)$ and $B_(k l)$, i.e. $sum_k A_(i j k) B_(k l)$, can be diagrammatically represented as
+The partition function of a physical system plays a central role in statistical physics. It is closely related to many physical quantities, such as the free energy, the entropy, and the specific heat.
+The spin glass Hamiltonian on a graph $G = (V, E)$ is given by
+$
+H(bold(s)) = sum_((i, j) in E) J_(i j) s_i s_j + sum_(i in V) h_i s_i,
+$
+where $s_i$ is the spin of the $i$-th spin.
+It partition function is given by
+$
+Z = sum_(bold(s)) e^(-beta E(bold(s))) = sum_(bold(s)) product_((i, j) in E) e^(-beta J_(i j) s_i s_j) product_(i in V) e^(-beta h_i s_i),
+$ <eq:partition-function>
+where $beta$ is the inverse temperature.
+It corresponds to the following tensor network:
+$
+  cases(Lambda = {s_i | i in V},
+  cal(T) = {e^(-beta J_(i j) s_i s_j) | (i, j) in E} union {e^(-beta h_i s_i) | i in V},
+  V_0 = emptyset
+  )
+$
 
-#align(center, canvas({
-  import draw: *
-  tensor((1, 1), "A", "A")
-  tensor((3, 1), "B", "B")
-  labeledge("A", "B", "k")
-  labeledge("B", (rel: (1.5, 0)), "l")
-  labeledge("A", (rel: (0, 1.5)), "j")
-  labeledge("A", (rel: (-1.5, 0)), "i")
-}))
+```julia
+using OMEinsum, ProblemReductions, Graphs
 
-The kronecker product of two matrices $A_(i j)$ and $B_(k l)$, i.e. $A_(i j) times.circle B_(k l)$, can be diagrammatically represented as
+# Define an AFM spin glass on Petersen graph
+graph = smallgraph(:petersen)
+sg = SpinGlass(graph, ones(Int, ne(graph)), zeros(Int, nv(graph)))
 
-#pad(canvas({
-  import draw: *
-  tensor((1, 1), "A", "A")
-  tensor((3, 1), "B", "B")
-  labeledge("A", (rel: (0, -1.5)), "j")
-  labeledge("A", (rel: (0, 1.5)), "i")
-  labeledge("B", (rel: (0, -1.5)), "l")
-  labeledge("B", (rel: (0, 1.5)), "k")
-  set-origin((5.5, 0))
-  content((0, 1), $arrow$)
-  set-origin((2, 0))
-  content((0, 1), `ij,kl->ijkl`)
-}), x:25pt)
+# Initialize tensors and contraction code
+β = 1.0
+tensors = [[exp(-β * J) exp(β * J); exp(β * J) exp(-β * J)] for J in sg.J]
+rawcode = EinCode([[e.src, e.dst] for e in edges(graph)], Int[])
+
+# optimize the contraction code
+optcode = optimize_code(rawcode, uniformsize(rawcode, 2), TreeSA())
+
+# Compute the partition function
+Z = optcode(tensors...)  # output: 167555.17801582735
+```
+
+It is also possible to compute the ground state energy of the spin glass. To achieve this, we need to import the `TropicalMinPlus` data type from the `TropicalNumbers` package. This algebra is defined as
+$
+  &a plus.circle b = min(a, b),\
+  &a times.circle b = a + b,\
+  &bb(0) = infinity,\
+  &bb(1) = 0,
+$
+where $plus.circle$ and $times.circle$ are the tropical addition and multiplication, respectively, and $bb(0)$ and $bb(1)$ are the zero and unit elements, respectively.
+The following code computes the ground state energy of the spin glass.
+
+```julia
+using TropicalNumbers
+
+tensors = [TropicalMinPlus.([J -J; -J J]) for J in sg.J]
+rawcode = EinCode([[e.src, e.dst] for e in edges(graph)], Int[])
+optcode = optimize_code(rawcode, uniformsize(rawcode, 2), TreeSA())
+
+Emin = optcode(tensors...)  # output: -9ₛ
+```
+By comparing with @eq:partition-function, we can see that the above code effectively computes the following equation:
+$
+  min_(bold(s)) sum_(i in V) h_i s_i + sum_((i, j) in E) J_(i j) s_i s_j,
+$
 
 #bibliography("refs.bib")

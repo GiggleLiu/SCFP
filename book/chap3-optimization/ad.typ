@@ -20,14 +20,14 @@
 
 Automatic differentiation@Griewank2008 is a technique to compute the derivative of a function automatically. It is a powerful tool for scientific computing, machine learning, and optimization. The automatic differentiation can be classified into two types: forward mode and backward mode. The forward mode AD computes the derivative of a function with respect to many inputs, while the backward mode AD computes the derivative of a function with respect to many outputs. The forward mode AD is efficient when the number of inputs is small, while the backward mode AD is efficient when the number of outputs is small.
 
-== A brief history of autodiff
+// == A brief history of autodiff
 
-- 1964 (*forward mode AD*) ~ Robert Edwin Wengert, A simple automatic derivative evaluation program.
-- 1970 (*backward mode AD*) ~ Seppo Linnainmaa, Taylor expansion of the accumulated rounding error.
-- 1986 (*AD for machine learning*) ~ Rumelhart, D. E., Hinton, G. E., and Williams, R. J., Learning representations by back-propagating errors.
-- 1992 (*optimal checkpointing*) ~ Andreas Griewank, Achieving logarithmic growth of temporal and spatial complexity in reverse automatic differentiation.
-- 2000s ~ The boom of tensor based AD frameworks for machine learning.
-- 2020 (*AD on LLVM*) ~ Moses, William and Churavy, Valentin, Instead of Rewriting Foreign Code for Machine Learning, Automatically Synthesize Fast Gradients.
+// - 1964 (*forward mode AD*) ~ Robert Edwin Wengert, A simple automatic derivative evaluation program.
+// - 1970 (*backward mode AD*) ~ Seppo Linnainmaa, Taylor expansion of the accumulated rounding error.
+// - 1986 (*AD for machine learning*) ~ Rumelhart, D. E., Hinton, G. E., and Williams, R. J., Learning representations by back-propagating errors.
+// - 1992 (*optimal checkpointing*) ~ Andreas Griewank, Achieving logarithmic growth of temporal and spatial complexity in reverse automatic differentiation.
+// - 2000s ~ The boom of tensor based AD frameworks for machine learning.
+// - 2020 (*AD on LLVM*) ~ Moses, William and Churavy, Valentin, Instead of Rewriting Foreign Code for Machine Learning, Automatically Synthesize Fast Gradients.
 
 == Differentiating the Bessel function
 
@@ -59,54 +59,6 @@ Let us plot the Bessel function:
 
 The derivative of the Bessel function is:
 $ (d J_nu(z))/(d z) = (J_(nu-1)(z) - J_(nu+1)(z))/2 $
-
-= Finite difference
-The finite difference is a numerical method to approximate the derivative of a function. The finite difference can be classified into three types: forward, backward, and central.
-
-For example, the first order forward difference is:
-$ (partial f)/(partial x) approx (f(x+Delta) - f(x))/(Delta) $
-
-The first order backward difference is:
-$ (partial f)/(partial x) approx (f(x) - f(x-Delta))/(Delta) $
-
-The first order central difference is:
-$ (partial f)/(partial x) approx (f(x+Delta) - f(x-Delta))/(2Delta) $
-
-Among these three methods, the central difference is the most accurate. It has an error of $O(Delta^2)$, while the forward and backward differences have an error of $O(Delta)$.
-
-Higher order finite differences can be found in the #link("https://en.wikipedia.org/wiki/Finite_difference_coefficient")[wiki page].
-
-#box(
-  fill: rgb("e5e5e5"),
-  inset: 1em,
-  radius: 4pt,
-)[
-  *Example: central finite difference to the 4th order*
-
-  The coefficients of the central finite difference to the 4th order are:
-
-  #table(
-    columns: 5,
-    [-2], [-1], [0], [1], [2],
-    [1/12], [-2/3], [0], [2/3], [-1/12]
-  )
-
-  The induced formula is:
-  $ (partial f)/(partial x) approx (f(x-2Delta) - 8f(x-Delta) + 8f(x+Delta) - f(x+2Delta))/(12Delta) $
-
-  In the following, we will derive this formula using the Taylor expansion.
-  $ vec(
-    f(x-2Delta), f(x-Delta), f(x), f(x+Delta), f(x+2Delta)
-  ) approx mat(
-    1, (-2)^1, (-2)^2, (-2)^3, (-2)^4;
-    1, (-1)^1, (-1)^2, (-1)^3, (-1)^4;
-    1, 0, 0, 0, 0;
-    1, (1)^1, (1)^2, (1)^3, (1)^4;
-    1, (2)^1, (2)^2, (2)^3, (2)^4
-  ) vec(
-    f(x), f'(x)Delta, f''(x)Delta^2/2, f'''(x)Delta^3/6, f''''(x)Delta^4/24
-  ) $
-]
 
 = Forward mode AD
 
