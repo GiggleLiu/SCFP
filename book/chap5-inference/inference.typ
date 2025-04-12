@@ -1,6 +1,5 @@
-#import "../book.typ": book-page, cross-link, heading-reference
 #import "@preview/cetz:0.2.2": *
-#show: book-page.with(title: "Sparsity Detection")
+#show: book-page.with(title: "Inference modeling")
 
 #set math.equation(numbering: "(1)")
 #let boxed(it, width: 100%) = block(stroke: 1pt, inset: 10pt, radius: 4pt, width: width)[#it]
