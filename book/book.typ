@@ -15,8 +15,8 @@
     #chapter("chap1-julia/julia-setup.typ")[Setup Julia]
     #chapter("chap1-julia/julia-basic.typ")[Julia Basic]
     #chapter("chap1-julia/julia-release.typ")[My First Package]
+    #chapter("chap1-julia/gpu.typ")[Arrays and GPU Programming]
     = Matrices and tensors
-    #chapter("chap2-linalg/array.typ")[Arrays operations]
     #chapter("chap2-linalg/linalg.typ")[Matrix Computation]
     #chapter("chap2-linalg/linalg-advanced.typ")[Matrix Computation (Advanced Topics)]
     #chapter("chap2-linalg/sparse.typ")[Sparse Matrices and Graphs]
