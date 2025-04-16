@@ -567,7 +567,7 @@ Simulated annealing is an algorithm for finding the global optimum of a given fu
 - The thermal state at zero temperature is the ground state.
 - The thermal distribution are $beta$ and $beta + Delta beta$ are very close when $Delta beta$ is small (@fig:ising-energy-distribution).
 
-#figure(image("../chap4-simulation/images/ising-energy-distribution.svg", width: 70%),
+#figure(image("../chap4-simulation/images/ising-energy-distribution.png", width: 70%),
 caption: [The binned energy distribution of spin configurations generated unbiasly from the ferromagnetic Ising model ($J_(i j) = -1, L = 10$) at different inverse temperatures $beta$. The method to generate the samples is the tensor network based method detailed in @Roa2024]
 ) <fig:ising-energy-distribution>
 
