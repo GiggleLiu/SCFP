@@ -701,6 +701,17 @@ where $sigma$, $rho$, and $beta$ are three control parameters.
 - left: the gradient
 - right: the chaotic and non-chaotic Lorenz curve
 
+== Hands on
+
+- To run, just open the demo folder in a terminal and type:
+```bash
+$ make init-ADSeismic
+$ make example-ADSeismic
+```
+
+- Tasks:
+  - Modify the number of checkpoints to see the effect. What is the minimum number of checkpoints?
+  - Switch the AD engine to ForwardDiff.jl and compare the performance.
 
 ==
 #bibliography("refs.bib")
