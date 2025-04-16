@@ -144,7 +144,6 @@ central_fdm(5, 1)(x->poor_besselj(2, x), 0.5)
 
 - Not accurate enough.
 
-= Automatic differentiation and computational graph
 == Computational graph
 #figure((
   canvas(length: 2cm, {
@@ -206,7 +205,7 @@ ForwardDiff.gradient(f, x) # [0.0, 0.5]
 == Problem of forward mode AD
 - Overhead is linear to the input size (the same as finite difference).
 
-== Reverse mode autodiff
+= Reverse mode autodiff
 - The _reverse mode AD_ presumes a scalar output $cal(L)$, or the loss function. Given a program with scalar output $cal(L)$, we can denote the intermediate variables of the program as $bold(y)_i$, and their _adjoints_ as $overline(bold(y))_i = (partial cal(L))/(partial bold(y)_i)$.
 - The _backward rule_ defines the transition between $overline(bold(y))_(i+1)$ and $overline(bold(y))_i$
 $
@@ -298,6 +297,17 @@ fval, gval  # 1.0, [0.0, 0.5]
 
 - Hessian can be computed by taking the Jacobian of the gradient.
 
+== Hessian vector product
+In many algorithms, we are only interested in Hessian vector product:
+- stochastic reconfiguration @Sorella1998 (or the Dirac-Frenkel variational principle @Raab2000)
+- Newton's method
+$
+  (diff^2 f)/(diff x^2)v = (diff ((diff f)/(diff x)v))/(diff x)
+$ <eq:hvp>
+- Obtaining the full Hessian matrix: $O(n^2)$ overhead ($n$ is the number of parameters).
+- Hessian vector product: $O(1)$ overhead.
+
+== Computational graph
 #figure(canvas(length: 2cm, {
   import draw: *
   let s(x) = text(16pt, x)
@@ -323,12 +333,6 @@ fval, gval  # 1.0, [0.0, 0.5]
   content((rel: (0.3, 0.0), to: "l5.end"), s[$(diff f)/(diff x)v$])
 })) <fig:jacobian-vector>
 
-== Hessian vector product
-In many algorithms, such as the stochastic reconfiguration @Sorella1998 (or the Dirac-Frenkel variational principle @Raab2000) and the Newton's method, we are only interested in Hessian vector product instead of obtaining the whole matrix. The former can be much cheaper to compute.
-$
-  (diff^2 f)/(diff x^2)v = (diff ((diff f)/(diff x)v))/(diff x)
-$ <eq:hvp>
-Comparing with obtaining the full Hessian matrix, the computational overhead hessain vector product is constant instead of linear to the number of parameters.
 
 == Example
 In Enzyme, the Hessian vector product can be computed by:
@@ -346,17 +350,16 @@ hcat([hvp(f, x, identity_mat[:, i]) for i in 1:length(x)]...)  # [-4 0; 0 0]
 ```
 
 == Complex valued automatic differentiation <complex-valued-automatic-differentiation>
-Complex valued AD considers the problem that a function takes complex variables as inputs, while the loss is still real valued.
-Since such function cannot be holomorphic, or complex differentiable, the adjoint of a such a function is defined by treating the real and imaginary parts of the input as independent variables.
-Let $z = x + i y$ be a complex variable, and $cal(L)$ be a real loss function.
-The adjoint of $z$ is defined as
-$
-  overline(z) = overline(x) + i overline(y).
-$
-If we change $z$ by a small amount $delta z = delta x + i delta y$, the loss function $cal(L)$ will change by
-$ delta cal(L) = (overline(z)^* delta z + h.c.)\/2 = overline(x) delta x + overline(y) delta y. $
+- Treating real and imaginary parts as independent variables.
+    $
+    overline(z) = overline(x) + i overline(y).
+    $
+    If we change $z$ by a small amount $delta z = delta x + i delta y$, the loss function $cal(L)$ will change by
+    $ delta cal(L) = (overline(z)^* delta z + h.c.)\/2 = overline(x) delta x + overline(y) delta y. $
+- Gradient $!=$ Adjoint, because $CC arrow.r RR$ mapping can not be holomorphic!
 
-== Example
+
+== Example: Differentiating a complex valued function
 
 `Enzyme` can be used to compute the gradient of a complex valued function.
 ```julia
@@ -392,7 +395,7 @@ In this example, the input is a complex number $z$, and the output is a real num
   line("core", "ad-engines", mark: (end: "straight"))
 }))
 
-== Example
+== Example: Backward rule for Symmetric Eigen Decomposition
 In the following example, we implement the symmetric eigen decomposition and its gradient function.
 #box(text(16pt, [```julia
 using DifferentiationInterface
@@ -406,7 +409,7 @@ function symeigen(A::AbstractMatrix)
 end
 ```]))
 
-==
+== Customizing the backward function
 #box(text(16pt, [```julia
 # References: Seeger, M., Hetzel, A., Dai, Z., Meissner, E., & Lawrence, N. D. (2018). Auto-Differentiating Linear Algebra.
 function symeigen_back(E::AbstractVector{T}, U, E̅, U̅; η=1e-40) where T
@@ -428,8 +431,8 @@ end
 ```]
 ))
 
-==
-```julia
+== Customizing the backward function
+#box(text(16pt, [```julia
 # port the backward function to ChainRules
 function ChainRulesCore.rrule(::typeof(symeigen), A)
     E, U = symeigen(A)
@@ -439,18 +442,18 @@ function ChainRulesCore.rrule(::typeof(symeigen), A)
     end
     return (E, U), pullback
 end
-```
+```]))
 
 == Mooncake AD engine
 
-We will introduce the Mooncake AD engine in the following example. It provides a convenient way to port the `rrule` to the AD engine.
-```julia
+You can use the `Mooncake.@from_rrule` macro to port the `rrule` to the Mooncake AD engine.
+#box(text(16pt, [```julia
 # port the backward function to Mooncake
 Mooncake.@from_rrule Mooncake.DefaultCtx Tuple{typeof(symeigen), Matrix{Float64}}
-```
-Note here, it is required to specify the type of the function inputs, since the above `rrule` is not valid for all input types.
+```]))
 
-```julia
+==
+#box(text(16pt, [```julia
 # prepare a test function
 function tfunc(A, target)
     E, U = symeigen(A)
@@ -459,7 +462,6 @@ end
 
 # use the Mooncake AD engine
 backend = DifferentiationInterface.AutoMooncake(; config=nothing)
-
 # the function only takes one argument, so we wrap it in a tuple
 wrapped(x) = tfunc(x...)
 
@@ -467,19 +469,17 @@ wrapped(x) = tfunc(x...)
 A = randn(Float64, 100, 100); A += A'
 house = LinearAlgebra.normalize(vcat(zeros(20), 50 .+ (0:29), 80 .- (29:-1:0) , zeros(20)))
 prep = DifferentiationInterface.prepare_gradient(wrapped, backend, (A, house))
-
 # compute the gradient
 g2 = DifferentiationInterface.gradient(wrapped, prep, backend, (A, house))
-```
+```]))
 
+== Test your rule
 Mooncake also provides a convenient way to test the correctness of the rule by comparing with the finite difference method.
 ```julia
 Mooncake.TestUtils.test_rule(Mooncake.Xoshiro(123), wrapped, (A, house); is_primitive=false)
 ```
 
 == Differentiating linear algebra operations <differentiating-linear-algebra-operations>
-
-In this section, we summarize the backward rules for common linear algebra operations. These rules are essential for implementing automatic differentiation in tensor network methods and other applications involving linear algebra.
 
 #table(
     columns: (auto, auto),
@@ -527,14 +527,15 @@ In this section, we summarize the backward rules for common linear algebra opera
     $y = |A|_F$], 
     [$overline(A) = overline(y) A \/y$],
   )
+Credit: Kaiwen Jin for making the table.
 
-For complex-valued operations, the backward rules become more intricate, especially for operations like SVD @Hubig2019 @Townsend2016. The complex-valued SVD backward rule shown in the table is derived in @Wan2019, which extends the real-valued case by properly handling the complex conjugation.
+== The problem of reverse mode AD
 
-These backward rules form the foundation for implementing automatic differentiation in tensor network methods and other applications involving linear algebra operations. They allow us to efficiently compute gradients through complex computational graphs that include these operations.
+- $O(n)$ overhead in memory - the memory wall problem.
 
-
+= Optimal checkpointing
 == Checkpointing <sec-checkpointing>
-#figure(canvas(length: 1.5cm, {
+#figure(canvas(length: 2cm, {
   import draw: *
   let s(it) = text(16pt, it)
   let dx = 0.5
@@ -564,7 +565,7 @@ These backward rules form the foundation for implementing automatic differentiat
   bezier("s0", "s3.north", (0.5 * dx, 1.4), mark: (end: "straight"))
   bezier("s4", "s5.north", (4.5 * dx, 0.8), mark: (end: "straight"))
   for i in range(6){
-    content((i * dx, -0.2), text(8pt)[$s_#i$])
+    content((i * dx, -0.2), text(16pt)[$s_#i$])
   }
   content((1.25, -0.6), s[(c)])
 }),
@@ -599,14 +600,17 @@ This is based on the following observations:
 - In the next sweep, the number of sweeps allowed is decreased by 1, explaining $tau - 1$ on the right side.
 - The current sweep devides the program into $delta + 1$ sectors with $delta$ checkpoints. In the next sweep, the number of allowed checkpoints for the $k$-th sector is $delta - k$, which is consistent with number of checkpoints behind the $k$-th sector.
 
+== Binomial checkpointing
 What is the function that satisfies the recurrence relation in the above equation?
 $ eta(tau, delta) = ((tau + delta)!)/(tau!delta!). $
 
-#v(-3.3cm)
-#figure(gap: -3.3cm, rotate(-90deg, canvas(length: 0.5cm, {
+== Example: 30 steps, 5 checkpoints
+#figure(clip(rotate(-90deg, canvas(length: 0.5cm, {
   visualize-treeverse("treeverse-30-5.json")
-}))
-) <fig:checkpointing>
+})), top: 3.8cm, bottom: 3.8cm, left: -4.8cm, right: -4.8cm
+))
+- $x$ axis, the time steps
+- $y$ axis, the computational steps
 
 ==
 #algorithm({
@@ -676,16 +680,13 @@ $ eta(tau, delta) = ((tau + delta)!)/(tau!delta!). $
   ),
 )
 
-== Applications of Automatic Differentiation in Physical Simulations
-
-This chapter contains two case studies: one is solving the derivatives of the Lorenz system with fewer parameters using forward automatic differentiation and the adjoint state method, and the other is solving the derivatives of a seismology simulation with many steps and huge memory consumption using backward differentiation based on the optimal checkpoint algorithm and reversible computing.
-
-== Solving the Lorenz Equations
+= Hands-on: Sensitivity Analysis
+== Lorenz Equations
 The Lorenz system@Lorenz1963 is a classic model for studying chaos, describing dynamics defined in three-dimensional space
 $ 
-(D x)/(D t) &= sigma(y - x),\
-(D y)/(D t) &= x(rho -z) - y,\
-(D z)/(D t) &= x y - beta z.
+(d x)/(d t) &= sigma(y - x),\
+(d y)/(d t) &= x(rho -z) - y,\
+(d z)/(d t) &= x y - beta z.
 $
 where $sigma$, $rho$, and $beta$ are three control parameters.
 
