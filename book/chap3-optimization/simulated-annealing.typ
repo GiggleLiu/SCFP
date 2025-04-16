@@ -567,7 +567,7 @@ Simulated annealing is an algorithm for finding the global optimum of a given fu
 - The thermal state at zero temperature is the ground state.
 - The thermal distribution are $beta$ and $beta + Delta beta$ are very close when $Delta beta$ is small (@fig:ising-energy-distribution).
 
-#figure(image("../chap4-simulation/images/ising-energy-distribution.png", width: 70%),
+#figure(image("images/ising-energy-distribution.svg", width: 70%),
 caption: [The binned energy distribution of spin configurations generated unbiasly from the ferromagnetic Ising model ($J_(i j) = -1, L = 10$) at different inverse temperatures $beta$. The method to generate the samples is the tensor network based method detailed in @Roa2024]
 ) <fig:ising-energy-distribution>
 
@@ -895,7 +895,7 @@ In our implementation, we set the parameters as follows:
 
 Given the total annealing time $t_"total"$, we slowly drive $a_0$ from $0$ to $2$ with a constant rate $2/t_"total"$. At the initial time, $a(t) = 0$, the ground state of the system is $x_i = 0$ for all $i$. At the final time, $a(t_"total") = 2$, the ground state of the system is the ground state of the spin glass. If the annealing time is long enough, we will find the final state is the ground state of the spin glass.
 
-#figure(image("images/bifurcation_energy_evolution.svg", width: 80%),
+#figure(image("images/bifurcation_energy_evolution.png", width: 80%),
 caption: [Evolution of energy (left panel) and states (right panel) under different two particle Hamiltonian dynamics (aSB, bSB and dSB) in @Goto2021. $J_12 = J_21 = 1$, times are in units of $0.01$, $c_0 = 0.2$ for all.]
 ) <fig:bifurcation-energy-evolution>
 

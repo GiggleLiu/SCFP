@@ -192,7 +192,7 @@ The computation is done by #link("https://github.com/TensorBFS/TensorInference.j
 We first construct a tensor network model at given inverse temperature $beta$ from a ferromagnetic Ising model on a $10 times 10$ grid, and then sample the model to get the spin configurations.
 We evaluate the energy of the samples to get the energy distribution, and plot the distribution in @fig:ising-energy-distribution.
 
-#figure(image("images/ising-energy-distribution.svg", width: 80%),
+#figure(image("../chap3-optimization/images/ising-energy-distribution.svg", width: 80%),
 caption: [The binned energy distribution of spin configurations generated unbiasly from the ferromagnetic Ising model ($J_(i j) = -1, L = 10$) at different inverse temperatures $beta$. The method to generate the samples is the tensor network based method detailed in @Roa2024]
 ) <fig:ising-energy-distribution>
 
