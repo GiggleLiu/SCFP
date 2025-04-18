@@ -31,8 +31,8 @@
 // Global information configuration
 #let m = (m.methods.info)(
   self: m,
-  title: [Automatic differentiation],
-  subtitle: [Linear Programming and Integer Programming],
+  title: [Automatic differentiation and checkpointing],
+  subtitle: [],
   author: [Jin-Guo Liu],
   date: datetime.today(),
   institution: [HKUST(GZ) - FUNH - Advanced Materials Thrust],
@@ -304,7 +304,7 @@ In many algorithms, we are only interested in Hessian vector product:
 $
   (diff^2 f)/(diff x^2)v = (diff ((diff f)/(diff x)v))/(diff x)
 $ <eq:hvp>
-- Obtaining the full Hessian matrix: $O(n^2)$ overhead ($n$ is the number of parameters).
+- Obtaining the full Hessian matrix: $O(n)$ overhead ($n$ is the number of parameters).
 - Hessian vector product: $O(1)$ overhead.
 
 == Computational graph
