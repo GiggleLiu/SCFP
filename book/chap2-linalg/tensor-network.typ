@@ -379,7 +379,7 @@ TODO: rotate the tree, twist the tree.
   content((rel: (0, -0.8), to: "plot.tw"), box(fill: white, inset: 1pt)[Exact tree-width (`ExactTreewidth`)\ State compression])
   content((rel: (-1.0, -0.4), to: "plot.tamaki"), box(fill: white, [Positive instance driven], inset: 1pt))
 }),
-caption: [The time to optimize the contraction order for different methods. The x-axis is the time to optimize the contraction order, and the y-axis is the time to contract the tensor network.]
+caption: [The time to optimize the contraction order for different methods. The x-axis is the time to optimize the contraction order, and the y-axis is the time to contract the tensor network. For details, please check #link("https://arrogantgao.github.io/blogs/contractionorder/")[this blog].]
 )
 
 #let triangle(loc, radius) = {
