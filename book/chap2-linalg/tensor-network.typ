@@ -45,7 +45,7 @@
 #align(center, [= Tensor Networks\
 _Jin-Guo Liu_])
 
-== Tensor network representation
+= Tensor network representation
 
 _Tensor network_ is a diagrammatic representation of tensor _contractions_.
 In this representation, a tensor is represented as a node, and an index is represented as a hyperedge (a hyperedge can connect to any number of nodes). For example, vectors, matrices and higher order tensors can be represented as
@@ -222,7 +222,7 @@ When there are only one or two tensors involved, the strings are easy to read. H
 
 
 
-== Tensor network contraction orders
+= Tensor network contraction orders
 
 Tensor networks can be contracted pairwise, with a given contraction order.
 The contraction complexity is determined by the chosen contraction order represented by a binary tree.
@@ -538,7 +538,7 @@ For example, in @fig:slicing, we slice the tensor network over the index $i$. Th
 
 
 
-== Tensor networks for data compression
+= Tensor networks for data compression
 Let us define a complex matrix $A in CC^(m times n)$, and let its singular value decomposition be
 $
 A = U S V^dagger
@@ -614,13 +614,7 @@ where $U_1, U_2, U_3, U_4$ are unitary matrices and $X$ is a rank-4 tensor.
 })))
 
 
-= Tensor train decomposition
-
-== Canonicalization
-
-== Tensor train for efficient sampling
-
-== Representing a function with a tensor train
+== Tensor train decomposition
 
 #align(center, text(10pt, canvas({
   import draw: *
@@ -645,6 +639,7 @@ where $U_1, U_2, U_3, U_4$ are unitary matrices and $X$ is a rank-4 tensor.
   labeledge("B", "C", [$b$])
   labeledge("C", "D", [$c$])
 })))
+
 
 == Tensor network differentiation
 The differentiation rules for tensor network contraction can be represented as the contraction of the tensor network:
@@ -683,6 +678,7 @@ $
 ])
 
 
+= Probabilistic modeling with tensor networks
 == Hidden Markov model
 
 A Hidden Markov Model (HMM)@Bishop2006 is a simple probabilistic graphical model that describes a Markov process with unobserved (hidden) states. The model consists of:
@@ -740,6 +736,7 @@ which solves the decoding problem.
 Since this tensor network has a chain structure, its contraction is computationally efficient.
 This algorithm is equivalent to the Viterbi algorithm.
 
+= Combinatorial optimization with tensor networks
 == Example: Spin-glass and tensor networks
 
 The partition function of a physical system plays a central role in statistical physics. It is closely related to many physical quantities, such as the free energy, the entropy, and the specific heat.
