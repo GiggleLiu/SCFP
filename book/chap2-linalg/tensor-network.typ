@@ -140,7 +140,7 @@ For example, the contraction of two tensors $A_(i j k)$ and $B_(k l)$, i.e. $sum
 
 The kronecker product of two matrices $A_(i j)$ and $B_(k l)$, i.e. $A_(i j) times.circle B_(k l)$, can be diagrammatically represented as
 
-#pad(canvas({
+#figure(canvas({
   import draw: *
   tensor((1, 1), "A", "A")
   tensor((3, 1), "B", "B")
@@ -150,9 +150,9 @@ The kronecker product of two matrices $A_(i j)$ and $B_(k l)$, i.e. $A_(i j) tim
   labeledge("B", (rel: (0, 1.5)), "k")
   set-origin((5.5, 0))
   content((0, 1), $arrow$)
-  set-origin((2, 0))
+  set-origin((3, 0))
   content((0, 1), `ij,kl->ijkl`)
-}), x:25pt)
+}))
 
 
 In the following example, we use the `OMEinsum` package to compute some simple tensor network contractions:
@@ -242,7 +242,7 @@ The optimal contraction order is closely related to the _tree decomposition_@Mar
     circle(loc, radius: 0.3, name: name)
     content(loc, s[#t])
   }
-  for ((loc, t), name) in locs_labels.zip(([$A$], [$B$], [$C$], [$D$], [$E$], [$F$], [$G$], [$H$])).zip(("A", "B", "C", "D", "E", "F", "G", "H")) {
+  for ((loc, t), name) in locs_labels.zip((s[$A$], s[$B$], s[$C$], s[$D$], s[$E$], s[$F$], s[$G$], s[$H$])).zip(("A", "B", "C", "D", "E", "F", "G", "H")) {
     labelnode(loc, t, name: name)
   }
   for (src, dst) in (("A", "T_1"), ("B", "T_1"), ("C", "T_1"), ("F", "T_2"), ("G", "T_2"), ("B", "T_2"), ("H", "T_3"), ("E", "T_3"), ("G", "T_3"), ("D", "T_4"), ("C", "T_4"), ("E", "T_4")) {

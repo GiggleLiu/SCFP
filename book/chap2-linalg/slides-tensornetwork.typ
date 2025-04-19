@@ -70,8 +70,11 @@
 
 = Tensor network representation
 
-_Tensor network_ is a diagrammatic representation of tensor _contractions_.
-In this representation, a tensor is represented as a node, and an index is represented as a hyperedge (a hyperedge can connect to any number of nodes). For example, vectors, matrices and higher order tensors can be represented as
+_Tensor network_ is a diagrammatic representation of multilinear maps.
+- A tensor is represented as a node
+- An index is represented as a hyperedge (a hyperedge can connect to any number of nodes)
+
+For example, vectors, matrices and higher order tensors can be represented as
 
 #align(center, text(10pt, canvas({
   import draw: *
@@ -89,36 +92,15 @@ In this representation, a tensor is represented as a node, and an index is repre
   content((rel: (0, -1), to: "A"), [Rank-3 tensor $A_(i j k)$])
 })))
 
-Tensor contraction is a generalized matrix multiplication, which is defined as the summation of the element products from multiple tensors.
+== Example 1: Matrix multiplication
 
-== Definitions
-A tensor network@Liu2022@Roa2024 can be represented by a triple of $(Lambda, cal(T), V_0)$, where:
-- $Lambda$ is the set of variables present in the network.
-- $cal(T) = { T_(V_k) }_(k=1)^K$ is the set of input tensors, where each tensor $T_(V_k)$ is associated with the labels $V_k$.
-- $V_0$ specifies the labels of the output tensor.
-
-Specifically, each tensor $T_(V_k) in cal(T)$ is labeled by a set of variables $V_k subset.eq Lambda$, where the cardinality $|V_k|$ equals the rank of $T_(V_k)$.
-
-== Tensor contraction
-The multilinear map, or the *contraction*, applied to this triple is defined as
-$
-T_(V_0) = "contract"(Lambda, cal(T), V_0) ouset(=, "def") sum_(m in cal(D)_(Lambda without V_0)) product_(T_V in cal(T)) T_(V|M=m),
-$
-where $M = Lambda without V_0$. $T_(V|M=m)$ denotes a slicing of the tensor $T_V$ with the variables $M$ fixed to the values $m$. The summation runs over all possible configurations of the variables in $M$.
-
-== Example: Tensor network representation of matrix multiplication
-
-Matrix multiplication can be described as the contraction of a tensor network given by
-$
-C_(i k) = "contract"({i,j,k}, {A_(i j), B_(j k)}, {i, k}),
-$
-where the input matrices $A$ and $B$ are indexed by the variable sets ${i, j}, {j, k}$, respectively, which are subsets of $Lambda = {i, j, k}$. As a remark of notation, when an set is used as subscripts, we omit the comma and the braces. The output tensor is indexed by variables ${i, k}$ and the summation runs over variables $Lambda without {i, k} = {j}$. The contraction corresponds to
 $
 C_(i k) = sum_j A_(i j) B_(j k),
 $
-which is consistent with the matrix multiplication.
 
-In the diagramatic representation, the tensors associated with the same variable are connected by the same hyperedge. If a variable appears in the output tensor, the hyperedge is left _open_. For example, the diagrammatic representation of the matrix multiplication is given as follows:
+Diagrammatic representation:
+- The tensors associated with the same variable are connected by the same hyperedge.
+- If a variable appears in the output tensor, the hyperedge is left _open_.
 
 #align(center, text(10pt, canvas({
   import draw: *
@@ -129,13 +111,13 @@ In the diagramatic representation, the tensors associated with the same variable
   labeledge("B", (rel: (1.5, 0)), [$k$])
 })))
 
-In the program, a tensor network is also known as `einsum`, which uses a string to denote the tensor network topology. For example, the matrix multiplication can be represented as `ij,jk->ik`. The intputs and outputs are separated by `->`, and the indices of different input tensors are separated by commas.
+`einsum` (Einstein summation convention) notation: `ij,jk->ik`
+- The intputs and outputs are separated by `->`.
+- The indices of different input tensors are separated by commas: `ij,jk`.
 
-== Example: Proving trace permutation rule
+== Example 2: Proving trace permutation rule
+Prove the trace permutation rule: $tr(A B C) = tr(C A B) = tr(B C A)$.
 
-Let $A, B$ and $C$ be three square matrices with the same size. Represent the trace operation $tr(A B C)$ with a tensor network diagram.
-
-*Solution*
 #figure(canvas({
   import draw: *
   tensor((1, 1), "A", "A")
@@ -147,25 +129,14 @@ Let $A, B$ and $C$ be three square matrices with the same size. Represent the tr
   content("line.mid", "i", align: center, fill:white, frame:"rect", padding:0.1, stroke: none)
 }))
 
-The corresponding einsum notation is `ij,jk,ki->`. From this diagram, we can see the trace permutation rule: $tr(A B C) = tr(C A B) = tr(B C A)$.
+The corresponding einsum notation is `ij,jk,ki->`.
 
-== Example: Kronecker product
 
-For example, the contraction of two tensors $A_(i j k)$ and $B_(k l)$, i.e. $sum_k A_(i j k) B_(k l)$, can be diagrammatically represented as
-
-#align(center, canvas({
-  import draw: *
-  tensor((1, 1), "A", "A")
-  tensor((3, 1), "B", "B")
-  labeledge("A", "B", "k")
-  labeledge("B", (rel: (1.5, 0)), "l")
-  labeledge("A", (rel: (0, 1.5)), "j")
-  labeledge("A", (rel: (-1.5, 0)), "i")
-}))
+== Example 3: Kronecker product
 
 The kronecker product of two matrices $A_(i j)$ and $B_(k l)$, i.e. $A_(i j) times.circle B_(k l)$, can be diagrammatically represented as
 
-#pad(canvas({
+#figure(canvas({
   import draw: *
   tensor((1, 1), "A", "A")
   tensor((3, 1), "B", "B")
@@ -175,44 +146,14 @@ The kronecker product of two matrices $A_(i j)$ and $B_(k l)$, i.e. $A_(i j) tim
   labeledge("B", (rel: (0, 1.5)), "k")
   set-origin((5.5, 0))
   content((0, 1), $arrow$)
-  set-origin((2, 0))
+  set-origin((3, 0))
   content((0, 1), `ij,kl->ijkl`)
-}), x:25pt)
+}))
 
 
-== Package: OMEinsum
+== Live Coding: OMEinsum
 
-In the following example, we use the `OMEinsum` package to compute some simple tensor network contractions:
-
-#box(text(16pt)[```julia
-s = fill(1)  # scalar
-w, v = [1, 2], [4, 5];  # vectors
-A, B = [1 2; 3 4], [5 6; 7 8]; # matrices
-T1, T2 = reshape(1:8, 2, 2, 2), reshape(9:16, 2, 2, 2); # 3D tensor
-
-# Single tensor operations
-ein"i->"(w)  # sum of the elements of a vector.
-ein"ij->i"(A)  # sum of the rows of a matrix.
-ein"ii->"(A)  # sum of the diagonal elements of a matrix, i.e., the trace.
-ein"ij->"(A)  # sum of the elements of a matrix.
-ein"i->ii"(w)  # create a diagonal matrix.
-ein",->"(s, s)  # scalar multiplication.
-```])
-
-== Two tensor operations
-#box(text(16pt)[```julia
-ein"ij, jk -> ik"(A, B)  # matrix multiplication.
-ein"ijb,jkb->ikb"(T1, T2)  # batch matrix multiplication.
-ein"ij,ij->ij"(A, B)  # element-wise multiplication.
-ein"ij,ij->"(A, B)  # sum of the element-wise multiplication.
-ein"ij,->ij"(A, s)  # element-wise multiplication by a scalar.
-
-# More than two tensor operations
-optein"ai,aj,ak->ijk"(A, A, B)  # star contraction.
-optein"ia,ajb,bkc,cld,dm->ijklm"(A, T1, T2, T1, A)  # tensor train contraction.
-```])
-
-When there are only one or two tensors involved, the strings are easy to read. However, when there are more than two tensors, the strings can be quite complicated. Then the diagrammatic representation is more helpful. For example, the star contraction has the following diagrammatic representation:
+In this example, we use the `OMEinsum` package to compute some simple tensor network contractions.
 
 #align(center, text(10pt, canvas({
   import draw: *
@@ -250,16 +191,38 @@ When there are only one or two tensors involved, the strings are easy to read. H
 })))
 
 
+== Mathematical notation
+
+A tensor network@Liu2022@Roa2024 can be represented by a triple of $(Lambda, cal(T), V_0)$, where:
+- $Lambda$ is the set of variables present in the network.
+- $cal(T) = { T_(V_k) }_(k=1)^K$ is the set of input tensors, where each tensor $T_(V_k)$ is associated with the labels $V_k$.
+- $V_0$ specifies the labels of the output tensor.
+
+Specifically, each tensor $T_(V_k) in cal(T)$ is labeled by a set of variables $V_k subset.eq Lambda$, where the cardinality $|V_k|$ equals the rank of $T_(V_k)$.
+
+== Tensor contraction
+The multilinear map, or the *contraction*, applied to this triple is defined as
+$
+T_(V_0) = "contract"(Lambda, cal(T), V_0) ouset(=, "def") sum_(m in cal(D)_(Lambda without V_0)) product_(T_V in cal(T)) T_(V|M=m),
+$
+where $M = Lambda without V_0$. $T_(V|M=m)$ denotes a slicing of the tensor $T_V$ with the variables $M$ fixed to the values $m$. The summation runs over all possible configurations of the variables in $M$.
+
+== Example: Matrix multiplication
+Matrix multiplication can be described as the contraction of a tensor network given by
+$
+C_(i k) = "contract"({i,j,k}, {A_(i j), B_(j k)}, {i, k}),
+$
+where the input matrices $A$ and $B$ are indexed by the variable sets ${i, j}, {j, k}$, respectively, which are subsets of $Lambda = {i, j, k}$. As a remark of notation, when an set is used as subscripts, we omit the comma and the braces. The output tensor is indexed by variables ${i, k}$ and the summation runs over variables $Lambda without {i, k} = {j}$. 
 
 = Tensor network contraction orders
 
-Tensor networks can be contracted pairwise, with a given contraction order.
-The contraction complexity is determined by the chosen contraction order represented by a binary tree.
-Finding the optimal contraction order, i.e., the contraction order with minimal complexity, is NP-complete@Markov2008.
-Luckily, a close-to-optimal contraction order is usually acceptable, which could be found in a reasonable time with a heuristic optimizer.
-In the past decade, methods have been developed to optimize the contraction orders, including both exact ones and heuristic ones.
-Among these methods, multiple heuristic methods can handle networks with more than $10^4$ tensors efficiently@Gray2021,@Roa2024.
+- The contraction complexity is determined by the chosen contraction order represented by a binary tree.
+- Finding the optimal contraction order, i.e., the contraction order with minimal complexity, is NP-complete@Markov2008.
+- Luckily, a close-to-optimal contraction order is usually acceptable, which could be found in a reasonable time with a heuristic optimizer.
+- In the past decade, methods have been developed to optimize the contraction orders, including both exact ones and heuristic ones.
+- Among these methods, multiple heuristic methods can handle networks with more than $10^4$ tensors efficiently@Gray2021 @Roa2024.
 
+== Tree decomposition
 The optimal contraction order is closely related to the _tree decomposition_@Markov2008 of the line graph of the tensor network.
 
 #figure(canvas({
@@ -271,7 +234,7 @@ The optimal contraction order is closely related to the _tree decomposition_@Mar
     circle(loc, radius: 0.3, name: name)
     content(loc, s[#t])
   }
-  for ((loc, t), name) in locs_labels.zip(([$A$], [$B$], [$C$], [$D$], [$E$], [$F$], [$G$], [$H$])).zip(("A", "B", "C", "D", "E", "F", "G", "H")) {
+  for ((loc, t), name) in locs_labels.zip((s[$A$], s[$B$], s[$C$], s[$D$], s[$E$], s[$F$], s[$G$], s[$H$])).zip(("A", "B", "C", "D", "E", "F", "G", "H")) {
     labelnode(loc, t, name: name)
   }
   for (src, dst) in (("A", "T_1"), ("B", "T_1"), ("C", "T_1"), ("F", "T_2"), ("G", "T_2"), ("B", "T_2"), ("H", "T_3"), ("E", "T_3"), ("G", "T_3"), ("D", "T_4"), ("C", "T_4"), ("E", "T_4")) {
@@ -341,10 +304,12 @@ The optimal contraction order is closely related to the _tree decomposition_@Mar
   line("g1", "g3", stroke: colors.at(6))
   content((2, -3), text(12pt)[(c)])
 }),
-caption: [(a) A tensor network. (b) A line graph for the tensor network. Labels are connected if and only if they appear in the same tensor. (c) A tree decomposition (T. D.) of the line graph.]
 )
+#enum(numbering: "(a)", [A tensor network.], [A line graph for the tensor network. Labels are connected if and only if they appear in the same tensor.], [A tree decomposition (T. D.) of the line graph.])
 
+== Contraction tree and cost function
 
+A _contraction tree_ is a binary tree that represents a contraction order of a tensor network.
 #align(center, canvas(length:1.0cm, {
   import draw: *
   set-origin((4, 0.35))
@@ -369,6 +334,14 @@ caption: [(a) A tensor network. (b) A line graph for the tensor network. Labels 
 
 
 }))
+
+The cost function of a contraction tree is defined as
+$
+  cal(L) = "tc" + w_s "sc" + w_("rw") "rwc",
+$
+- $w_s$ and $w_("rw")$ are the weights of the space complexity and read-write complexity compared to the time complexity, respectively.
+
+
 
 == Trade-off between contraction order optimization and contraction
 #figure(canvas(length:0.9cm, {
@@ -413,6 +386,7 @@ caption: [The time to optimize the contraction order for different methods. The 
 
 == Local search method
 
+- The local search method@Kalachev2021 is a heuristic method based on the idea of simulated annealing.
 #let triangle(loc, radius) = {
   import draw: *
   let (x, y) = loc
@@ -506,40 +480,24 @@ caption: [The time to optimize the contraction order for different methods. The 
     content((l.at(0), l.at(1) - 0.6), text(11pt, i))
   }
 }),
-caption: [The four basic local transformations on the contraction tree, which preserve the result of the contraction.]
-) <fig:tree-transform>
+)
 
-The local search method@Kalachev2021 is a heuristic method based on the idea of simulated annealing.
-The method starts from a random contraction order and then applies the following four possible transforms as shown in @fig:tree-transform, which correspond to the different ways to contract three sub-networks:
 $
   (A * B) * C = (A * C) * B = (C * B) * A, \
   A * (B * C) = B * (A * C) = C * (B * A),
 $
-where we slightly abuse the notation ``$*$'' to denote the tensor contraction, and $A, B, C$ are the sub-networks to be contracted.
-Due to the commutative property of the tensor contraction, such transformations do not change the result of the contraction.
-Even through these transformations are simple, all possible contraction orders can be reached from any initial contraction order.
-The local search method starts from a random contraction tree.
-In each step, the above rules are randomly applied to transform the tree and then the cost of the new tree is evaluated, which is defined as
-$
-  cal(L) = "tc" + w_s "sc" + w_("rw") "rwc",
-$
-where $w_s$ and $w_("rw")$ are the weights of the space complexity and read-write complexity compared to the time complexity, respectively.
-\rev{The optimal choice of weights depends on the specific device and tensor contraction algorithm. One can freely tune the weights to achieve a best performance for their specific problem.}
-Then the transformation is accepted with a probability given by the Metropolis criterion, which is
+
+== Simulated annealing
+- Ergodicity: such transformations do not change the result of the contraction.
+- Detailed balance: the transformation is accepted with a probability given by the Metropolis criterion, which is
 $
   p_("accept") = min(1, e^(-beta Delta cal(L))),
 $
 where $beta$ is the inverse temperature, and $Delta cal(L)$ is the difference of the cost of the new and old contraction trees.
-During the process, the temperature is gradually decreased, and the process stop when the temperature is low enough.
-Additionally, the `TreeSA` method supports the slicing technique.
-When the space complexity is too large, one can loop over a subset of indices, and then contract the intermediate results in the end.
-Such technique can reduce the space complexity, but slicing $n$ indices will increase the time complexity by $2^n$.
 
 == Slicing tensor networks
 
 Slicing is a technique to reduce the space complexity of the tensor network by looping over a subset of indices.
-This effectively reduces the size of the tensor network inside the loop, and the space complexity can potentially be reduced.
-For example, in @fig:slicing, we slice the tensor network over the index $i$. The label $i$ is removed from the tensor network, at the cost of contraction multiple tensor networks.
 
 
 #figure(canvas({
@@ -565,13 +523,20 @@ For example, in @fig:slicing, we slice the tensor network over the index $i$. Th
     line(a, b, name: "e"+str(k), stroke: (if k == 4 {(dash: "dashed")} else {black}))
   }
   content((rel: (0, 0.5), to: "e4.mid"), text(14pt)[$i$])
-}), caption: [The slicing technique. The tensor network is sliced over the index $i$.]) <fig:slicing>
+}))
+
+- _Remark_: The slicing technique may increase the time complexity.
 
 
+
+== Live Coding: Contraction order optimization
+https://tensorbfs.github.io/OMEinsumContractionOrders.jl/dev/
 
 = Application: data compression
 === References:
 - Era of big data processing: a new approach via tensor networks and tensor decompositions @Cichocki2014
+
+== Singular value decomposition - revisited
 Let us define a complex matrix $A in CC^(m times n)$, and let its singular value decomposition be
 $
 A = U S V^dagger
@@ -674,45 +639,10 @@ where $U_1, U_2, U_3, U_4$ are unitary matrices and $X$ is a rank-4 tensor.
 })))
 
 
-== Tensor network differentiation
-The differentiation rules for tensor network contraction can be represented as the contraction of the tensor network:
-== Tensor network differentiation
-    Let $(Lambda, cal(T), emptyset)$ be a tensor network with scalar output. The gradient of the tensor network contraction with respect to $T_V in cal(T)$ is
-    $
-      frac(partial "contract"(Lambda, cal(T), emptyset), partial T_V) =
-      "contract"(Lambda, cal(T) \\ {T_V}, V).
-    $
-    That is, the gradient corresponds to the contraction of the tensor network
-    with the tensor $T_V$ removed and the output label set to $V$.
-
-== Proof
-Let $cal(L)$ be a loss function of interest, where its differential form is given by:
-$
-delta cal(L) = "contract"(V_a, {delta A_(V_a), overline(A)_(V_a)}, emptyset) + "contract"(V_b, {delta B_(V_b), overline(B)_(V_b)}, emptyset)
-$ <eq:diffeq>
-
-The goal is to find $overline(A)_(V_a)$ and $overline(B)_(V_b)$ given $overline(C)_(V_c)$.
-This can be achieved by using the differential form of tensor contraction, which states that
-$
-delta C = "contract"(Lambda, {delta A_(V_a), B_(V_b)}, V_c) + "contract"(Lambda, {A_(V_a), delta B_(V_b)}, V_c).
-$
-By inserting this result into the above equation, we obtain:
-$
-delta cal(L) = &"contract"(V_a, {delta A_(V_a), overline(A)_(V_a)}, emptyset) + "contract"(V_b, {delta B_(V_b), overline(B)_(V_b)}, emptyset)\
-= &"contract"(Lambda, {delta A_(V_a), B_(V_b), overline(C)_(V_c)}, emptyset) + "contract"(Lambda, {A_(V_a), delta B_(V_b), overline(C)_(V_c)}, emptyset).
-$
-Since $delta A_(V_a)$ and $delta B_(V_b)$ are arbitrary, the above equation immediately implies:
-
-$
-overline(A)_(V_a) = "contract"(Lambda, {overline(C)_(V_c), B_(V_b)}, V_a)\
-overline(B)_(V_b) = "contract"(Lambda, {A_(V_a), overline(C)_(V_c)}, V_b)
-$
-
-
 = Application: Probabilistic modeling
 == Hidden Markov model
 
-A Hidden Markov Model (HMM)@Bishop2006 is a simple probabilistic graphical model that describes a Markov process with unobserved (hidden) states. The model consists of:
+A Hidden Markov Model (HMM)@Bishop2006 is a simple probabilistic graphical model that describes a Markov process with unobserved (hidden) states:
 
 - A sequence of hidden states $z_t$ following a Markov chain with transition probability $P(z_(t+1)|z_t)$
 - A sequence of observations $x_t$ that depend only on the current hidden state through emission probability $P(x_t|z_t)$
@@ -724,6 +654,9 @@ P(bold(z), bold(x)) = P(z_0) product_(t=1)^T P(z_(t)|z_(t-1))P(x_t|z_t).
 $
 Note that the conditional probability $P(z_(t)|z_(t-1))$ can be represented as a tensor with two indices. The joint probability $P(bold(z), bold(x))$ can be represented as a tensor network diagram:
 
+
+== Tensor network representation
+The tensor network representation of a Hidden Markov Model (HMM) with observed variables $x_1, x_2, dots, x_T$ and hidden states $z_0, z_1, dots, z_T$. The circles are conditional probabilities $P(z_t|z_(t-1))$ and $P(x_t|z_t)$.
 #let hmm(n) = {
   import draw: *
   let s(it) = text(11pt, it)
@@ -750,7 +683,6 @@ Note that the conditional probability $P(z_(t)|z_(t-1))$ can be represented as a
   import draw: *
   hmm(5)
 }),
-caption: [The tensor network representation of a Hidden Markov Model (HMM) with observed variables $x_1, x_2, dots, x_T$ and hidden states $z_0, z_1, dots, z_T$. The circles are conditional probabilities $P(z_t|z_(t-1))$ and $P(x_t|z_t)$.]
 )
 
 == Likelihood
@@ -794,6 +726,8 @@ This algorithm is equivalent to the Viterbi algorithm.
 == Baum-Welch algorithm
 The Baum-Welch algorithm is an expectation-maximization (EM) algorithm used to find the unknown parameters of a Hidden Markov Model (HMM). It addresses the _learning problem_ of HMM: Given a sequence of observations $bold(x) = (x_1, x_2, ..., x_T)$, how to estimate the model parameters $theta = (A, B, pi)$, where $A$ is the transition probability matrix, $B$ is the emission probability matrix, and $pi$ is the initial state distribution?
 
+==
+
 #figure(canvas({
   import draw: *
   hmm(5)
@@ -826,24 +760,73 @@ $
 eta_t (i,k) = P(x_t=k | z_t=i, theta)
 $ <eq:emission-probability>
 
+== Backward-mode automatic differentiation
 In practice, to evaluate tensor networks with multiple open indices, we can utilize the backward-mode automatic differentiation.
 
+== Tensor network differentiation
+Let $(Lambda, cal(T), emptyset)$ be a tensor network with scalar output. The gradient of the tensor network contraction with respect to $T_V in cal(T)$ is
+$
+  frac(partial "contract"(Lambda, cal(T), emptyset), partial T_V) =
+  "contract"(Lambda, cal(T) \\ {T_V}, V).
+$
+That is, the gradient corresponds to the contraction of the tensor network
+with the tensor $T_V$ removed and the output label set to $V$.
+
+TODO: the differentiation-cut rule
+
+== Proof
+Let $cal(L)$ be a loss function of interest, where its differential form is given by:
+$
+delta cal(L) = "contract"(V_a, {delta A_(V_a), overline(A)_(V_a)}, emptyset) + "contract"(V_b, {delta B_(V_b), overline(B)_(V_b)}, emptyset)
+$ <eq:diffeq>
+
+The goal is to find $overline(A)_(V_a)$ and $overline(B)_(V_b)$ given $overline(C)_(V_c)$.
+This can be achieved by using the differential form of tensor contraction, which states that
+$
+delta C = "contract"(Lambda, {delta A_(V_a), B_(V_b)}, V_c) + "contract"(Lambda, {A_(V_a), delta B_(V_b)}, V_c).
+$
+By inserting this result into the above equation, we obtain:
+$
+delta cal(L) = &"contract"(V_a, {delta A_(V_a), overline(A)_(V_a)}, emptyset) + "contract"(V_b, {delta B_(V_b), overline(B)_(V_b)}, emptyset)\
+= &"contract"(Lambda, {delta A_(V_a), B_(V_b), overline(C)_(V_c)}, emptyset) + "contract"(Lambda, {A_(V_a), delta B_(V_b), overline(C)_(V_c)}, emptyset).
+$
+Since $delta A_(V_a)$ and $delta B_(V_b)$ are arbitrary, the above equation immediately implies:
+
+$
+overline(A)_(V_a) = "contract"(Lambda, {overline(C)_(V_c), B_(V_b)}, V_a)\
+overline(B)_(V_b) = "contract"(Lambda, {A_(V_a), overline(C)_(V_c)}, V_b)
+$
+
+
+
+
 == Parameter Update
-Use the forward and backward variables to compute the expected counts of transitions and emissions, and update the model parameters accordingly:
 
 $
 A_(i j) = (sum_(t=1)^(T-1) xi_t (i,j))/(sum_(t=1)^(T-1) sum_(j=1)^N xi_t (i,j))
 $
 
-This equation updates the transition probability matrix $A$. For each pair of states $(i,j)$, we compute the expected number of transitions from state $i$ to state $j$ (numerator) divided by the expected total number of transitions from state $i$ to any state (denominator).
+// This equation updates the transition probability matrix $A$. For each pair of states $(i,j)$, we compute the expected number of transitions from state $i$ to state $j$ (numerator) divided by the expected total number of transitions from state $i$ to any state (denominator).
 
 $
 B_(i k) = (sum_(t=1)^T eta_t (i,k) dot I(x_t = k))/(sum_(t=1)^T eta_t (i,k))
 $
 
-This equation updates the emission probability matrix $B$. For each state $i$ and observation $k$, we compute the expected number of times the model emits observation $k$ while in state $i$ (numerator) divided by the expected total number of times the model is in state $i$ (denominator). The indicator function $I(x_t = k)$ equals 1 when the observation at time $t$ is $k$, and 0 otherwise.
+// This equation updates the emission probability matrix $B$. For each state $i$ and observation $k$, we compute the expected number of times the model emits observation $k$ while in state $i$ (numerator) divided by the expected total number of times the model is in state $i$ (denominator). The indicator function $I(x_t = k)$ equals 1 when the observation at time $t$ is $k$, and 0 otherwise.
 
-The Baum-Welch algorithm does not guarantee to find the global maximum of the likelihood function.
+- _Remark:_ The Baum-Welch algorithm does not guarantee to find the global maximum of the likelihood function.
+
+== Hands-on: Hidden Markov Model
+
+- Run the example code in folder `HiddenMarkovModel` of our demo repository.
+  ```bash
+  make init-HiddenMarkovModel
+  make example-HiddenMarkovModel
+  ```
+
+- Tasks:
+  - Watch #link("https://www.youtube.com/watch?v=i3AkTO9HLXo&list=PLM8wYQRetTxBkdvBtz-gw8b9lcVkdXQKV&ab_channel=NormalizedNerd", [YouTube playlist: Markov Chains Clearly Explained!]) and try to understand the code.
+  - Complete the second problem in Homework 11.
 
 = Application: Solving spin-glass problem
 
@@ -869,27 +852,6 @@ $
 $
 
 == Tropical numbers - revisited
-#box(text(16pt, [```julia
-using OMEinsum, ProblemReductions, Graphs
-
-# Define an AFM spin glass on Petersen graph
-graph = smallgraph(:petersen)
-sg = SpinGlass(graph, ones(Int, ne(graph)), zeros(Int, nv(graph)))
-
-# Initialize tensors and contraction code
-β = 1.0
-tensors = [[exp(-β * J) exp(β * J); exp(β * J) exp(-β * J)] for J in sg.J]
-rawcode = EinCode([[e.src, e.dst] for e in edges(graph)], Int[])
-
-# optimize the contraction code
-optcode = optimize_code(rawcode, uniformsize(rawcode, 2), TreeSA())
-
-# Compute the partition function
-Z = optcode(tensors...)  # output: 167555.17801582735
-```
-])
-)
-
 It is also possible to compute the ground state energy of the spin glass with tropical algebra@Liu2021. To achieve this, we need to import the `TropicalMinPlus` data type from the `TropicalNumbers` package. This algebra is defined as
 $
   &a plus.circle b = min(a, b),\
@@ -900,18 +862,11 @@ $
 where $plus.circle$ and $times.circle$ are the tropical addition and multiplication, respectively, and $bb(0)$ and $bb(1)$ are the zero and unit elements, respectively.
 The following code computes the ground state energy of the spin glass.
 
-```julia
-using TropicalNumbers
-
-tensors = [TropicalMinPlus.([J -J; -J J]) for J in sg.J]
-rawcode = EinCode([[e.src, e.dst] for e in edges(graph)], Int[])
-optcode = optimize_code(rawcode, uniformsize(rawcode, 2), TreeSA())
-
-Emin = optcode(tensors...)  # output: -9ₛ
-```
+== Live Coding: Tropical tensor network for spin-glass problem
 By comparing with the partition function, we can see that the above code effectively computes the following equation:
 $
   min_(bold(s)) sum_(i in V) h_i s_i + sum_((i, j) in E) J_(i j) s_i s_j,
 $
 
+==
 #bibliography("refs.bib")
