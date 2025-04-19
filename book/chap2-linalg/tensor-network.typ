@@ -236,10 +236,11 @@ The optimal contraction order is closely related to the _tree decomposition_@Mar
 #figure(canvas({
   import draw: *
   let d = 1.1
+  let s(it) = text(11pt, it)
   let locs_labels = ((0, 0), (d, 0), (0, -d), (0, -2 * d), (d, -2 * d), (2 * d, 0), (2 * d, -d), (2 * d, -2 * d))
-  for (loc, t, name) in (((0.5 * d, -0.5 * d), [$T_1$], "T_1"), ((1.5 * d, -0.5 * d), [$T_2$], "T_2"), ((1.5 * d, -1.5 * d), [$T_3$], "T_3"), ((0.5 * d, -1.5 * d), [$T_4$], "T_4")) {
+  for (loc, t, name) in (((0.5 * d, -0.5 * d), s[$T_1$], "T_1"), ((1.5 * d, -0.5 * d), s[$T_2$], "T_2"), ((1.5 * d, -1.5 * d), s[$T_3$], "T_3"), ((0.5 * d, -1.5 * d), s[$T_4$], "T_4")) {
     circle(loc, radius: 0.3, name: name)
-    content(loc, text(12pt, [#t]))
+    content(loc, s[#t])
   }
   for ((loc, t), name) in locs_labels.zip(([$A$], [$B$], [$C$], [$D$], [$E$], [$F$], [$G$], [$H$])).zip(("A", "B", "C", "D", "E", "F", "G", "H")) {
     labelnode(loc, t, name: name)
@@ -329,8 +330,7 @@ caption: [(a) A tensor network. (b) A line graph for the tensor network. Labels 
   let right_right = (DX1 + DX2, -DY)
 
   for (l, t, lb) in ((root, [$$], "C"), (left, [$I_12$], "A"), (right, [$I_34$], "B"), (left_left, [$T_1$], "T_1"), (left_right, [$T_2$], "T_2"), (right_left, [$T_3$], "T_3"), (right_right, [$T_4$], "T_4")){
-    tensor(l, lb, t)
-    content(l, text(8pt, white)[#t])
+    tensor(l, lb, text(11pt, t))
   }
 
   for (a, b) in (("C", "A"), ("C", "B"), ("A", "T_1"), ("A", "T_2"), ("B", "T_3"), ("B", "T_4")){
@@ -343,11 +343,12 @@ caption: [(a) A tensor network. (b) A line graph for the tensor network. Labels 
 #figure(canvas(length:0.9cm, {
   import plot
   import draw: *
+  let s(it) = text(11pt, it)
   plot.plot(size: (10,7),
     x-tick-step: none,
     y-tick-step: none,
-    x-label: "Time to optimize contraction order",
-    y-label: "Time to contract",
+    x-label: text(13pt)[Time to optimize contraction order],
+    y-label: text(13pt)[Time to contract],
     y-max: 10,
     y-min: -2,
     x-max: 10,
@@ -369,14 +370,16 @@ caption: [(a) A tensor network. (b) A line graph for the tensor network. Labels 
       plot.add-anchor("tamaki", tamaki)
     }
   )
-  content((rel: (2.5, 0), to: "plot.greedy"), [Greedy (`GreedyMethod`)])
-  content((rel: (2.5, 0), to: "plot.localsearch"), [Local Search (`TreeSA`)])
-  content((rel: (3.0, 0), to: "plot.bipartition"), [Min cut (`KaHyParBipartite`)])
-  content((rel: (0, -0.8), to: "plot.tw"), box(fill: white, inset: 1pt)[Exact tree-width (`ExactTreewidth`)\ State compression])
-  content((rel: (-1.0, -0.4), to: "plot.tamaki"), box(fill: white, [Positive instance driven], inset: 1pt))
+  content((rel: (2.5, 0), to: "plot.greedy"), s[Greedy (`GreedyMethod`)])
+  content((rel: (2.5, 0), to: "plot.localsearch"), s[Local Search (`TreeSA`)])
+  content((rel: (3.0, 0), to: "plot.bipartition"), s[Min cut (`KaHyParBipartite`)])
+  content((rel: (0, -0.8), to: "plot.tw"), box(fill: white, inset: 1pt, s[Exact tree-width (`ExactTreewidth`)\ State compression]))
+  content((rel: (-1.0, -0.4), to: "plot.tamaki"), box(fill: white, s[Positive instance driven], inset: 1pt))
 }),
 caption: [The time to optimize the contraction order for different methods. The x-axis is the time to optimize the contraction order, and the y-axis is the time to contract the tensor network. For details, please check #link("https://arrogantgao.github.io/blogs/contractionorder/")[this blog].]
 )
+
+
 
 #let triangle(loc, radius) = {
   import draw: *
@@ -407,7 +410,7 @@ caption: [The time to optimize the contraction order for different methods. The 
   for (l, i) in ((right, "C"), (leftleft, "A"), (leftright, "B")){
     // manual-square(l, radius:0.4)
     triangle(l, 1.0)
-    content((l.at(0), l.at(1) - 0.6), i)
+    content((l.at(0), l.at(1) - 0.6), text(11pt, i))
   }
 
   content((1.2, 0), text(16pt)[$arrow$])
@@ -421,7 +424,7 @@ caption: [The time to optimize the contraction order for different methods. The 
   for (l, i) in ((leftleft, "C"), (leftright, "B"), (right, "A")){
     // manual-square(l, radius:0.4)
     triangle(l, 1.0)
-    content((l.at(0), l.at(1) - 0.6), i)
+    content((l.at(0), l.at(1) - 0.6), text(11pt, i))
   }
 
   set-origin((0, -4))
@@ -432,7 +435,7 @@ caption: [The time to optimize the contraction order for different methods. The 
   for (l, i) in ((leftleft, "A"), (leftright, "C"), (right, "B")){
     // manual-square(l, radius:0.4)
     triangle(l, 1.0)
-    content((l.at(0), l.at(1) - 0.6), i)
+    content((l.at(0), l.at(1) - 0.6), text(11pt, i))
   }
 
   set-origin((4, 2))
@@ -443,7 +446,7 @@ caption: [The time to optimize the contraction order for different methods. The 
   for (l, i) in ((left, "A"), (rightleft, "B"), (rightright, "C")){
     // manual-square(l, radius:0.4)
     triangle(l, 1.0)
-    content((l.at(0), l.at(1) - 0.6), i)
+    content((l.at(0), l.at(1) - 0.6), text(11pt, i))
   }
 
   content((2, 0), text(16pt)[$arrow$])
@@ -457,7 +460,7 @@ caption: [The time to optimize the contraction order for different methods. The 
   for (l, i) in ((left, "C"), (rightleft, "B"), (rightright, "A")){
     // manual-square(l, radius:0.4)
     triangle(l, 1.0)
-    content((l.at(0), l.at(1) - 0.6), i)
+    content((l.at(0), l.at(1) - 0.6), text(11pt, i))
   }
 
   set-origin((0, -4))
@@ -468,7 +471,7 @@ caption: [The time to optimize the contraction order for different methods. The 
   for (l, i) in ((left, "B"), (rightleft, "A"), (rightright, "C")){
     // manual-square(l, radius:0.4)
     triangle(l, 1.0)
-    content((l.at(0), l.at(1) - 0.6), i)
+    content((l.at(0), l.at(1) - 0.6), text(11pt, i))
   }
 }),
 caption: [The four basic local transformations on the contraction tree, which preserve the result of the contraction.]
@@ -700,9 +703,9 @@ Note that the conditional probability $P(z_(t)|z_(t-1))$ can be represented as a
     tensor((dx*i, 0), "A" + str(i), []) 
   }
   for i in range(n - 1){
-   labeledge("A" + str(i), "A" + str(i+1), [$z_#(i+1)$], name: "z" + str(i))
+   labeledge("A" + str(i), "A" + str(i+1), s[$z_#(i+1)$], name: "z" + str(i))
   }
-  labeledge("A" + str(n - 1), (rel: (1.6, 0), to:"A" + str(n - 1)), [$z_#(n)$], name: "z" + str(n - 1))
+  labeledge("A" + str(n - 1), (rel: (1.6, 0), to:"A" + str(n - 1)), s[$z_#(n)$], name: "z" + str(n - 1))
 
   for i in range(n){
     tensor((rel: (0, -1), to: "z" + str(i)), "B" + str(i), [])
@@ -727,8 +730,9 @@ $
 #figure(canvas({
   import draw: *
   hmm(5)
+  let s(it) = text(11pt, it)
   for i in range(5){
-    tensor((rel: (0, -1.6), to: "B" + str(i)), "p" + str(i), [$x_#(i+1)$])
+    tensor((rel: (0, -1.6), to: "B" + str(i)), "p" + str(i), s[$x_#(i+1)$])
   }
   tensor((rel: (2, 0), to: "A4"), "e", [id])
 }))
@@ -849,7 +853,7 @@ optcode = optimize_code(rawcode, uniformsize(rawcode, 2), TreeSA())
 Z = optcode(tensors...)  # output: 167555.17801582735
 ```
 
-It is also possible to compute the ground state energy of the spin glass. To achieve this, we need to import the `TropicalMinPlus` data type from the `TropicalNumbers` package. This algebra is defined as
+It is also possible to compute the ground state energy of the spin glass with tropical algebra@Liu2021. To achieve this, we need to import the `TropicalMinPlus` data type from the `TropicalNumbers` package. This algebra is defined as
 $
   &a plus.circle b = min(a, b),\
   &a times.circle b = a + b,\
