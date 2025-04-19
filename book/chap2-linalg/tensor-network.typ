@@ -24,10 +24,10 @@
   import draw: *
   content(loc, text(black, label), align: center, fill:silver, frame:"rect", padding:0.07, stroke: none, name: name)
 }
-#let labeledge(from, to, label) = {
+#let labeledge(from, to, label, name: none) = {
   import draw: *
-  line(from, to, name:"line")
-  labelnode("line.mid", label)
+  line(from, to, name: "line")
+  labelnode("line.mid", label, name: name)
 }
 
 #let infobox(title, body, stroke: blue) = {
@@ -339,10 +339,6 @@ caption: [(a) A tensor network. (b) A line graph for the tensor network. Labels 
 
 
 }))
-
-TODO: check the GTN paper and Xuanzhao's blog.
-
-TODO: rotate the tree, twist the tree.
 
 #figure(canvas(length:0.9cm, {
   import plot
@@ -693,29 +689,52 @@ P(bold(z), bold(x)) = P(z_0) product_(t=1)^T P(z_(t)|z_(t-1))P(x_t|z_t).
 $
 Note that the conditional probability $P(z_(t)|z_(t-1))$ can be represented as a tensor with two indices. The joint probability $P(bold(z), bold(x))$ can be represented as a tensor network diagram:
 
-#figure(canvas({
+#let hmm(n) = {
   import draw: *
   let s(it) = text(11pt, it)
   
   // Draw transition matrices
   let dx = 2.0
-  for i in range(5){
+  tensor((0, 0), "A0", []) 
+  for i in range(1, n){
     tensor((dx*i, 0), "A" + str(i), []) 
   }
-  for i in range(4){
-    line("A" + str(i), "A" + str(i+1), name: "line" + str(i))
-    content("line" + str(i) + ".mid", box(inset: 3pt, fill: white, s[$z_#(i+1)$]), name: "z" + str(i))
-    tensor((rel: (0, -1)), "B" + str(i), [])
-    line("z" + str(i), "B" + str(i))
-    line("B" + str(i), (rel: (0, -0.8)))
-    content((rel: (0, -0.2)), s[$x_#(i+1)$])
+  for i in range(n - 1){
+   labeledge("A" + str(i), "A" + str(i+1), [$z_#(i+1)$], name: "z" + str(i))
   }
-  line("A0", (rel: (-1, 0)))
-  content((rel: (-0.3, 0)), s[$z_0$])
+  labeledge("A" + str(n - 1), (rel: (1.6, 0), to:"A" + str(n - 1)), [$z_#(n)$], name: "z" + str(n - 1))
+
+  for i in range(n){
+    tensor((rel: (0, -1), to: "z" + str(i)), "B" + str(i), [])
+    line("z" + str(i), "B" + str(i))
+    labeledge("B" + str(i), (rel: (0, -1.2)), s[$x_#(i+1)$])
+  }
+}
+
+#figure(canvas({
+  import draw: *
+  hmm(5)
 }),
 caption: [The tensor network representation of a Hidden Markov Model (HMM) with observed variables $x_1, x_2, dots, x_T$ and hidden states $z_0, z_1, dots, z_T$. The circles are conditional probabilities $P(z_t|z_(t-1))$ and $P(x_t|z_t)$.]
 )
 
+=== Likelihood
+The likelihood of the observed sequence:
+$
+P(bold(x)|theta) = sum_(bold(z)) P(bold(x), bold(z)|theta)
+$
+
+#figure(canvas({
+  import draw: *
+  hmm(5)
+  for i in range(5){
+    tensor((rel: (0, -1.6), to: "B" + str(i)), "p" + str(i), [$x_#(i+1)$])
+  }
+  tensor((rel: (2, 0), to: "A4"), "e", [id])
+}))
+where nodes with $x_t$ are observed variables, which are represented as projection tensors.
+
+=== Decoding
 This is the _decoding problem_ of HMM: Given a sequence of observations $bold(x) = (x_1, x_2, ..., x_T)$, how to find the most likely sequence of hidden states $bold(z)$? The equivalent mathematical formulation is:
 $
   arg max_(bold(z)) P(z_0) product_(t=1)^T P(z_(t)|z_(t-1))P(overshell(x)_t|z_t),
@@ -735,6 +754,55 @@ $
 which solves the decoding problem.
 Since this tensor network has a chain structure, its contraction is computationally efficient.
 This algorithm is equivalent to the Viterbi algorithm.
+
+=== Baum-Welch algorithm
+The Baum-Welch algorithm is an expectation-maximization (EM) algorithm used to find the unknown parameters of a Hidden Markov Model (HMM). It addresses the _learning problem_ of HMM: Given a sequence of observations $bold(x) = (x_1, x_2, ..., x_T)$, how to estimate the model parameters $theta = (A, B, pi)$, where $A$ is the transition probability matrix, $B$ is the emission probability matrix, and $pi$ is the initial state distribution?
+
+#figure(canvas({
+  import draw: *
+  hmm(5)
+  let s(it) = text(11pt, it)
+  for i in range(5){
+    tensor((rel: (0, -1.6), to: "B" + str(i)), "p" + str(i), s[$x_#(i+1)$])
+    content("B"+str(i), s[$B$])
+    if i == 0{
+      content("A"+str(i), s[$pi$])
+    }
+    else{
+      content("A"+str(i), s[$A$])
+    }
+  }
+  line("z1", (rel: (0, 1), to: "z1"), stroke: blue)
+  content((rel: (0, 1.3), to: "z1"), text(11pt, blue)[$eta_2 (x_2, z_2)$])
+  line("z2", (rel: (0, 1), to: "z2"), stroke: red)
+  line("z3", (rel: (0, 1), to: "z3"), stroke: red)
+  content((rel: (0, 1.3), to: "A3"), text(11pt, red)[$xi_3 (z_3, z_4)$])
+  tensor((rel: (2, 0), to: "A4"), "e", s[id])
+}), caption: [The tensor network representation of the expectation maximization problem for HMMs. The $pi$, $A$ and $B$ are the model parameters to be estimated, and $x_1, x_2, dots, x_T$ are the observed variables. When evaluating the transition probability $xi_t (i,j)$ in @eq:transition-probability, the variables $z_3$ and $z_4$ are set open (red lines). When evaluating the emission probability $eta_t (i,k)$ in @eq:emission-probability, the variable $z_2$ is set open (blue line).])
+
+The transition probability from state $i$ to state $j$ is given by
+$
+xi_t (i,j) = P(z_t=i, z_(t+1)=j | bold(x), theta)
+$ <eq:transition-probability>
+
+The emission probability from state $i$ to symbol $k$ is given by
+$
+eta_t (i,k) = P(x_t=k | z_t=i, theta)
+$ <eq:emission-probability>
+
+In practice, to evaluate tensor networks with multiple open indices, we can utilize the backward-mode automatic differentiation.
+
+*Parameter Update*: Use the forward and backward variables to compute the expected counts of transitions and emissions, and update the model parameters accordingly:
+
+$
+A_(i j) = ("Expected number of transitions from state i to state j")/("Expected number of transitions from state i")
+$
+
+$
+B_(i k) = ("Expected number of times in state i and observing symbol k")/("Expected number of times in state i")
+$
+
+The Baum-Welch algorithm does not guarantee to find the global maximum of the likelihood function.
 
 = Combinatorial optimization with tensor networks
 == Example: Spin-glass and tensor networks
