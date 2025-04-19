@@ -795,12 +795,16 @@ In practice, to evaluate tensor networks with multiple open indices, we can util
 *Parameter Update*: Use the forward and backward variables to compute the expected counts of transitions and emissions, and update the model parameters accordingly:
 
 $
-A_(i j) = ("Expected number of transitions from state i to state j")/("Expected number of transitions from state i")
+A_(i j) = (sum_(t=1)^(T-1) xi_t (i,j))/(sum_(t=1)^(T-1) sum_(j=1)^N xi_t (i,j))
 $
 
+This equation updates the transition probability matrix $A$. For each pair of states $(i,j)$, we compute the expected number of transitions from state $i$ to state $j$ (numerator) divided by the expected total number of transitions from state $i$ to any state (denominator).
+
 $
-B_(i k) = ("Expected number of times in state i and observing symbol k")/("Expected number of times in state i")
+B_(i k) = (sum_(t=1)^T eta_t (i,k) dot I(x_t = k))/(sum_(t=1)^T eta_t (i,k))
 $
+
+This equation updates the emission probability matrix $B$. For each state $i$ and observation $k$, we compute the expected number of times the model emits observation $k$ while in state $i$ (numerator) divided by the expected total number of times the model is in state $i$ (denominator). The indicator function $I(x_t = k)$ equals 1 when the observation at time $t$ is $k$, and 0 otherwise.
 
 The Baum-Welch algorithm does not guarantee to find the global maximum of the likelihood function.
 
