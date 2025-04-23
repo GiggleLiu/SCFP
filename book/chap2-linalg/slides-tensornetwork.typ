@@ -819,6 +819,26 @@ In practice, to evaluate tensor networks with multiple open indices, we can util
   labeledge("C", "D", s[$c$])
 }))
 
+#figure(canvas({
+  import draw: *
+  let s(it) = text(11pt, it)
+  content((-1.5, 0), s[$overline(X)frac(partial X, partial U_2) = $])
+  tensor((0, 0), "A", s[$U_1$])
+  circle((1.5, 0), radius: 0.3, name: "B", stroke: none)
+  tensor((3, 0), "C", s[$U_3$])
+  tensor((4.5, 0), "D", s[$A_4$])
+  labeledge("A", (rel: (0, 1.2)), s[$i$])
+  labeledge("B", (rel: (0, 1.2)), s[$j$])
+  labeledge("C", (rel: (0, 1.2)), s[$k$])
+  labeledge("D", (rel: (0, 1.2)), s[$l$])
+
+  labeledge("A", "B", s[$a$])
+  labeledge("B", "C", s[$b$])
+  labeledge("C", "D", s[$c$])
+  rect((-0.5, 1.2), (5, 1.8))
+  content((2.25, 1.5), s[$overline(X)$])
+}))
+
 
 == Tensor network differentiation
 Let $(Lambda, cal(T), emptyset)$ be a tensor network with scalar output. The gradient of the tensor network contraction with respect to $T_V in cal(T)$ is
