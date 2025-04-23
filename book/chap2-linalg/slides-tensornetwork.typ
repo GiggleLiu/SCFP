@@ -193,7 +193,7 @@ In this example, we use the `OMEinsum` package to compute some simple tensor net
 
 == Mathematical notation
 
-A tensor network@Liu2022@Roa2024 can be represented by a triple of $(Lambda, cal(T), V_0)$, where:
+A tensor network can be represented by a triple of $(Lambda, cal(T), V_0)$@Liu2022@Roa2024, where:
 - $Lambda$ is the set of variables present in the network.
 - $cal(T) = { T_(V_k) }_(k=1)^K$ is the set of input tensors, where each tensor $T_(V_k)$ is associated with the labels $V_k$.
 - $V_0$ specifies the labels of the output tensor.
@@ -218,94 +218,15 @@ where the input matrices $A$ and $B$ are indexed by the variable sets ${i, j}, {
 
 - The contraction complexity is determined by the chosen contraction order represented by a binary tree.
 - Finding the optimal contraction order, i.e., the contraction order with minimal complexity, is NP-complete@Markov2008.
-- Luckily, a close-to-optimal contraction order is usually acceptable, which could be found in a reasonable time with a heuristic optimizer.
-- In the past decade, methods have been developed to optimize the contraction orders, including both exact ones and heuristic ones.
-- Among these methods, multiple heuristic methods can handle networks with more than $10^4$ tensors efficiently@Gray2021 @Roa2024.
 
-== Tree decomposition
-The optimal contraction order is closely related to the _tree decomposition_@Markov2008 of the line graph of the tensor network.
+e.g. Multiplication of three matrices $A, B, C$:
 
-#figure(canvas({
-  import draw: *
-  let d = 1.1
-  let s(it) = text(11pt, it)
-  let locs_labels = ((0, 0), (d, 0), (0, -d), (0, -2 * d), (d, -2 * d), (2 * d, 0), (2 * d, -d), (2 * d, -2 * d))
-  for (loc, t, name) in (((0.5 * d, -0.5 * d), s[$T_1$], "T_1"), ((1.5 * d, -0.5 * d), s[$T_2$], "T_2"), ((1.5 * d, -1.5 * d), s[$T_3$], "T_3"), ((0.5 * d, -1.5 * d), s[$T_4$], "T_4")) {
-    circle(loc, radius: 0.3, name: name)
-    content(loc, s[#t])
-  }
-  for ((loc, t), name) in locs_labels.zip((s[$A$], s[$B$], s[$C$], s[$D$], s[$E$], s[$F$], s[$G$], s[$H$])).zip(("A", "B", "C", "D", "E", "F", "G", "H")) {
-    labelnode(loc, t, name: name)
-  }
-  for (src, dst) in (("A", "T_1"), ("B", "T_1"), ("C", "T_1"), ("F", "T_2"), ("G", "T_2"), ("B", "T_2"), ("H", "T_3"), ("E", "T_3"), ("G", "T_3"), ("D", "T_4"), ("C", "T_4"), ("E", "T_4")) {
-    line(src, dst)
-  }
-  content((d, -3), text(12pt)[(a)])
-  content((3.5, -1), text(12pt)[$arrow.double.r$])
-  content((3.5, -1.5), text(10pt)[Line graph])
-  set-origin((5, 0))
-  let colors = (color.hsv(30deg, 90%, 70%), color.hsv(120deg, 90%, 70%), color.hsv(210deg, 90%, 70%), color.hsv(240deg, 90%, 70%), color.hsv(330deg, 90%, 70%), color.hsv(120deg, 90%, 70%), color.hsv(210deg, 90%, 70%), color.hsv(240deg, 90%, 70%))
-  let texts = ("A", "B", "C", "D", "E", "F", "G", "H")
-  for (loc, color, t) in locs_labels.zip(colors, texts) {
-    circle(loc, radius: 0.3, name: t)
-    content(loc, text(12pt, color)[#t])
-  }
-  for (a, b) in (("A", "B"), ("A", "C"), ("B", "C"), ("C", "D"), ("C", "E"), ("D", "E"), ("E", "G"), ("G", "H"), ("E", "H"), ("F", "G"), ("F", "B"), ("B", "G")) {
-    line(a, b)
-  }
-  content((d, -3), text(12pt)[(b)])
-  content((3.5, -1), text(12pt)[$arrow.double.r$])
-  content((3.5, -1.5), text(10pt)[T. D.])
-  set-origin((5, 0))
-  for (loc, bag) in (((0, 0), "B1"), ((0, -2), "B2"), ((1, -1), "B3"), ((3, -1), "B4"), ((4, 0), "B5"), ((4, -2), "B6")) {
-    circle(loc, radius: 0.55, name: bag)
-  }
-  let topleft = (-0.2, 0.2)
-  let topright = (0.2, 0.2)
-  let bottom = (0, -0.3)
-  let top = (0, 0.3)
-  let bottomleft = (-0.2, -0.2)
-  let bottomright = (0.2, -0.2)
-  let right = (0.3, 0)
-  let left = (-0.3, 0)
-  content((rel:topright, to: "B1"), text(10pt, colors.at(1))[B], name: "b1")
-  content((rel:topleft, to: "B1"), text(10pt, colors.at(0))[A], name: "a1")
-  content((rel:bottom, to: "B1"), text(10pt, colors.at(2))[C], name: "c1")
+$
+&X = (A times B) times C = A times (B times C)\
+&cal(V)(X) = (A times.circle C^T) cal(V)(B)
+$
 
-  content((rel:top, to: "B2"), text(10pt, colors.at(2))[C], name: "c2")
-  content((rel:bottomleft, to: "B2"), text(10pt, colors.at(3))[D], name: "d1")
-  content((rel:right, to: "B2"), text(10pt, colors.at(4))[E], name: "e1")
-
-  content((rel:topright, to: "B3"), text(10pt, colors.at(1))[B], name: "b2")
-  content((rel:left, to: "B3"), text(10pt, colors.at(2))[C], name: "c3")
-  content((rel:bottomright, to: "B3"), text(10pt, colors.at(4))[E], name: "e2")
-
-  content((rel:topleft, to: "B4"), text(10pt, colors.at(1))[B], name: "b3")
-  content((rel:bottomleft, to: "B4"), text(10pt, colors.at(4))[E], name: "e3")
-  content((rel:right, to: "B4"), text(10pt, colors.at(6))[G], name: "g1")
-
-  content((rel:left, to: "B5"), text(10pt, colors.at(1))[B], name: "b4")
-  content((rel:topright, to: "B5"), text(10pt, colors.at(5))[F], name: "f1")
-  content((rel:bottom, to: "B5"), text(10pt, colors.at(6))[G], name: "g2")
-
-  content((rel:left, to: "B6"), text(10pt, colors.at(4))[E], name: "e4")
-  content((rel:top, to: "B6"), text(10pt, colors.at(6))[G], name: "g3")
-  content((rel:bottomright, to: "B6"), text(10pt, colors.at(7))[H], name: "h1")
-
-  line("b1", "b2", stroke: colors.at(1))
-  line("b2", "b3", stroke: colors.at(1))
-  line("b3", "b4", stroke: colors.at(1))
-  line("c1", "c3", stroke: colors.at(2))
-  line("c2", "c3", stroke: colors.at(2))
-  line("e1", "e2", stroke: colors.at(4))
-  line("e2", "e3", stroke: colors.at(4))
-  line("e3", "e4", stroke: colors.at(4))
-  line("g1", "g2", stroke: colors.at(6))
-  line("g1", "g3", stroke: colors.at(6))
-  content((2, -3), text(12pt)[(c)])
-}),
-)
-#enum(numbering: "(a)", [A tensor network.], [A line graph for the tensor network. Labels are connected if and only if they appear in the same tensor.], [A tree decomposition (T. D.) of the line graph.])
+Q: What is the difference in the diagrammatic representation?
 
 == Contraction tree and cost function
 
@@ -340,7 +261,6 @@ $
   cal(L) = "tc" + w_s "sc" + w_("rw") "rwc",
 $
 - $w_s$ and $w_("rw")$ are the weights of the space complexity and read-write complexity compared to the time complexity, respectively.
-
 
 
 == Trade-off between contraction order optimization and contraction
@@ -529,6 +449,92 @@ Slicing is a technique to reduce the space complexity of the tensor network by l
 
 
 
+== Graph theoretical point of view: Tree decomposition
+The optimal contraction order is closely related to the _tree decomposition_@Markov2008 of the line graph of the tensor network.
+
+#figure(canvas({
+  import draw: *
+  let d = 1.1
+  let s(it) = text(11pt, it)
+  let locs_labels = ((0, 0), (d, 0), (0, -d), (0, -2 * d), (d, -2 * d), (2 * d, 0), (2 * d, -d), (2 * d, -2 * d))
+  for (loc, t, name) in (((0.5 * d, -0.5 * d), s[$T_1$], "T_1"), ((1.5 * d, -0.5 * d), s[$T_2$], "T_2"), ((1.5 * d, -1.5 * d), s[$T_3$], "T_3"), ((0.5 * d, -1.5 * d), s[$T_4$], "T_4")) {
+    circle(loc, radius: 0.3, name: name)
+    content(loc, s[#t])
+  }
+  for ((loc, t), name) in locs_labels.zip((s[$A$], s[$B$], s[$C$], s[$D$], s[$E$], s[$F$], s[$G$], s[$H$])).zip(("A", "B", "C", "D", "E", "F", "G", "H")) {
+    labelnode(loc, t, name: name)
+  }
+  for (src, dst) in (("A", "T_1"), ("B", "T_1"), ("C", "T_1"), ("F", "T_2"), ("G", "T_2"), ("B", "T_2"), ("H", "T_3"), ("E", "T_3"), ("G", "T_3"), ("D", "T_4"), ("C", "T_4"), ("E", "T_4")) {
+    line(src, dst)
+  }
+  content((d, -3), text(12pt)[(a)])
+  content((3.5, -1), text(12pt)[$arrow.double.r$])
+  content((3.5, -1.5), text(10pt)[Line graph])
+  set-origin((5, 0))
+  let colors = (color.hsv(30deg, 90%, 70%), color.hsv(120deg, 90%, 70%), color.hsv(210deg, 90%, 70%), color.hsv(240deg, 90%, 70%), color.hsv(330deg, 90%, 70%), color.hsv(120deg, 90%, 70%), color.hsv(210deg, 90%, 70%), color.hsv(240deg, 90%, 70%))
+  let texts = ("A", "B", "C", "D", "E", "F", "G", "H")
+  for (loc, color, t) in locs_labels.zip(colors, texts) {
+    circle(loc, radius: 0.3, name: t)
+    content(loc, text(12pt, color)[#t])
+  }
+  for (a, b) in (("A", "B"), ("A", "C"), ("B", "C"), ("C", "D"), ("C", "E"), ("D", "E"), ("E", "G"), ("G", "H"), ("E", "H"), ("F", "G"), ("F", "B"), ("B", "G")) {
+    line(a, b)
+  }
+  content((d, -3), text(12pt)[(b)])
+  content((3.5, -1), text(12pt)[$arrow.double.r$])
+  content((3.5, -1.5), text(10pt)[T. D.])
+  set-origin((5, 0))
+  for (loc, bag) in (((0, 0), "B1"), ((0, -2), "B2"), ((1, -1), "B3"), ((3, -1), "B4"), ((4, 0), "B5"), ((4, -2), "B6")) {
+    circle(loc, radius: 0.55, name: bag)
+  }
+  let topleft = (-0.2, 0.2)
+  let topright = (0.2, 0.2)
+  let bottom = (0, -0.3)
+  let top = (0, 0.3)
+  let bottomleft = (-0.2, -0.2)
+  let bottomright = (0.2, -0.2)
+  let right = (0.3, 0)
+  let left = (-0.3, 0)
+  content((rel:topright, to: "B1"), text(10pt, colors.at(1))[B], name: "b1")
+  content((rel:topleft, to: "B1"), text(10pt, colors.at(0))[A], name: "a1")
+  content((rel:bottom, to: "B1"), text(10pt, colors.at(2))[C], name: "c1")
+
+  content((rel:top, to: "B2"), text(10pt, colors.at(2))[C], name: "c2")
+  content((rel:bottomleft, to: "B2"), text(10pt, colors.at(3))[D], name: "d1")
+  content((rel:right, to: "B2"), text(10pt, colors.at(4))[E], name: "e1")
+
+  content((rel:topright, to: "B3"), text(10pt, colors.at(1))[B], name: "b2")
+  content((rel:left, to: "B3"), text(10pt, colors.at(2))[C], name: "c3")
+  content((rel:bottomright, to: "B3"), text(10pt, colors.at(4))[E], name: "e2")
+
+  content((rel:topleft, to: "B4"), text(10pt, colors.at(1))[B], name: "b3")
+  content((rel:bottomleft, to: "B4"), text(10pt, colors.at(4))[E], name: "e3")
+  content((rel:right, to: "B4"), text(10pt, colors.at(6))[G], name: "g1")
+
+  content((rel:left, to: "B5"), text(10pt, colors.at(1))[B], name: "b4")
+  content((rel:topright, to: "B5"), text(10pt, colors.at(5))[F], name: "f1")
+  content((rel:bottom, to: "B5"), text(10pt, colors.at(6))[G], name: "g2")
+
+  content((rel:left, to: "B6"), text(10pt, colors.at(4))[E], name: "e4")
+  content((rel:top, to: "B6"), text(10pt, colors.at(6))[G], name: "g3")
+  content((rel:bottomright, to: "B6"), text(10pt, colors.at(7))[H], name: "h1")
+
+  line("b1", "b2", stroke: colors.at(1))
+  line("b2", "b3", stroke: colors.at(1))
+  line("b3", "b4", stroke: colors.at(1))
+  line("c1", "c3", stroke: colors.at(2))
+  line("c2", "c3", stroke: colors.at(2))
+  line("e1", "e2", stroke: colors.at(4))
+  line("e2", "e3", stroke: colors.at(4))
+  line("e3", "e4", stroke: colors.at(4))
+  line("g1", "g2", stroke: colors.at(6))
+  line("g1", "g3", stroke: colors.at(6))
+  content((2, -3), text(12pt)[(c)])
+}),
+)
+#enum(numbering: "(a)", [A tensor network.], [A line graph for the tensor network. Labels are connected if and only if they appear in the same tensor.], [A tree decomposition (T. D.) of the line graph.])
+
+
 == Live Coding: Contraction order optimization
 https://tensorbfs.github.io/OMEinsumContractionOrders.jl/dev/
 
@@ -542,6 +548,8 @@ $
 A = U S V^dagger
 $
 where $U$ and $V$ are unitary matrices and $S$ is a diagonal matrix with non-negative real numbers on the diagonal.
+
+Q: What is the diagrammatic representation of the SVD?
 
 == CP-decomposition
 
@@ -638,6 +646,7 @@ where $U_1, U_2, U_3, U_4$ are unitary matrices and $X$ is a rank-4 tensor.
   labeledge("C", "D", [$c$])
 })))
 
+Live coding: Tensor train decomposition for compressing a uniform tensor of size $2^20$.
 
 = Application: Probabilistic modeling
 == Hidden Markov model
@@ -702,12 +711,9 @@ $
 }))
 where nodes with $x_t$ are observed variables, which are represented as projection tensors.
 
-== Decoding
-This is the _decoding problem_ of HMM: Given a sequence of observations $bold(x) = (x_1, x_2, ..., x_T)$, how to find the most likely sequence of hidden states $bold(z)$? The equivalent mathematical formulation is:
-$
-  arg max_(bold(z)) P(z_0) product_(t=1)^T P(z_(t)|z_(t-1))P(overshell(x)_t|z_t),
-$ <eq:decoding>
-where $overshell(x)_t$ denotes an observed variable $x_t$ with a fixed value. It is equivalent to contracting the following tensor network:
+== Tensor network for likelihood
+
+Let $overshell(x)_t$ denotes an observed variable $x_t$ with a fixed value. It is equivalent to contracting the following tensor network:
 $
   cases(Lambda = {z_0, z_1, dots, z_T},
   cal(T) = {P(z_0), P(z_1|z_0), dots, P(z_T|z_(T-1)), P(overshell(x)_1|z_1), P(overshell(x)_2|z_2), dots, P(overshell(x)_T|z_T)},
@@ -715,16 +721,28 @@ $
   )
 $ <eq:decoding-tensor>
 Since $overshell(x)_1, overshell(x)_2, dots, overshell(x)_T$ are fixed and not involved in the contraction, $P(overshell(x)_t|z_t)$ is a vector indexed by $z_t$ rather than a matrix.
-To solve it, we first convert the above tensor network into a tropical tensor network $(Lambda, {log(t) | t in cal(T)}, V_0)$, where $log(t)$ is obtained by taking the logarithm of each element in $t$. Then the contraction of this tropical tensor network is equivalent to
+
+#figure(box(inset: 10pt, stroke: black)[a function over finite domain $arrow.l.r.double$ a tensor])
+
+
+== Decoding
+This is the _decoding problem_ of HMM: Given a sequence of observations $bold(x) = (x_1, x_2, ..., x_T)$, how to find the most likely sequence of hidden states $bold(z)$? The equivalent mathematical formulation is:
+$
+  arg max_(bold(z)) P(z_0) product_(t=1)^T P(z_(t)|z_(t-1))P(overshell(x)_t|z_t),
+$ <eq:decoding>
+To solve it, we first convert the above tensor network into the following form:
 $
   arg max_(bold(z)) sum_(bold(z)) log P(z_0) + sum_(t=1)^T log P(z_t|z_(t-1)) + sum_(t=1)^T log P(overshell(x)_t|z_t),
 $
-which solves the decoding problem.
-Since this tensor network has a chain structure, its contraction is computationally efficient.
-This algorithm is equivalent to the Viterbi algorithm.
+
+It is equivalent to a tropical tensor network@Liu2021 $(Lambda, {log(t) | t in cal(T)}, V_0)$, where $log(t)$ is element-wise logarithm of $t$.
 
 == Baum-Welch algorithm
-The Baum-Welch algorithm is an expectation-maximization (EM) algorithm used to find the unknown parameters of a Hidden Markov Model (HMM). It addresses the _learning problem_ of HMM: Given a sequence of observations $bold(x) = (x_1, x_2, ..., x_T)$, how to estimate the model parameters $theta = (A, B, pi)$, where $A$ is the transition probability matrix, $B$ is the emission probability matrix, and $pi$ is the initial state distribution?
+The Baum-Welch algorithm is an expectation-maximization (EM) algorithm used to find the unknown parameters of a Hidden Markov Model (HMM). It addresses the _learning problem_ of HMM:
+
+#figure(box(inset: 10pt, stroke: black)[
+Given a sequence of observations $bold(x) = (x_1, x_2, ..., x_T)$, how to estimate the model parameters $theta = (A, B, pi)$, where $A$ is the transition probability matrix, $B$ is the emission probability matrix, and $pi$ is the initial state distribution?
+])
 
 ==
 
@@ -763,6 +781,45 @@ $ <eq:emission-probability>
 == Backward-mode automatic differentiation
 In practice, to evaluate tensor networks with multiple open indices, we can utilize the backward-mode automatic differentiation.
 
+=== Differentiation - cut correspondence
+
+#figure(canvas({
+  import draw: *
+  let s(it) = text(11pt, it)
+  content((-1, 0), s[$X = $])
+  tensor((0, 0), "A", s[$U_1$])
+  tensor((1.5, 0), "B", s[$U_2$])
+  tensor((3, 0), "C", s[$U_3$])
+  tensor((4.5, 0), "D", s[$A_4$])
+  labeledge("A", (rel: (0, 1.2)), s[$i$])
+  labeledge("B", (rel: (0, 1.2)), s[$j$])
+  labeledge("C", (rel: (0, 1.2)), s[$k$])
+  labeledge("D", (rel: (0, 1.2)), s[$l$])
+
+  labeledge("A", "B", s[$a$])
+  labeledge("B", "C", s[$b$])
+  labeledge("C", "D", s[$c$])
+}))
+
+#figure(canvas({
+  import draw: *
+  let s(it) = text(11pt, it)
+  content((-1, 0), s[$frac(partial X, partial U_2) = $])
+  tensor((0, 0), "A", s[$U_1$])
+  circle((1.5, 0), radius: 0.3, name: "B", stroke: none)
+  tensor((3, 0), "C", s[$U_3$])
+  tensor((4.5, 0), "D", s[$A_4$])
+  labeledge("A", (rel: (0, 1.2)), s[$i$])
+  labeledge("B", (rel: (0, 1.2)), s[$j$])
+  labeledge("C", (rel: (0, 1.2)), s[$k$])
+  labeledge("D", (rel: (0, 1.2)), s[$l$])
+
+  labeledge("A", "B", s[$a$])
+  labeledge("B", "C", s[$b$])
+  labeledge("C", "D", s[$c$])
+}))
+
+
 == Tensor network differentiation
 Let $(Lambda, cal(T), emptyset)$ be a tensor network with scalar output. The gradient of the tensor network contraction with respect to $T_V in cal(T)$ is
 $
@@ -771,8 +828,6 @@ $
 $
 That is, the gradient corresponds to the contraction of the tensor network
 with the tensor $T_V$ removed and the output label set to $V$.
-
-TODO: the differentiation-cut rule
 
 == Proof
 Let $cal(L)$ be a loss function of interest, where its differential form is given by:
