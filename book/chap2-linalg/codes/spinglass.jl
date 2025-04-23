@@ -19,7 +19,4 @@ Z = optcode(tensors...)  # output: 167555.17801582735
 using TropicalNumbers
 
 tensors = [TropicalMinPlus.([J -J; -J J]) for J in sg.J]
-rawcode = EinCode([[e.src, e.dst] for e in edges(graph)], Int[])
-optcode = optimize_code(rawcode, uniformsize(rawcode, 2), TreeSA())
-
 Emin = optcode(tensors...)  # output: -9ₛ

@@ -538,7 +538,7 @@ The optimal contraction order is closely related to the _tree decomposition_@Mar
 == Live Coding: Contraction order optimization
 https://tensorbfs.github.io/OMEinsumContractionOrders.jl/dev/
 
-= Application: data compression
+= Data compression
 === References:
 - Era of big data processing: a new approach via tensor networks and tensor decompositions @Cichocki2014
 
@@ -648,7 +648,7 @@ where $U_1, U_2, U_3, U_4$ are unitary matrices and $X$ is a rank-4 tensor.
 
 Live coding: Tensor train decomposition for compressing a uniform tensor of size $2^20$.
 
-= Application: Probabilistic modeling
+= Probabilistic modeling
 == Hidden Markov model
 
 A Hidden Markov Model (HMM)@Bishop2006 is a simple probabilistic graphical model that describes a Markov process with unobserved (hidden) states:
@@ -903,7 +903,7 @@ $
   - Watch #link("https://www.youtube.com/watch?v=i3AkTO9HLXo&list=PLM8wYQRetTxBkdvBtz-gw8b9lcVkdXQKV&ab_channel=NormalizedNerd", [YouTube playlist: Markov Chains Clearly Explained!]) and try to understand the code.
   - Complete the second problem in Homework 11.
 
-= Application: Solving spin-glass problem
+= Solving spin-glass problem
 
 The partition function of a physical system plays a central role in statistical physics. It is closely related to many physical quantities, such as the free energy, the entropy, and the specific heat.
 The spin glass Hamiltonian on a graph $G = (V, E)$ is given by
