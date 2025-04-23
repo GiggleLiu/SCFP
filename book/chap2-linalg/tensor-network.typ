@@ -639,10 +639,153 @@ where $U_1, U_2, U_3, U_4$ are unitary matrices and $X$ is a rank-4 tensor.
   labeledge("C", "D", [$c$])
 })))
 
+In the following example, we implement the tensor train decomposition in Julia. We use tensor train to represent a uniform tensor of size $2^(20)$ with a rank of 1.
+```julia
+using OMEinsum
+using LinearAlgebra
+
+struct MPS{T}
+    tensors::Vector{Array{T, 3}}
+end
+
+# Function to compress a tensor using Tensor Train (TT) decomposition
+function tensor_train_decomposition(tensor::AbstractArray, largest_rank::Int; atol=1e-6)
+    dims = size(tensor)
+    n = length(dims)
+    
+    # Initialize the cores of the TT decomposition
+    tensors = Array{Float64, 3}[]
+    
+    # Reshape the tensor into a matrix
+    rpre = 1
+    current_tensor = reshape(tensor, dims[1], :)
+    
+    # Perform SVD for each core except the last one
+    for i in 1:(n-1)
+        # Truncate to the specified rank
+        U_truncated, S_truncated, V_truncated, r = truncated_svd(current_tensor, largest_rank, atol)
+
+        # Middle cores have shape (largest_rank, dims[i], r)
+        push!(tensors, reshape(U_truncated, (rpre, dims[i], r)))
+        
+        # Prepare the tensor for the next iteration
+        current_tensor = S_truncated * V_truncated'
+        
+        # Reshape for the next SVD
+        current_tensor = reshape(current_tensor, r * dims[i+1], :)
+        rpre = r
+    end
+    
+    # Add the last core
+    push!(tensors, reshape(current_tensor, (rpre, dims[n], 1)))
+    
+    return MPS(tensors)
+end
+
+function truncated_svd(current_tensor::AbstractArray, largest_rank::Int, atol)
+    # Compute SVD
+    U, S, V = svd(current_tensor)
+    r = min(largest_rank, sum(S .> atol))
+    S_truncated = Diagonal(S[1:r])
+    U_truncated = U[:, 1:r]
+    V_truncated = V[:, 1:r]
+    return U_truncated, S_truncated, V_truncated, r
+end
+
+# Function to contract the TT cores to reconstruct the tensor
+function contract(mps::MPS)
+    n = length(mps.tensors)
+    code = EinCode([[2i-1, 2i, 2i+1] for i in 1:n], Int[2i for i in 1:n])
+    size_dict = OMEinsum.get_size_dict(code.ixs, mps.tensors)
+    optcode = optimize_code(code, size_dict, GreedyMethod())
+    return optcode(mps.tensors...)
+end
+
+# Example usage: compressing a uniform tensor of size 2^20
+tensor = ones(Float64, fill(2, 20)...);
+
+# Perform TT decomposition
+mps = tensor_train_decomposition(tensor, 5)
+
+# Reconstruct the tensor from TT cores
+reconstructed_tensor = contract(mps);
+
+# Calculate the relative error
+relative_error = norm(tensor - reconstructed_tensor) / norm(tensor)
+println("Relative error of reconstruction: ", relative_error)
+
+# Calculate compression ratio
+original_size = prod(size(tensor))
+compressed_size = sum([prod(size(core)) for core in mps.tensors])
+compression_ratio = original_size / compressed_size
+println("Compression ratio: ", compression_ratio)
+
+# Print the shapes of the TT cores
+println("TT core shapes:")
+for (i, core) in enumerate(mps.tensors)
+    println("Core $i: $(size(core))")
+end
+```
+
 
 == Tensor network differentiation
-The differentiation rules for tensor network contraction can be represented as the contraction of the tensor network:
-#theorem([_(Tensor network differentiation)_:
+
+The differentiation rules for tensor network contraction can be represented as the contraction of the tensor network. Given a tensor network $X$ in @fig:tensor-network-differentiation(a), the Jacobian matrix of $X$ with respect to $U_2$ is given by @fig:tensor-network-differentiation(b), which is equivalent to cutting the tensor $U_2$ and then contracting the remaining tensor network. The backward-mode automatic differentiation of $X$ with respect to $U_2$ is given by @fig:tensor-network-differentiation(c).
+#figure(canvas({
+  import draw: *
+  let s(it) = text(11pt, it)
+  content((-3, 0), s[(a)])
+  content((-1, 0), s[$X = $])
+  tensor((0, 0), "A", s[$U_1$])
+  tensor((1.5, 0), "B", s[$U_2$])
+  tensor((3, 0), "C", s[$U_3$])
+  tensor((4.5, 0), "D", s[$A_4$])
+  labeledge("A", (rel: (0, 1.2)), s[$i$])
+  labeledge("B", (rel: (0, 1.2)), s[$j$])
+  labeledge("C", (rel: (0, 1.2)), s[$k$])
+  labeledge("D", (rel: (0, 1.2)), s[$l$])
+
+  labeledge("A", "B", s[$a$])
+  labeledge("B", "C", s[$b$])
+  labeledge("C", "D", s[$c$])
+
+  set-origin((0, -2))
+  content((-3, 0), s[(b)])
+  content((-1, 0), s[$frac(partial X, partial U_2) = $])
+  tensor((0, 0), "A", s[$U_1$])
+  circle((1.5, 0), radius: 0.3, name: "B", stroke: none)
+  tensor((3, 0), "C", s[$U_3$])
+  tensor((4.5, 0), "D", s[$A_4$])
+  labeledge("A", (rel: (0, 1.2)), s[$i$])
+  labeledge("B", (rel: (0, 1.2)), s[$j$])
+  labeledge("C", (rel: (0, 1.2)), s[$k$])
+  labeledge("D", (rel: (0, 1.2)), s[$l$])
+
+  labeledge("A", "B", s[$a$])
+  labeledge("B", "C", s[$b$])
+  labeledge("C", "D", s[$c$])
+
+  set-origin((0, -3))
+  content((-3, 0), s[(c)])
+  content((-1.5, 0), s[$overline(X)frac(partial X, partial U_2) = $])
+  tensor((0, 0), "A", s[$U_1$])
+  circle((1.5, 0), radius: 0.3, name: "B", stroke: none)
+  tensor((3, 0), "C", s[$U_3$])
+  tensor((4.5, 0), "D", s[$A_4$])
+  labeledge("A", (rel: (0, 1.2)), s[$i$])
+  labeledge("B", (rel: (0, 1.2)), s[$j$])
+  labeledge("C", (rel: (0, 1.2)), s[$k$])
+  labeledge("D", (rel: (0, 1.2)), s[$l$])
+
+  labeledge("A", "B", s[$a$])
+  labeledge("B", "C", s[$b$])
+  labeledge("C", "D", s[$c$])
+  rect((-0.5, 1.2), (5, 1.8))
+  content((2.25, 1.5), s[$overline(X)$])
+}), caption: [Differentiation-cutting correspondence. (a) A tensor network $X$. (b) The Jacobian matrix of $X$ with respect to $U_2$. (c) The backward-mode automatic differentiation of $X$ with respect to $U_2$, where $overline(X)$ is the adjoint of $X$, $overline(X)(partial X)/(partial U_2)$ corresponds to the adjoint of $U_2$.]) <fig:tensor-network-differentiation>
+
+Formally, we have the following definition:
+#definition([_(Tensor network differentiation)_:
     Let $(Lambda, cal(T), emptyset)$ be a tensor network with scalar output. The gradient of the tensor network contraction with respect to $T_V in cal(T)$ is
     $
       frac(partial "contract"(Lambda, cal(T), emptyset), partial T_V) =
