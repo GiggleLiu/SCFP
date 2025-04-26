@@ -147,6 +147,24 @@ x = x + 1 = 4
 5
 ```])
 
+== Some magic macros
+
+#box(text(16pt)[```julia
+using Base.Cartesian: @nexprs, @nloops, @nref
+
+@nexprs 3 i -> @show i
+```])
+
+#box(text(16pt)[```julia
+A = rand(10, 10)
+s = 0.0
+@nloops 2 i A d -> j_d = min(i_d, 5) begin
+    s += @nref 2 A j
+end
+```])
+
+
+
 == Implementing a DSL
 
 The difference between syntax and semantics
