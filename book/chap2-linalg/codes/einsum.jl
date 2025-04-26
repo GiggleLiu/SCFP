@@ -1,6 +1,5 @@
 using OMEinsum
 
-#box(text(16pt)[```julia
 s = fill(1)  # scalar
 w, v = [1, 2], [4, 5];  # vectors
 A, B = [1 2; 3 4], [5 6; 7 8]; # matrices
