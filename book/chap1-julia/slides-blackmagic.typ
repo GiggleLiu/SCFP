@@ -49,9 +49,9 @@
 
 #outline-slide()
 
-= Metaprogramming
+= Metaprogramming - Manipulating expressions
 
-== Macros
+== Defining a macro
 #box(text(16pt)[```julia
 julia> macro myshow(ex)
     quote
@@ -62,9 +62,17 @@ end
 ```])
 - `quote ... end` - Quote the expression to avoid evaluation
 - `QuoteNode` - Quote the expression to avoid evaluation
+- `$` - Evaluate the expression
 - _Remark_: Since we evaluate the expression in a string, we need to add two `$(...)` to evaluate the expression twice.
 
+== `@macroexpand`
 #box(text(16pt)[```julia
+julia> x = 3
+
+julia> @myshow x
+x = 3
+3
+
 julia> ex = @macroexpand @myshow x
 quote
     #= REPL[119]:3 =#
@@ -72,11 +80,6 @@ quote
     #= REPL[119]:4 =#
     Main.x
 end
-julia> x = 3
-
-julia> @myshow x
-x = 3
-3
 ```])
 
 
@@ -98,6 +101,7 @@ julia> ex.args
  :(#= REPL[131]:4 =#)
  :(Main.x)
 ```])
+- `LineNumberNode` - Line number information, used for debugging
 
 == Examples
 
@@ -131,7 +135,7 @@ Stacktrace:
    @ REPL[148]:1
 ```])
 
-== Avoid the hygiene problem
+== Avoid the hygiene problem - `esc`
 
 #box(text(16pt)[```julia
 julia> macro myshow(ex)
@@ -162,6 +166,8 @@ s = 0.0
     s += @nref 2 A j
 end
 ```])
+
+Example: https://github.com/JuliaLang/julia/blob/c9ad04dcc73256bc24eb079f9f6506299b64b8ec/base/multidimensional.jl#L1696
 
 
 
@@ -213,8 +219,35 @@ Live coding: Implement a mirror world:
 - `*` -> `/`
 - `/` -> `*`
 
+== `@eval` for code generation
 
-== String macro and regular expression
+e.g. Generate similar code for different types
+#box(text(16pt)[```julia
+for NBIT in [16, 32, 64]
+    @eval const $(Symbol(:Tropical, :F, NBIT)) = Tropical{$(Symbol(:Float, NBIT))}
+    @eval const $(Symbol(:Tropical, :I, NBIT)) = Tropical{$(Symbol(:Int, NBIT))}
+end
+```]))
+
+https://github.com/TensorBFS/TropicalNumbers.jl/blob/16c644484f25e5b38dd6a0ed0bc96f58065c2c40/src/TropicalNumbers.jl#L51
+
+== Generated function
+
+https://github.com/under-Peter/OMEinsum.jl/blob/b5fcba8c49bce17f12835ba8b9c1bdf449b0af59/src/Core.jl#L201
+
+#box(text(16pt)[```julia
+@inline @generated function subindex(indexer::DynamicEinIndexer{N}, ind::NTuple{N0,Int}) where {N,N0}
+    ex = Expr(:call, :+, map(i->i==1 ? :(ind[indexer.locs[$i]]) : :((ind[indexer.locs[$i]]-1) * indexer.cumsize[$i]), 1:N)...)
+    :(@inbounds $ex)
+end
+```])
+
+
+
+
+= String literal and regular expression
+
+== Example: String literal in OMEinsum
 
 ```julia
 ein"ij,jk->ik"
@@ -305,45 +338,19 @@ replaced = replace("Hello World", r"Hello" => "Hi") # "Hi World"
 ```])
 
 
-== `@eval` for code generation
+// = Multi-threading the multi-processing
 
-e.g. Generate similar code for different types
-#box(text(16pt)[```julia
-for NBIT in [16, 32, 64]
-    @eval const $(Symbol(:Tropical, :F, NBIT)) = Tropical{$(Symbol(:Float, NBIT))}
-    @eval const $(Symbol(:Tropical, :I, NBIT)) = Tropical{$(Symbol(:Int, NBIT))}
-end
-```]))
+// This section applies to multithreaded Julia code which, in each thread, performs linear algebra operations. Indeed, these linear algebra operations involve BLAS / LAPACK calls, which are themselves multithreaded. In this case, one must ensure that cores aren't oversubscribed due to the two different types of multithreading.
 
-https://github.com/TensorBFS/TropicalNumbers.jl/blob/16c644484f25e5b38dd6a0ed0bc96f58065c2c40/src/TropicalNumbers.jl#L51
+// Julia compiles and uses its own copy of OpenBLAS for linear algebra, whose number of threads is controlled by the environment variable OPENBLAS_NUM_THREADS. It can either be set as a command line option when launching Julia, or modified during the Julia session with BLAS.set_num_threads(N) (the submodule BLAS is exported by using LinearAlgebra). Its current value can be accessed with BLAS.get_num_threads().
 
-== Generated function
+// When the user does not specify anything, Julia tries to choose a reasonable value for the number of OpenBLAS threads (e.g. based on the platform, the Julia version, etc.). However, it is generally recommended to check and set the value manually. The OpenBLAS behavior is as follows:
 
-https://github.com/under-Peter/OMEinsum.jl/blob/b5fcba8c49bce17f12835ba8b9c1bdf449b0af59/src/Core.jl#L201
+// If OPENBLAS_NUM_THREADS=1, OpenBLAS uses the calling Julia thread(s), i.e. it "lives in" the Julia thread that runs the computation.
+// If OPENBLAS_NUM_THREADS=N>1, OpenBLAS creates and manages its own pool of threads (N in total). There is just one OpenBLAS thread pool shared among all Julia threads.
+// When you start Julia in multithreaded mode with JULIA_NUM_THREADS=X, it is generally recommended to set OPENBLAS_NUM_THREADS=1. Given the behavior described above, increasing the number of BLAS threads to N>1 can very easily lead to worse performance, in particular when $N<<X$. However this is just a rule of thumb, and the best way to set each number of threads is to experiment on your specific application.
 
-#box(text(16pt)[```julia
-@inline @generated function subindex(indexer::DynamicEinIndexer{N}, ind::NTuple{N0,Int}) where {N,N0}
-    ex = Expr(:call, :+, map(i->i==1 ? :(ind[indexer.locs[$i]]) : :((ind[indexer.locs[$i]]-1) * indexer.cumsize[$i]), 1:N)...)
-    :(@inbounds $ex)
-end
-```])
-
-== MLStyle
-
-
-= Multi-threading the multi-processing
-
-This section applies to multithreaded Julia code which, in each thread, performs linear algebra operations. Indeed, these linear algebra operations involve BLAS / LAPACK calls, which are themselves multithreaded. In this case, one must ensure that cores aren't oversubscribed due to the two different types of multithreading.
-
-Julia compiles and uses its own copy of OpenBLAS for linear algebra, whose number of threads is controlled by the environment variable OPENBLAS_NUM_THREADS. It can either be set as a command line option when launching Julia, or modified during the Julia session with BLAS.set_num_threads(N) (the submodule BLAS is exported by using LinearAlgebra). Its current value can be accessed with BLAS.get_num_threads().
-
-When the user does not specify anything, Julia tries to choose a reasonable value for the number of OpenBLAS threads (e.g. based on the platform, the Julia version, etc.). However, it is generally recommended to check and set the value manually. The OpenBLAS behavior is as follows:
-
-If OPENBLAS_NUM_THREADS=1, OpenBLAS uses the calling Julia thread(s), i.e. it "lives in" the Julia thread that runs the computation.
-If OPENBLAS_NUM_THREADS=N>1, OpenBLAS creates and manages its own pool of threads (N in total). There is just one OpenBLAS thread pool shared among all Julia threads.
-When you start Julia in multithreaded mode with JULIA_NUM_THREADS=X, it is generally recommended to set OPENBLAS_NUM_THREADS=1. Given the behavior described above, increasing the number of BLAS threads to N>1 can very easily lead to worse performance, in particular when $N<<X$. However this is just a rule of thumb, and the best way to set each number of threads is to experiment on your specific application.
-
-As an alternative to OpenBLAS, there exist several other backends that can help with linear algebra performance. Prominent examples include #link("https://github.com/JuliaLinearAlgebra/MKL.jl")[MKL.jl] and #link("https://github.com/JuliaMath/AppleAccelerate.jl")[AppleAccelerate.jl].
+// As an alternative to OpenBLAS, there exist several other backends that can help with linear algebra performance. Prominent examples include #link("https://github.com/JuliaLinearAlgebra/MKL.jl")[MKL.jl] and #link("https://github.com/JuliaMath/AppleAccelerate.jl")[AppleAccelerate.jl].
 
 = CUDA programming
 == The GPU
