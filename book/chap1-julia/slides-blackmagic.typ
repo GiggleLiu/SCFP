@@ -121,6 +121,21 @@ julia> ex_list.args
 
 - `:(...)` - Quote the expression to avoid evaluation, similar to `quote ... end`
 
+== More examples
+
+#box(text(16pt)[```julia
+julia> ex_call = :(f(x, y))
+
+julia> ex_if = :(if x > 0; return true; else; return false; end)
+
+julia> ex_for = :(for i in 1:10; println(i); end)
+
+julia> ex_comp = :(x > y)
+
+julia> ex_func = :(function f(x, y); return x + y; end)
+```])
+
+
 == The hygiene problem
 An issue that arises in more complex macros is that of hygiene. In short, macros must ensure that the variables they introduce in their returned expressions do not accidentally clash with existing variables in the surrounding code they expand into.
 
@@ -151,7 +166,7 @@ x = x + 1 = 4
 5
 ```])
 
-== Some magic macros
+== Magic 1: `@nexprs`
 
 #box(text(16pt)[```julia
 using Base.Cartesian: @nexprs, @nloops, @nref
@@ -159,6 +174,7 @@ using Base.Cartesian: @nexprs, @nloops, @nref
 @nexprs 3 i -> @show i
 ```])
 
+== Magic 2: `@nloops`
 #box(text(16pt)[```julia
 A = rand(10, 10)
 s = 0.0
