@@ -235,6 +235,9 @@ Live coding: Implement a mirror world:
 - `*` -> `/`
 - `/` -> `*`
 
+=== More advanced example
+https://github.com/GiggleLiu/ProblemReductions.jl/blob/b84db7fbc22199466c3f203394a10f08d5306fca/src/models/Circuit.jl#L137
+
 == `@eval` for code generation
 
 e.g. Generate similar code for different types
