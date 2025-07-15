@@ -32,7 +32,7 @@
 // Global information configuration
 #let m = (m.methods.info)(
   self: m,
-  title: [Julia black magic],
+  title: [The black magics in Julia],
   subtitle: [],
   author: [Jin-Guo Liu],
   date: datetime.today(),

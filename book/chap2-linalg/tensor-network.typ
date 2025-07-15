@@ -1,6 +1,8 @@
-#import "@preview/cetz:0.2.2": canvas, draw, tree, plot
+#import "@preview/cetz:0.4.0": canvas, draw, tree
+#import "@preview/cetz-plot:0.1.2": *
 #import "@preview/ctheorems:1.1.3": *
 #import "@preview/ouset:0.2.0": ouset
+#import "@preview/quill:0.7.1": *
 #import "../book.typ": book-page
 
 #set math.equation(numbering: "(1)")
@@ -1019,5 +1021,327 @@ By comparing with @eq:partition-function, we can see that the above code effecti
 $
   min_(bold(s)) sum_(i in V) h_i s_i + sum_((i, j) in E) J_(i j) s_i s_j,
 $
+
+== Quantum computing with tensor networks
+
+Quantum circuits provide a natural setting for tensor network representations, where quantum gates are represented as tensors and quantum states as vectors. This mapping allows us to efficiently simulate quantum circuits using tensor network contraction algorithms.
+
+=== Basic quantum gates as tensors
+
+In quantum computing, a quantum state initialized to $|0 angle.r^(times.circle n)$ can be represented as a direct product of $n$ vectors:
+#figure(canvas({
+  import draw: *
+  let s(it) = text(11pt, it)
+  let n = 2
+  for j in range(n){
+    tensor((0, -j), "init", s[$|0 angle.r$])
+    line("init", (1, -j))
+  }
+  content((0, -2), s[$dots.v$])
+  tensor((0, -3), "init", s[$|0 angle.r$])
+  line("init", (1, -3))
+}))
+where $|0 angle.r = mat(1; 0)$. A single-qubit gate $U$ can be represented as a rank-2 tensor. For example, if we want to apply a Hadamard gate $H$ to the first qubit, we can represent it as:
+
+#figure(canvas({
+  import draw: *
+  let s(it) = text(11pt, it)
+  tensor((0, 0), "init", s[$|0 angle.r$])
+  tensor((1, 0.0), "H", s[$H$])
+  line("init", "H")
+  line("H", (2, 0))
+
+  tensor((0, -1), "init", s[$|0 angle.r$])
+  line("init", (1, -1))
+
+  content((0, -2), s[$dots.v$])
+  tensor((0, -3), "init", s[$|0 angle.r$])
+  line("init", (1, -3))
+}))
+
+It can be generalized to multiple qubits. Some quantum gates have more detailed structures, such as the CNOT gate:
+#figure(canvas({
+  import draw: *
+  let radius = 0.3
+  let dx = 1.5
+  let dy = 0.8
+  line((0, dy), (dx, dy), name: "a")
+  line((0, -dy), (dx, -dy), name: "b")
+  circle("b.mid", radius: radius)
+  line("a.mid", (rel: (0, -radius), to: "b.mid"))
+  content((2.3, 0), "=")
+  let W = 4
+  let ddx = 0.8
+  line((W - ddx, dy), (W + dx + ddx, dy), name: "c")
+  tensor((W + dx/2, 0), "H1", [$H$])
+  line("c.mid", "H1")
+  line((W + dx/2, -dy), "H1")
+  tensor((W, -dy), "H2", [$H$])
+  tensor((W + dx, -dy), "H3", [$H$])
+  line((W - ddx, -dy), "H2")
+  line((W + ddx + dx, -dy), "H3")
+  line("H2", "H3")
+}))
+where we ignored the extra constant factor $sqrt(2)$ on the right side.
+
+#exampleblock([
+*Example: GHZ state preparation circuit*
+
+Consider a 3-qubit quantum circuit that prepares the GHZ state $|"GHZ" angle.r = 1/sqrt(2)(|000 angle.r + |111 angle.r)$. The quantum circuit generating this state is shown below:
+
+#align(center, quantum-circuit(
+  lstick($|0 angle.r$), $H$, ctrl(1), ctrl(2), meter(), [\ ],
+  lstick($|0 angle.r$), 1, targ(), 1, meter(), [\ ],
+  lstick($|0 angle.r$), 2, targ(), meter()
+))
+
+The corresponding tensor network diagram is:
+
+#align(center, text(10pt, canvas({
+  import draw: *
+  let s(it) = text(11pt, it)
+  
+})))
+])
+
+=== Example: Hadamard test
+
+The Hadamard test is a quantum algorithm used to estimate the expectation value of a unitary operator $U$ with respect to a quantum state $|psi angle.r$. It provides a way to measure $angle.l psi | U | psi angle.r$ using an ancilla qubit.
+
+#exampleblock([
+*Hadamard test circuit*
+
+The Hadamard test circuit is shown below:
+
+#align(center, quantum-circuit(
+  lstick($|0 angle.r$), $H$, ctrl(1), $H$, 1, [\ ],
+  lstick($|psi angle.r$), nwire([$n$]), gate($U$), 1
+))
+
+The expectation value of $Z$ on the first qubit is given by
+$
+angle.l Z angle.r = "Re"(angle.l psi | U | psi angle.r)
+$
+
+The corresponding tensor network representation is:
+
+#align(center, text(10pt, canvas({
+  import draw: *
+  let s(it) = text(11pt, it)
+  tensor((0, 0), "init", s[$|0 angle.r$])
+  tensor((0, -1), "psi", s[$|psi angle.r$])
+  tensor((1, 0), "H1", s[$H$])
+  tensor((3, 0), "H2", s[$H$])
+  tensor((4, 0), "Z", s[$Z$])
+  tensor((5, 0), "H3", s[$H$])
+  tensor((7, 0), "H4", s[$H$])
+  tensor((8, 0), "fin", s[$angle.l 0|$])
+  tensor((8, -1), "psi2", s[$angle.l psi|$])
+  tensor((2, -1), "U1", s[$U$])
+  tensor((6, -1), "U2", s[$U$])
+  line("init", "H1")
+  line("H1", "H2", name: "a")
+  line("H2", "Z")
+  line("Z", "H3")
+  line("H3", "H4", name: "b")
+  line("H4", "fin")
+  line("psi", "U1")
+  line("U1", "a")
+  line("U2", "b")
+  line("U1", "U2")
+  line("U2", "psi2")
+
+  content((4, -2), [$arrow.b$])
+
+  set-origin((0, -3))
+  tensor((0, 0), "init", s[$|0 angle.r$])
+  tensor((0, -1), "psi", s[$|psi angle.r$])
+  tensor((1, 0), "H1", s[$H$])
+  tensor((4, 0), "X", s[$X$])
+  tensor((7, 0), "H4", s[$H$])
+  tensor((8, 0), "fin", s[$angle.l 0|$])
+  tensor((8, -1), "psi2", s[$angle.l psi|$])
+  tensor((2, -1), "U1", s[$U$])
+  tensor((6, -1), "U2", s[$U$])
+  line("init", "H1")
+  line("H1", "X")
+  line("X", "H4")
+  line("H4", "fin")
+  line("psi", "U1")
+  line("U1", (2, 0))
+  line("U2", (6, 0))
+  line("U1", "U2")
+  line("U2", "psi2")
+
+  content((4, -2), [$arrow.b$])
+
+  set-origin((0, -3))
+  tensor((0, 0), "init", s[$|0 angle.r$])
+  tensor((0, -1), "psi", s[$|psi angle.r$])
+  tensor((2, 0), "Z", s[$Z$])
+  tensor((4, 0), "fin", s[$angle.l 0|$])
+  tensor((4, -1), "psi2", s[$angle.l psi|$])
+  tensor((2, -1), "U1", s[$U$])
+  line("init", "Z")
+  line("Z", "fin")
+  line("psi", "U1")
+  line("U1", "psi2")
+
+  content((5, -0.5), [$=$])
+  set-origin((6, 0))
+
+  tensor((0, -0.5), "psi", s[$|psi angle.r$])
+  tensor((2, -0.5), "psi2", s[$angle.l psi|$])
+  tensor((1, -0.5), "U1", s[$U$])
+  line("psi", "U1")
+  line("U1", "psi2")
+
+})))
+
+=== Expectation values
+
+*Yao implementation*:
+
+```julia
+using Yao
+
+function hadamard_test(psi::AbstractRegister, U::AbstractBlock)
+    # Ensure psi is a single-qubit state
+    @assert nqubits(psi) == 1
+    
+    # Create ancilla qubit initialized to |0⟩
+    ancilla = zero_state(1)
+    
+    # Combine qubits: [ancilla, psi]
+    reg = join(ancilla, psi)
+    
+    # Apply Hadamard test circuit
+    reg |> put(1=>H)                    # H on ancilla
+    reg |> put((1,2)=>control(1, 2=>U)) # Controlled-U
+    reg |> put(1=>H)                    # H on ancilla
+    
+    # Measure ancilla qubit
+    result = measure!(reg, 1)
+    
+    # Return probability of measuring |0⟩
+    return result[1] == 0 ? 1.0 : 0.0
+end
+
+# Example usage: estimating expectation value of Z gate on |+⟩ state
+psi = zero_state(1) |> put(1=>H)  # |+⟩ state
+U = Z                             # Pauli-Z gate
+
+# Run Hadamard test multiple times to estimate probability
+num_trials = 1000
+success_count = 0
+
+for _ in 1:num_trials
+    psi_copy = copy(psi)
+    success_count += hadamard_test(psi_copy, U)
+end
+
+prob_zero = success_count / num_trials
+expectation_value = 2 * prob_zero - 1
+
+println("Probability of measuring |0⟩: $prob_zero")
+println("Estimated ⟨ψ|U|ψ⟩: $expectation_value")
+println("Theoretical ⟨+|Z|+⟩: 0.0")
+
+# Example with different unitary: X gate
+println("\nTesting with X gate:")
+U_x = X
+success_count_x = 0
+
+for _ in 1:num_trials
+    psi_copy = copy(psi)
+    success_count_x += hadamard_test(psi_copy, U_x)
+end
+
+prob_zero_x = success_count_x / num_trials
+expectation_value_x = 2 * prob_zero_x - 1
+
+println("Probability of measuring |0⟩: $prob_zero_x")
+println("Estimated ⟨ψ|X|ψ⟩: $expectation_value_x")
+println("Theoretical ⟨+|X|+⟩: 1.0")
+```
+
+This implementation demonstrates how the Hadamard test can be used to estimate expectation values of unitary operators, which is fundamental for variational quantum algorithms and quantum machine learning.
+])
+
+
+
+=== Implementation example
+
+Here's a Julia implementation using `Yao` for the quantum circuit simulation:
+
+```julia
+using Yao
+
+# Define the GHZ state preparation circuit
+function ghz_circuit_simulation()
+    # Create a 3-qubit register initialized to |000⟩
+    reg = zero_state(3)
+    
+    # Apply Hadamard gate to first qubit
+    reg |> put(1=>H)
+    
+    # Apply CNOT gates: control qubit 1, target qubit 2
+    reg |> put((1,2)=>CNOT)
+    
+    # Apply CNOT gates: control qubit 2, target qubit 3  
+    reg |> put((2,3)=>CNOT)
+    
+    return reg
+end
+
+# Alternative: Define circuit using chain syntax
+ghz_circuit = chain(3, 
+    put(1=>H),           # Hadamard on qubit 1
+    put((1,2)=>CNOT),    # CNOT from qubit 1 to 2
+    put((2,3)=>CNOT)     # CNOT from qubit 2 to 3
+)
+
+# Simulate the GHZ state preparation circuit
+reg = zero_state(3) |> ghz_circuit
+
+# Calculate measurement probabilities
+probabilities = probs(reg)
+println("GHZ state measurement probabilities:")
+for (i, prob) in enumerate(probabilities)
+    if prob > 1e-10
+        # Convert index to binary representation
+        binary = string(i-1, base=2, pad=3)
+        println("|$binary⟩: $prob")
+    end
+end
+
+# Expected output:
+# |000⟩: 0.5
+# |111⟩: 0.5
+```
+
+This example demonstrates how to prepare a GHZ state using both quill for quantum circuit visualization and Yao for quantum circuit simulation. The resulting state exhibits perfect three-qubit entanglement, with equal probabilities for |000⟩ and |111⟩ states and zero probability for all other computational basis states.
+
+=== Advantages of tensor networks for quantum simulation
+
+1. **Efficient representation**: For circuits with limited entanglement, tensor networks provide exponential compression compared to full state vectors.
+
+2. **Approximate simulation**: Tensor networks with bounded bond dimensions can approximate quantum circuits with controlled error.
+
+3. **Scalability**: Modern tensor network algorithms can simulate quantum circuits with hundreds of qubits for specific circuit types.
+
+4. **Optimization**: Contraction order optimization significantly reduces computational complexity.
+
+The tensor network approach is particularly powerful for shallow quantum circuits, variational quantum algorithms, and quantum circuits with limited entanglement structure.
+
+=== Tools for quantum circuit development
+
+The combination of quill and Yao provides a comprehensive toolkit for quantum circuit development:
+
+- **Quill**: Professional quantum circuit diagrams with LaTeX-quality output, perfect for papers and presentations
+- **Yao**: High-performance quantum circuit simulation with efficient state vector manipulation
+- **Tensor Networks**: Theoretical framework connecting both visualization and simulation to understand quantum entanglement structure
+
+This integrated approach allows researchers to visualize, simulate, and analyze quantum circuits from multiple perspectives, bridging the gap between theoretical tensor network representations and practical quantum computing implementations.
 
 #bibliography("refs.bib")
