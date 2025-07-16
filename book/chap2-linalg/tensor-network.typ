@@ -1224,7 +1224,7 @@ $
 
 The corresponding tensor network representation is:
 
-#align(center, text(10pt, canvas({
+#figure(canvas({
   import draw: *
   let s(it) = text(11pt, it)
   tensor((0, 0), "init", s[$|0 angle.r$])
@@ -1295,7 +1295,7 @@ The corresponding tensor network representation is:
   line("psi", "U1")
   line("U1", "psi2")
 
-})))
+}))
 
 === Expectation values
 
