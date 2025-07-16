@@ -1067,6 +1067,7 @@ It can be generalized to multiple qubits. Some quantum gates have more detailed 
   let dy = 0.8
   line((0, dy), (dx, dy), name: "a")
   line((0, -dy), (dx, -dy), name: "b")
+  circle("a.mid", radius: 0.1, fill:black)
   circle("b.mid", radius: radius)
   line("a.mid", (rel: (0, -radius), to: "b.mid"))
   content((2.3, 0), "=")
@@ -1084,15 +1085,65 @@ It can be generalized to multiple qubits. Some quantum gates have more detailed 
 }))
 where we ignored the extra constant factor $sqrt(2)$ on the right side.
 
+== Useful rules
+
+#figure(canvas({
+  import draw: *
+  let s(it) = text(11pt, it)
+  tensor((0, 0), "init", s[$|0 angle.r$])
+  tensor((1, 0), "H", s[$H$])
+  line("init", "H")
+  line("H", (rel: (1, 0)))
+  content((3, 0), "=")
+  tensor((4, 0), "id", s[$"id"$])
+  line("id", (rel: (1, 0)))
+}))
+
+#figure(canvas({
+  import draw: *
+  let s(it) = text(11pt, it)
+  tensor((0, 0), "H1", s[$H$])
+  tensor((1, 0), "Z", s[$Z$])
+  tensor((2, 0), "H2", s[$H$])
+  line("H1", "Z")
+  line("Z", "H2")
+  line("H1", (rel: (-1, 0)))
+  line("H2", (rel: (1, 0)))
+  content((3.5, 0), "=")
+  tensor((5, 0), "X", s[$X$])
+  line("X", (rel: (-1, 0)), name: "a")
+  line("X", (rel: (1, 0)), name: "b")
+}))
+
+#figure(canvas({
+  import draw: *
+  let radius = 0.3
+  let dx = 1.5
+  let dy = 0.8
+  line((0, dy), (dx, dy), name: "a")
+  line((0, -dy), (dx, -dy), name: "b")
+  circle("a.mid", radius: 0.1, fill:black)
+  circle("b.mid", radius: 0.1, fill:black)
+  line("a.mid", "b.mid")
+  content((2.3, 0), "=")
+  let W = 3
+  line((W, dy), (W + dx, dy), name: "c")
+  line((W, -dy), (W + dx, -dy), name: "d")
+  tensor((W + dx/2, 0), "H1", [$H$])
+  line("c.mid", "H1")
+  line("d.mid", "H1")
+}))
+
+
 #exampleblock([
 *Example: GHZ state preparation circuit*
 
 Consider a 3-qubit quantum circuit that prepares the GHZ state $|"GHZ" angle.r = 1/sqrt(2)(|000 angle.r + |111 angle.r)$. The quantum circuit generating this state is shown below:
 
 #align(center, quantum-circuit(
-  lstick($|0 angle.r$), $H$, ctrl(1), ctrl(2), meter(), [\ ],
-  lstick($|0 angle.r$), 1, targ(), 1, meter(), [\ ],
-  lstick($|0 angle.r$), 2, targ(), meter()
+  lstick($|0 angle.r$), $H$, ctrl(1), 1, [\ ],
+  lstick($|0 angle.r$), 1, targ(), ctrl(1), [\ ],
+  lstick($|0 angle.r$), 2, targ(), 1
 ))
 
 The corresponding tensor network diagram is:
@@ -1100,8 +1151,56 @@ The corresponding tensor network diagram is:
 #align(center, text(10pt, canvas({
   import draw: *
   let s(it) = text(11pt, it)
-  
+  let dy = 1.5
+  tensor((0, 0), "a", s[$|0 angle.r$])
+  tensor((0, -dy), "b", s[$|0 angle.r$])
+  tensor((0, -2*dy), "c", s[$|0 angle.r$])
+  tensor((1, 0), "H1", s[$H$])
+  tensor((1, -dy), "H2", s[$H$])
+  tensor((3, -dy), "H2b", s[$H$])
+  tensor((3, -2*dy), "H3", s[$H$])
+  tensor((5, -2*dy), "H3b", s[$H$])
+  tensor((2, -dy/2), "Ha", s[$H$])
+  tensor((4, -3*dy/2), "Hb", s[$H$])
+  line("a", "H1")
+  line("b", "H2")
+  line("c", "H3")
+  line("H2", "H2b", name: "l2")
+  line("H3", "H3b", name: "l3")
+  line("H1", (rel: (1, 0)), "Ha")
+  line("Ha", "l2.mid")
+  line((rel: (1, 0), to: "H1"), (6, 0))
+  line("H2b", (rel: (1, 0)), "Hb")
+  line("Hb", "l3.mid")
+  line((rel: (1, 0), to: "H2b"), (6, -dy))
+  line("H3b", (rel: (1, 0), to: "H3b"))
 })))
+
+which can be simplified to
+#align(center, text(10pt, canvas({
+  import draw: *
+  let s(it) = text(11pt, it)
+  let dy = 1.5
+  tensor((3, -dy), "H2b", s[$H$])
+  tensor((5, -2*dy), "H3b", s[$H$])
+  tensor((2, -dy/2), "Ha", s[$H$])
+  tensor((4, -3*dy/2), "Hb", s[$H$])
+  line((2, 0), (6, 0))
+  line((2, 0), "Ha")
+  line("Ha", (rel: (0, -dy/2)), "H2b")
+  line("H2b", (rel: (1, 0)), "Hb")
+  line("Hb", (rel: (0, -dy/2)), "H3b")
+  line((rel: (1, 0), to: "H2b"), (6, -dy))
+  line("H3b", (rel: (1, 0), to: "H3b"))
+  content((7, -dy/2), "=")
+  set-origin((8, 0))
+  line((0, 0), (1, 0))
+  line((0, -dy), (1, -dy))
+  line((0, -2*dy), (1, -2*dy))
+  line((0, 0), (0, -2*dy))
+})))
+
+Question: How to compute $angle.l "GHZ"| O|"GHZ" angle.r$ and what is the complexity?
 ])
 
 === Example: Hadamard test
@@ -1321,27 +1420,5 @@ end
 ```
 
 This example demonstrates how to prepare a GHZ state using both quill for quantum circuit visualization and Yao for quantum circuit simulation. The resulting state exhibits perfect three-qubit entanglement, with equal probabilities for |000⟩ and |111⟩ states and zero probability for all other computational basis states.
-
-=== Advantages of tensor networks for quantum simulation
-
-1. **Efficient representation**: For circuits with limited entanglement, tensor networks provide exponential compression compared to full state vectors.
-
-2. **Approximate simulation**: Tensor networks with bounded bond dimensions can approximate quantum circuits with controlled error.
-
-3. **Scalability**: Modern tensor network algorithms can simulate quantum circuits with hundreds of qubits for specific circuit types.
-
-4. **Optimization**: Contraction order optimization significantly reduces computational complexity.
-
-The tensor network approach is particularly powerful for shallow quantum circuits, variational quantum algorithms, and quantum circuits with limited entanglement structure.
-
-=== Tools for quantum circuit development
-
-The combination of quill and Yao provides a comprehensive toolkit for quantum circuit development:
-
-- **Quill**: Professional quantum circuit diagrams with LaTeX-quality output, perfect for papers and presentations
-- **Yao**: High-performance quantum circuit simulation with efficient state vector manipulation
-- **Tensor Networks**: Theoretical framework connecting both visualization and simulation to understand quantum entanglement structure
-
-This integrated approach allows researchers to visualize, simulate, and analyze quantum circuits from multiple perspectives, bridging the gap between theoretical tensor network representations and practical quantum computing implementations.
 
 #bibliography("refs.bib")
