@@ -1,6 +1,6 @@
 #import "../book.typ": book-page
-#import "@preview/cetz:0.3.2": *
-#import "@preview/algorithmic:0.1.0"
+#import "@preview/cetz:0.4.1": *
+#import "@preview/algorithmic:1.0.3"
 #import algorithmic: algorithm
 
 #show: book-page.with(title: "Sparse Matrices and Graphs")
@@ -502,9 +502,9 @@ where $Q = (q_1 | q_2 | dots | q_k)$, and $op("span")({q_1, q_2, dots, q_k}) = c
 The Lanczos algorithm is a process to generate the tridiagonal matrix $T$ and the orthogonal matrix $Q$ from the Krylov subspace. The algorithm is as follows:
 #algorithm({
   import algorithmic: *
-  Function("Lanczos", args: ([$A$], [$q_1$], [$T$], [$Q$]), {
+  Function("Lanczos", ([$A$], [$q_1$], [$T$], [$Q$]), {
     Assign([$k, beta_0, bold(q)_0, bold(r)_0$], [$0, 1, 0, bold(q)_1$])
-    While(cond: [$k = 0$ or $beta_k != 0$], {
+    While($k = 0 "or" beta_k != 0$, {
       Assign([$bold(q)_(k+1)$], [$bold(r)_(k) \/ beta_(k)$])
       Assign([$k$], [$k+1$])
       Assign([$alpha_k$], [$bold(q)_(k)^dagger A bold(q)_k$])

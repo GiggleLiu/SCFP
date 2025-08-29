@@ -1,6 +1,7 @@
-#import "@preview/touying:0.4.2": *
-#import "@preview/touying-simpl-hkustgz:0.1.0" as hkustgz-theme
-#import "@preview/cetz:0.2.2": *
+#import "@preview/touying:0.6.1": *
+#import "@preview/touying-simpl-hkustgz:0.1.2": *
+#import "@preview/cetz:0.4.1": *
+#import "@preview/cetz-plot:0.1.2": plot
 #import "@preview/algorithmic:0.1.0"
 #import "@preview/ouset:0.2.0": ouset
 #import algorithmic: algorithm
@@ -26,29 +27,19 @@
   }
 }
 
-#let m = hkustgz-theme.register()
-
 #show raw.where(block: true): it=>{
   block(radius:4pt, fill:gray.transparentize(90%), inset:1em, width:99%, text(it))
 }
 
-// Global information configuration
-#let m = (m.methods.info)(
-  self: m,
-  title: [Tensor Networks],
-  subtitle: [Applications in Machine Learning],
-  author: [Jin-Guo Liu],
-  date: datetime.today(),
-  institution: [HKUST(GZ) - FUNH - Advanced Materials Thrust],
+#show: hkustgz-theme.with(
+  config-info(
+    title: [Tensor Networks],
+    subtitle: [Applications in Machine Learning],
+    author: [Jin-Guo Liu],
+    date: datetime.today(),
+    institution: [HKUST(GZ) - FUNH - Advanced Materials Thrust],
+  ),
 )
-
-// Extract methods
-#let (init, slides) = utils.methods(m)
-#show: init
-
-// Extract slide functions
-#let (slide, empty-slide, title-slide, outline-slide, new-section-slide, ending-slide) = utils.slides(m)
-#show: slides.with()
 
 #let tensor(location, name, label) = {
   import draw: *
@@ -265,7 +256,6 @@ $
 
 == Trade-off between contraction order optimization and contraction
 #figure(canvas(length:0.9cm, {
-  import plot
   import draw: *
   let s(it) = text(11pt, it)
   plot.plot(size: (10,7),

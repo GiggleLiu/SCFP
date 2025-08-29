@@ -1,5 +1,5 @@
 #import "../book.typ": book-page
-#import "@preview/cetz:0.2.2": *
+#import "@preview/cetz:0.4.1": *
 
 #show: book-page.with(title: "Matrix Computation (Advanced Topics)")
 #let exampleblock(it) = block(fill: rgb("#ffffff"), inset: 1em, radius: 4pt, stroke: black, it)

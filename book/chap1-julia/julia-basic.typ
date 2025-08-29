@@ -1,6 +1,6 @@
 #import "../book.typ": book-page, cross-link
-#import "@preview/cetz:0.2.2": *
-#import "@preview/algorithmic:0.1.0"
+#import "@preview/cetz:0.4.1": *
+#import "@preview/algorithmic:1.0.3"
 #import algorithmic: algorithm
 #show: book-page.with(title: "Julia Basic")
 
@@ -26,7 +26,7 @@ Sun Nov  6 10:50:21 PM CST 2022
 Status `~/.julia/environments/v1.8/Project.toml`
   [295af30f] Revise v3.4.0
 ```
-  #image("images/Packages.gif")
+  #image("images/Packages.gif", alt: "Packages")
   To install packages, just type `add <package name>`. For more commands, just type `?` and press `Enter`.
   The information about Julia packages is available at #link("https://juliahub.com/")[JuliaHub].
 
@@ -711,13 +711,13 @@ The Hamiltonian dynamics can be solved numerically by the Verlet algorithm @Verl
 
 #algorithm({
   import algorithmic: *
-  Function("Verlet", args: ([$bold(x)$], [$bold(v)$], [$bold(f)$], [$m$], [$d t$], [$n$]), {
-    Assign([$bold(v)$], [$bold(v) + (bold(f)(bold(x)))/m d t \/ 2$ #h(2em)#Ic([update velocity at time $d t \/ 2$])])
-    For(cond: [$k = 1 dots n$], {
-      Assign([$bold(x)$], [$bold(x) + bold(v) d t$ #h(2em)#Ic([update position at time $t$])])
-      Assign([$bold(v)$], [$bold(v) + (bold(f)(bold(x)))/m d t$ #h(1em)#Ic([update velocity at time $t + d t\/2$])])
+  Function("Verlet", ([$bold(x)$], [$bold(v)$], [$bold(f)$], [$m$], [$d t$], [$n$]), {
+    Assign([$bold(v)$], [$bold(v) + (bold(f)(bold(x)))/m d t \/ 2$ #h(2em)#CommentInline([update velocity at time $d t \/ 2$])])
+    For([$k = 1 dots n$], {
+      Assign([$bold(x)$], [$bold(x) + bold(v) d t$ #h(2em)#CommentInline([update position at time $t$])])
+      Assign([$bold(v)$], [$bold(v) + (bold(f)(bold(x)))/m d t$ #h(1em)#CommentInline([update velocity at time $t + d t\/2$])])
     })
-    Assign([$bold(v)$], [$bold(v) - (bold(f)(bold(x)))/m d t \/ 2$ #h(2em)#Ic([velocity at time $n d t$])])
+    Assign([$bold(v)$], [$bold(v) - (bold(f)(bold(x)))/m d t \/ 2$ #h(2em)#CommentInline([velocity at time $n d t$])])
     Return[$bold(x)$, $bold(v)$]
   })
 })

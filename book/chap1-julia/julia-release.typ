@@ -1,5 +1,5 @@
 #import "../book.typ": book-page, cross-link, heading-reference
-#import "@preview/cetz:0.2.2": *
+#import "@preview/cetz:0.4.1": *
 #show: book-page.with(title: "My First Package")
 
 #set math.equation(numbering: "(1)")
@@ -347,7 +347,7 @@ end
 ```
 
 #figure(
-  image("images/lorenz.gif", width: 80%),
+  image("images/lorenz.gif", width: 80%, alt: "Lorenz attractor"),
   caption: [Visualization of the Lorenz attractor]
 )
 

@@ -1,5 +1,6 @@
 #import "../book.typ": book-page, cross-link
-#import "@preview/cetz:0.2.2": canvas, draw, tree, vector, plot, decorations
+#import "@preview/cetz:0.4.1": canvas, draw, tree, vector, decorations
+#import "@preview/cetz-plot:0.1.2": plot
 #import "@preview/ctheorems:1.1.3": *
 
 #show: book-page.with(title: "Mathematical Optimization")

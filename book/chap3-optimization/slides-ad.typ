@@ -1,7 +1,8 @@
-#import "@preview/touying:0.4.2": *
-#import "@preview/touying-simpl-hkustgz:0.1.0" as hkustgz-theme
-#import "@preview/cetz:0.2.2": canvas, draw, tree, vector, plot, decorations, coordinate
-#import "@preview/algorithmic:0.1.0"
+#import "@preview/touying:0.6.1": *
+#import "@preview/touying-simpl-hkustgz:0.1.2": *
+#import "@preview/cetz:0.4.1": canvas, draw, tree, vector, decorations, coordinate
+#import "@preview/cetz-plot:0.1.2": plot
+#import "@preview/algorithmic:1.0.3"
 #import "@preview/ctheorems:1.1.3": *
 #import "images/treeverse.typ": visualize-treeverse
 #import algorithmic: algorithm
@@ -22,29 +23,19 @@
 }
 #set cite(style: "apa")
 
-#let m = hkustgz-theme.register()
-
 #show raw.where(block: true): it=>{
   block(radius:4pt, fill:gray.transparentize(90%), inset:1em, width:99%, text(it))
 }
 
-// Global information configuration
-#let m = (m.methods.info)(
-  self: m,
-  title: [Automatic differentiation and checkpointing],
-  subtitle: [],
-  author: [Jin-Guo Liu],
-  date: datetime.today(),
-  institution: [HKUST(GZ) - FUNH - Advanced Materials Thrust],
+#show: hkustgz-theme.with(
+  config-info(
+    title: [Automatic differentiation and checkpointing],
+    subtitle: [],
+    author: [Jin-Guo Liu],
+    date: datetime.today(),
+    institution: [HKUST(GZ) - FUNH - Advanced Materials Thrust],
+  ),
 )
-
-// Extract methods
-#let (init, slides) = utils.methods(m)
-#show: init
-
-// Extract slide functions
-#let (slide, empty-slide, title-slide, outline-slide, new-section-slide, ending-slide) = utils.slides(m)
-#show: slides.with()
 
 #let bob(loc, rescale: 1, flip: false, label: none, words: none) = {
   import draw: *
@@ -189,7 +180,9 @@ $
 dot(bold(y))_(i+1) = (diff bold(y)_(i+1))/(diff bold(y)_i) dot(bold(y))_i.
 $
 - _Remark_: In an automatic differentiation engine, the Jacobian matrix $(diff bold(y)_(i+1))/(diff bold(y)_i)$ is almost never computed explicitly in memory as it can be costly. Instead, the forward mode automatic differentiation can be implemented by overloading the function $f_i$ as
-$ f_i^("forward"): (bold(y)_i, dot(bold(y))_i) arrow.bar (bold(y)_(i+1), (diff bold(y)_(i+1))/(diff bold(y)_i) dot(bold(y))_i), $
+$
+f_i^("forward"): (bold(y)_i, dot(bold(y))_i) arrow.bar (bold(y)_(i+1), (diff bold(y)_(i+1))/(diff bold(y)_i) dot(bold(y))_i)
+$
 
 == Example
 In Julia, the package `ForwardDiff.jl`@Revels2016 provides a function `gradient` to compute the gradient of a simple function $f(theta, r) = r cos theta sin theta$.
@@ -390,7 +383,7 @@ In this example, the input is a complex number $z$, and the output is a real num
   rect((10, 1), (14, -3), stroke: (dash: "dashed"), name: "ad-engines")
   content((12, 0), box(stroke: black, inset: 10pt, radius: 4pt, s[`Mooncake.jl`]), name: "Mooncake")
   content((12, -1.5), box(stroke: black, inset: 10pt, radius: 4pt, s[`Zygote.jl`]), name: "Zygote")
-  content((12, -2.5), s[`...`], name: "...")
+  content((12, -2.5), s[`...`])
   content((12, -3.3), s[AD Engines])
   line("core", "ad-engines", mark: (end: "straight"))
 }))
@@ -615,33 +608,33 @@ $ eta(tau, delta) = ((tau + delta)!)/(tau!delta!). $
 ==
 #algorithm({
   import algorithmic: *
-  Function("Treeverse", args: ([$S$], [$overline(s_phi.alt)$], [$delta$], [$tau$], [$beta$], [$sigma$], [$phi.alt$]), {
-    If(cond: [$sigma > beta$], {
+  Function("Treeverse", ([$S$], [$overline(s_phi.alt)$], [$delta$], [$tau$], [$beta$], [$sigma$], [$phi.alt$]), {
+    If($sigma > beta$, {
       Assign([$delta$], [$delta - 1$])
-      Assign([$s$], [$S[beta] quad$ #Ic([Load initial state $s_beta$])])
-      For(cond: [$j = beta, beta+1, dots, sigma-1$], {
-        Assign([$s_(j+1)$], [$f_j(s_j) quad$ #Ic([Compute $s_sigma$])])
+      Assign([$s$], [$S[beta] quad$ #CommentInline([Load initial state $s_beta$])])
+      For($j = beta, beta+1, dots, sigma-1$, {
+        Assign([$s_(j+1)$], [$f_j(s_j) quad$ #CommentInline([Compute $s_sigma$])])
       })
       Assign([$S[sigma]$], [$s_sigma$])
     })
-    Cmt[Recursively call Treeverse with optimal split point $kappa$ (binomial distribution)]
-    While(cond: [$tau > 0$ and $kappa = "mid"(delta, tau, sigma, phi.alt) < phi.alt$], {
+    Comment[Recursively call Treeverse with optimal split point $kappa$ (binomial distribution)]
+    While($tau > 0 "and" kappa = "mid"(delta, tau, sigma, phi.alt) < phi.alt$, {
       Assign([$overline(s_kappa)$], [treeverse($S$, $overline(s_phi.alt)$, $delta$, $tau$, $sigma$, $kappa$, $phi.alt$)])
       Assign([$tau$], [$tau - 1$])
       Assign([$phi.alt$], [$kappa$])
     })
-    Assign([$overline(s_sigma)$], [$overline(f_sigma)(overline(s_(sigma+1)), s_sigma) quad$ #Ic([Use existing $s_sigma$ and $overline(s_phi.alt)$ to return gradient])])
+    Assign([$overline(s_sigma)$], [$overline(f_sigma)(overline(s_(sigma+1)), s_sigma) quad$ #CommentInline([Use existing $s_sigma$ and $overline(s_phi.alt)$ to return gradient])])
     
-    If(cond: [$sigma > beta$], {
-      State[remove($S[sigma]$)  $quad$ #Ic([Remove $s_sigma$ from cached state set])]
+    If($sigma > beta$, {
+      Line([remove($S[sigma]$)  $quad$ #CommentInline([Remove $s_sigma$ from cached state set])])
     })
     Return[$overline(s_sigma)$]
   })
 
-  Function("mid", args: ([$delta$], [$tau$], [$sigma$], [$phi.alt$]), {
-    Cmt[Select the binomial distribution split point]
+  Function("mid", ([$delta$], [$tau$], [$sigma$], [$phi.alt$]), {
+    Comment[Select the binomial distribution split point]
     Assign([$kappa$], [$ceil((delta sigma + tau phi.alt)/(tau+delta))$])
-    If(cond: [$kappa >= phi.alt$ and $delta > 0$], {
+    If($kappa >= phi.alt "and" delta > 0$, {
       Assign([$kappa$], [max($sigma+1$, $phi.alt-1$)])
     })
     Return[$kappa$]
@@ -692,11 +685,11 @@ where $sigma$, $rho$, and $beta$ are three control parameters.
 
 ==
 
-#figure(image("images/lorenz.gif"))
+#figure(image("images/lorenz.gif", alt: "Lorenz"))
 
 ==
 
-#figure(image("images/lorenz.png", width: 500pt))
+#figure(image("images/lorenz.png", width: 500pt, alt: "Lorenz"))
 
 - left: the gradient
 - right: the chaotic and non-chaotic Lorenz curve
@@ -714,7 +707,6 @@ $ make example-ADSeismic
   - Switch the AD engine to ForwardDiff.jl and compare the performance.
 
 ==
-#bibliography("refs.bib")
 = Appendix
 == Differentiation of the Wave Propagation Equation
 Consider the propagation of the wave function $u(x_1, x_2, t)$ in a non-uniform two-dimensional medium governed by the following equation
@@ -819,3 +811,5 @@ Computing $diff x^* / diff theta$ entails solving the system of linear equations
 $ underbrace((diff bold(F)(x^*, theta))/(diff x^*), "V" in RR^(d times d)) underbrace((diff x^*)/(diff theta), "J" in RR^(d times n)) = -underbrace((diff bold(F)(x^*, theta))/(diff theta), "P" in RR^(d times n)) $ <eq-implicit-linear-equation>
 
 Therefore, the desired Jacobian is given by $J = V^(-1)P$. In many practical situations, explicitly constructing the Jacobian matrix is unnecessary. Instead, it suffices to perform left-multiplication or right-multiplication by $V$ and $P$. These operations are known as the vector-Jacobian product (VJP) and the Jacobian-vector product (JVP), respectively. They are valuable for determining $x(theta)$ using reverse-mode and forward-mode automatic differentiation (AD), respectively.
+
+#bibliography("refs.bib")

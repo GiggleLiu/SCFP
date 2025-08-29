@@ -1,4 +1,4 @@
-#import "@preview/cetz:0.2.2": *
+#import "@preview/cetz:0.4.1": *
 #import "../book.typ": book-page
 
 #show: book-page.with(title: "Plotting (CairoMakie)")
@@ -49,7 +49,7 @@ axislegend(ax; position = :rb, labelsize = 15)
 save("plot_lines6.png", fig)
 fig
 ```
-#figure(image("images/plot_lines6.png", width: 60%))
+#figure(image("images/plot_lines6.png", width: 60%, alt: "Line plots"))
 
 === Error Bars
 
@@ -78,7 +78,7 @@ scatter!(xs, ys, markersize = 3, color = :black)
 fig
 ```
 
-#figure(image("images/error_bars.png", width: 60%))
+#figure(image("images/error_bars.png", width: 60%, alt: "Error bars"))
 
 === Texts
 
@@ -101,7 +101,7 @@ Legend(fig[1, 2], ax)
 fig
 ```
 
-#figure(image("images/texts.png", width: 60%))
+#figure(image("images/texts.png", width: 60%, alt: "Texts"))
 
 === Bracket
 
@@ -127,7 +127,7 @@ bracket!(Point(5.5, sin(5.5)), Point(7.0, sin(7.0)),
 fig
 ```
 
-#figure(image("images/bracket.png", width: 60%))
+#figure(image("images/bracket.png", width: 60%, alt: "Bracket"))
 
 === Subplots
 
@@ -150,7 +150,7 @@ lines!(ax3, x, y, color = :green, label = "sin")
 fig
 ```
 
-#figure(image("images/subplots.png", width: 60%))
+#figure(image("images/subplots.png", width: 60%, alt: "Subplots"))
 
 == Scatter Plot
 
@@ -177,7 +177,7 @@ axislegend(ax; position = :rb, labelsize = 15)
 fig
 ```
 
-#figure(image("images/scatter_plot.png", width: 60%))
+#figure(image("images/scatter_plot.png", width: 60%, alt: "Scatter plots"))
 
 == Bar Plot
 
@@ -218,7 +218,7 @@ Legend(fig[1,2], elements, labels, title)
 fig
 ```
 
-#figure(image("images/bar_plot.png", width: 60%))
+#figure(image("images/bar_plot.png", width: 60%, alt: "Bar plots"))
 
 == Heatmap 
 
@@ -245,7 +245,7 @@ Colorbar(fig[1, 2], hm, label = "Color scale")
 fig
 ```
 
-#figure(image("images/heatmap.png", width: 60%))
+#figure(image("images/heatmap.png", width: 60%, alt: "Heatmap"))
 == Contour Plot
 
 A contour plot is a graphical technique used to represent a 3-dimensional surface in two dimensions. It is like a topographical map in which x and y show the location, and the contour lines represent the third dimension (z) by their level.
@@ -270,7 +270,7 @@ ct = contour!(ax, x, y, z; labels=true, levels, colormap=:hsv, colorscale)
 fig
 ```
 
-#figure(image("images/contour.png", width: 60%))
+#figure(image("images/contour.png", width: 60%, alt: "Contour plots"))
 
 === 3D Contour Plot
 
@@ -290,7 +290,7 @@ contour3d!(+zs, levels=  .025:0.05:.475,  linewidth=2, color=:red2)
 fig
 ```
 
-#figure(image("images/3dcontour.png", width: 60%))
+#figure(image("images/3dcontour.png", width: 60%, alt: "3D contour plots"))
 
 == Surface Plot
 
@@ -305,7 +305,7 @@ zs = [cos(x) * sin(y) for x in xs, y in ys]
 surface(xs, ys, zs, axis=(type=Axis3,))
 ```
 
-#figure(image("images/surface.png", width: 60%))
+#figure(image("images/surface.png", width: 60%, alt: "Surface plots"))
 
 == Colorbar of Heatmap/Contour
 
@@ -339,7 +339,7 @@ Colorbar(fig[2, 2][1, 2], hm, ticks = -1:0.25:1)
 fig
 ```
 
-#figure(image("images/colorbar.png", width: 60%))
+#figure(image("images/colorbar.png", width: 60%, alt: "Colorbar"))
 
 == Quiver Plot
 
@@ -366,7 +366,7 @@ arrows!(xs, ys, us, vs, arrowsize = 10, lengthscale = 0.3,
 fig
 ```
 
-#figure(image("images/quiver.png", width: 60%))
+#figure(image("images/quiver.png", width: 60%, alt: "Quiver plots"))
 
 === 3D Quiver Plot
 
@@ -387,7 +387,7 @@ arrows(
 )
 ```
 
-#figure(image("images/3dquiver.png", width: 60%))
+#figure(image("images/3dquiver.png", width: 60%, alt: "3D quiver plots"))
 
 == Streamplot
 
@@ -418,7 +418,7 @@ streamplot(fig[1,2], f, -1.5 .. 1.5, -1.5 .. 1.5, color=(p)-> RGBAf(p..., 0.0, 1
 fig
 ```
 
-#figure(image("images/stream.png", width: 60%))
+#figure(image("images/stream.png", width: 60%, alt: "Streamplots"))
 
 == Animation
 
@@ -441,7 +441,7 @@ record(fig, "color_animation.mp4", hue_iterator;
 end
 ```
 
-#figure(image("images/color_animation.gif", width: 60%))
+#figure(image("images/color_animation.gif", width: 60%, alt: "Color animation"))
 
 === Animation using `Observables`
 
@@ -472,4 +472,4 @@ record(fig, "time_animation.gif", timestamps;
 end
 ```
 
-#figure(image("images/time_animation.gif", width: 60%))
+#figure(image("images/time_animation.gif", width: 60%, alt: "Time animation"))

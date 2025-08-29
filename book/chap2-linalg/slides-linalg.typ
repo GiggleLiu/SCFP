@@ -1,6 +1,7 @@
-#import "@preview/touying:0.4.2": *
-#import "@preview/touying-simpl-hkustgz:0.1.0" as hkustgz-theme
-#import "@preview/cetz:0.2.2": *
+#import "@preview/touying:0.6.1": *
+#import "@preview/touying-simpl-hkustgz:0.1.2": *
+#import "@preview/cetz:0.4.1": *
+#import "@preview/cetz-plot:0.1.2": plot
 #import "@preview/algorithmic:0.1.0"
 #import algorithmic: algorithm
 
@@ -24,29 +25,19 @@
   }
 }
 
-#let m = hkustgz-theme.register()
-
 #show raw.where(block: true): it=>{
   block(radius:4pt, fill:gray.transparentize(90%), inset:1em, width:99%, text(it))
 }
 
-// Global information configuration
-#let m = (m.methods.info)(
-  self: m,
-  title: [Matrix computation: Applications and basics],
-  subtitle: [],
-  author: [Jin-Guo Liu],
-  date: datetime.today(),
-  institution: [HKUST(GZ) - FUNH - Advanced Materials Thrust],
+#show: hkustgz-theme.with(
+  config-info(
+    title: [Matrix computation: Applications and basics],
+    subtitle: [],
+    author: [Jin-Guo Liu],
+    date: datetime.today(),
+    institution: [HKUST(GZ) - FUNH - Advanced Materials Thrust],
+  ),
 )
-
-// Extract methods
-#let (init, slides) = utils.methods(m)
-#show: init
-
-// Extract slide functions
-#let (slide, empty-slide, title-slide, outline-slide, new-section-slide, ending-slide) = utils.slides(m)
-#show: slides.with()
 
 #outline-slide()
 
@@ -56,7 +47,7 @@
 #timecounter(1)
 
 Matrix computations @Golub2013. Cited by 85063 papers!
-#figure(image("images/golub.jpg", width: 150pt))
+#figure(image("images/golub.jpg", width: 150pt, alt: "Golub"))
 
 == Notations
 #timecounter(1)
@@ -126,7 +117,6 @@ Objective: Find a *smooth* curve that fits the data the *best*.
 ))
 
 #figure(canvas(length:0.9cm, {
-  import plot
   import draw: *
   let t = (0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5)
   let y = (2.9, 2.7, 4.8, 5.3, 7.1, 7.6, 7.7, 7.6, 9.4, 9.0)
@@ -526,7 +516,7 @@ where $
 Run and play with the simulation: https://github.com/GiggleLiu/ScientificComputingDemos/tree/main/SpringSystem
 
 1. Reproduce the following result:
-#figure(image("images/springs-demo.gif", width: 300pt))
+#figure(image("images/springs-demo.gif", width: 300pt, alt: "Spring chain"))
 
 ==
 

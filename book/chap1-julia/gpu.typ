@@ -1,5 +1,5 @@
 #import "../book.typ": book-page, cross-link, heading-reference
-#import "@preview/cetz:0.2.2": *
+#import "@preview/cetz:0.4.1": *
 #show: book-page.with(title: "Arrays and GPU Programming")
 
 #set math.equation(numbering: "(1)")
@@ -318,7 +318,7 @@ scatter(vec(getindex.(mesh2, 1)), vec(getindex.(mesh2, 2)))  # scatter(x, y)
 ```
 Here, we use the `scatter` function from the #link("https://github.com/MakieOrg/Makie.jl")[`CairoMakie`] package to visualize the triangular lattice, which takes two vectors representing the $x$ and $y$ coordinates of the points as input.
 The `CairoMakie` package is the default data visualization method in the rest of the book.
-#figure(image("images/triangle.svg", width: 60%))
+#figure(image("images/triangle.svg", width: 60%, alt: "Triangular lattice"))
 
 = CUDA programming with Julia
 

@@ -1,5 +1,6 @@
 #import "../book.typ": book-page, cross-link
-#import "@preview/cetz:0.2.2": *
+#import "@preview/cetz:0.4.1": *
+#import "@preview/cetz-plot:0.1.2": plot
 #import "../shared/characters.typ": ina, christina, murphy
 #show: book-page.with(title: "Version Control")
 
@@ -95,9 +96,8 @@ The Julia community has a tradition of hosting their packages on GitHub as well.
 
 #figure(canvas({
   import draw: *
-  import plot: *
   let s(it) = text(12pt, it)
-  plot(
+  plot.plot(
     size: (12, 6),
     x-tick-step: 1,
     y-tick-step: 2000,
@@ -109,7 +109,7 @@ The Julia community has a tradition of hosting their packages on GitHub as well.
     y-label: s[\# of packages],
     name: "plot",
     {
-      add(domain: (-2, 2), ((2016, 690), (2017, 1190), (2018, 1688), (2019, 2462), (2020, 2787), (2021, 4809), (2022, 6896), (2023, 8387), (2024, 9817), (2025, 11549)), mark: "o")
+      plot.add(domain: (-2, 2), ((2016, 690), (2017, 1190), (2018, 1688), (2019, 2462), (2020, 2787), (2021, 4809), (2022, 6896), (2023, 8387), (2024, 9817), (2025, 11549)), mark: "o")
     }
   )
  
@@ -213,7 +213,7 @@ git push origin main
 3. Push commits to the `main` branch of the `origin` remote using `git push origin main`. If a collaborator has pushed changes before you, this command might fail. To resolve this, execute `git pull origin main` to fetch the latest updates and manually merge any conflicting commits. For more details, refer to the #link("https://git-scm.com/book/en/v2/Git-Branching-Basic-Branching-and-Merging")[Git Branching and Merging guide].
 
 == Develop Features Safely with Branches
-Working solely on the `main` branch is not advisable. A **branch** in Git is a lightweight pointer to a specific commit. Here are some reasons why relying on a single branch can be problematic:
+Working solely on the `main` branch is not advisable. A *branch* in Git is a lightweight pointer to a specific commit. Here are some reasons why relying on a single branch can be problematic:
 - *Lack of Usable Code:* The `main` branch should always be stable and usable, as developers build features from it. Working on a single branch can disrupt this stability.
 - *Conflict Resolution Challenges:* When multiple developers edit the same file simultaneously, conflicts can arise, making synchronization difficult. Using multiple branches allows for more independent feature development.
 - *Difficulty in Discarding Features:* Experimental features might need to be discarded after testing. Reverting a commit on the `main` branch is not straightforward.

@@ -1,5 +1,5 @@
 #import "../book.typ": book-page
-#import "@preview/cetz:0.2.2": *
+#import "@preview/cetz:0.4.1": *
 
 #show: book-page.with(title: "Terminal Environment")
 

@@ -1,5 +1,6 @@
 #import "../book.typ": book-page
-#import "@preview/cetz:0.2.2": *
+#import "@preview/cetz:0.4.1": *
+#import "@preview/cetz-plot:0.1.2": plot
 
 #show: book-page.with(title: "Matrix Computation")
 #let exampleblock(it) = block(fill: rgb("#ffffff"), inset: 1em, radius: 4pt, stroke: black, it)
@@ -173,7 +174,6 @@ The objective of the data fitting problem is to find a *smooth* curve that fits 
 ))
 
 #figure(canvas(length:0.9cm, {
-  import plot
   import draw: *
   let t = (0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5)
   let y = (2.9, 2.7, 4.8, 5.3, 7.1, 7.6, 7.7, 7.6, 9.4, 9.0)
@@ -428,7 +428,7 @@ julia> u(1.0)  # atom locations offsets at t=1.0
   0.01755397796957868
 ```
 
-#figure(image("images/springs-demo.gif", width: 300pt), caption: [One of the eigenmodes of a spring chain. The simulation result is obtained by solving the differential equation with the Verlet algorithm. Exact result is given by the eigen-decomposition of the stiffness matrix.])
+#figure(image("images/springs-demo.gif", width: 300pt, alt: "Spring chain"), caption: [One of the eigenmodes of a spring chain. The simulation result is obtained by solving the differential equation with the Verlet algorithm. Exact result is given by the eigen-decomposition of the stiffness matrix.])
 
 
 Any initial condition can be expressed as a linear combination of these eigenmodes. For implementation details, see the #link("https://github.com/GiggleLiu/ScientificComputingDemos/tree/main/SpringSystem")[source code].

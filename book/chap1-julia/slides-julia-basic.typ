@@ -1,8 +1,8 @@
-#import "@preview/touying:0.4.2": *
+#import "@preview/touying:0.6.1": *
 #import "@preview/algorithmic:0.1.0"
 #import algorithmic: algorithm
-#import "@preview/touying-simpl-hkustgz:0.1.0" as hkustgz-theme
-#import "@preview/cetz:0.2.2": *
+#import "@preview/touying-simpl-hkustgz:0.1.2": *
+#import "@preview/cetz:0.4.1": *
 #import "../shared/characters.typ": ina, christina, murphy
 
 #let globalvars = state("t", 0)
@@ -15,29 +15,19 @@
 }
 #set cite(style: "apa")
 
-#let m = hkustgz-theme.register()
-
 #show raw.where(block: true): it=>{
   block(radius:4pt, fill:gray.transparentize(90%), inset:1em, width:99%, text(it))
 }
 
-// Global information configuration
-#let m = (m.methods.info)(
-  self: m,
-  title: [Julia: A Modern and Efficient Programming Language],
-  subtitle: [],
-  author: [Jin-Guo Liu],
-  date: datetime.today(),
-  institution: [HKUST(GZ) - FUNH - Advanced Materials Thrust],
+#show: hkustgz-theme.with(
+  config-info(
+    title: [Julia: A Modern and Efficient Programming Language],
+    subtitle: [],
+    author: [Jin-Guo Liu],
+    date: datetime.today(),
+    institution: [HKUST(GZ) - FUNH - Advanced Materials Thrust],
+  ),
 )
-
-// Extract methods
-#let (init, slides) = utils.methods(m)
-#show: init
-
-// Extract slide functions
-#let (slide, empty-slide, title-slide, outline-slide, new-section-slide, ending-slide) = utils.slides(m)
-#show: slides.with()
 
 #outline-slide()
 
@@ -70,7 +60,7 @@ Many prominent scientists and engineers have switched to Julia:
 Julia is a just-in-time (JIT) compiled language. It means that the code is compiled to machine code at runtime.
 It is as concise (concise $!=$ simple) as Python, but runs much faster!
 #figure(
-  image("images/benchmark.png", width: 400pt),
+  image("images/benchmark.png", width: 400pt, alt: "Benchmark"),
 )
 
 == Benchmarking and Profiling

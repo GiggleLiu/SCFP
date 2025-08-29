@@ -1,7 +1,8 @@
 #import "../book.typ": book-page, cross-link
-#import "@preview/cetz:0.2.2": canvas, draw, tree, vector, decorations, plot
+#import "@preview/cetz:0.4.1": canvas, draw, tree, vector, decorations
+#import "@preview/cetz-plot:0.1.2": plot
 #import "@preview/ctheorems:1.1.3": *
-#import "@preview/algorithmic:0.1.0"
+#import "@preview/algorithmic:1.0.3"
 #import algorithmic: algorithm
 
 #show: book-page.with(title: "Monte Carlo methods")
@@ -192,7 +193,7 @@ The computation is done by #link("https://github.com/TensorBFS/TensorInference.j
 We first construct a tensor network model at given inverse temperature $beta$ from a ferromagnetic Ising model on a $10 times 10$ grid, and then sample the model to get the spin configurations.
 We evaluate the energy of the samples to get the energy distribution, and plot the distribution in @fig:ising-energy-distribution.
 
-#figure(image("../chap3-optimization/images/ising-energy-distribution.svg", width: 80%),
+#figure(image("../chap3-optimization/images/ising-energy-distribution.svg", width: 80%, alt: "Ising energy distribution"),
 caption: [The binned energy distribution of spin configurations generated unbiasly from the ferromagnetic Ising model ($J_(i j) = -1, L = 10$) at different inverse temperatures $beta$. The method to generate the samples is the tensor network based method detailed in @Roa2024]
 ) <fig:ising-energy-distribution>
 
@@ -221,7 +222,7 @@ julia> show_landscape((x, y)->hamming_distance(x, y) <= 1, solutionspace; layer_
 The returned `solutionspace` object contains the lowest energy and the associated configurations.
 We can see the ground states are two fold degenerate, they are the all-up and all-down configurations.
 The `show_landscape` function visualizes the energy landscape (@fig:ising-energy-landscape), and the configurations are connected if they differ by flipping a single spin.
-#figure(image("images/grid66.svg", width: 80%),
+#figure(image("images/grid66.svg", width: 80%, alt: "Energy landscape"),
 caption: [The energy landscape of low energy states of the ferromagnetic Ising model on a 6x6 grid. The two degenerate ground states are the all-up and all-down configurations. Configurations are connected if they differ by flipping a single spin.]
 ) <fig:ising-energy-landscape>
 
@@ -397,9 +398,9 @@ It is characterized by the transition probability $P(bold(s)'|bold(s))$, the pro
 The algortihm is summarized as follows:
 #algorithm({
   import algorithmic: *
-  Function([Metropolis-Hastings], args: ([$beta$], [$n$]), {
+  Function([Metropolis-Hastings], ([$beta$], [$n$]), {
     Assign([$bold(s)$], [Initial a random configuration])
-    For(cond: [$i = 1$ to $n$], {
+    For($i = 1, dots, n$, {
       Assign([$bold(s)'$], [propose a new configuration with prior probability $T(bold(s)arrow.r bold(s)')$])
       Assign([$bold(s)$], [$bold(s)' "with probability:" min(1, (T(bold(s)' arrow.r bold(s)) p(bold(s)'))/(T(bold(s) arrow.r bold(s)') p(bold(s))))$])
     })
@@ -432,9 +433,9 @@ $ p(bold(s)')/p(bold(s)) = e^(-beta (H(bold(s)') - H(bold(s))). $
 The following results are obtained from the simple update MCMC detailed in the code demo: #link("https://github.com/GiggleLiu/ScientificComputingDemos/tree/main/IsingModel")[IsingModel].
 They correspond to the update of spin configurations at temperature $T = 1$ and $T = 3$ respectively, and the critical temperature $T_c =2/ln(1+sqrt(2)) approx 2.269$.
 Below $T_c$, the system tend to form a large cluster of spins in the same direction, the magnetization is non-zero. Above $T_c$, the system is in the paramagnetic phase, the magnetization is zero.
-#grid(columns: 2, column-gutter: 50pt, figure(image("images/ising-spins-1.0.gif", width: 100%)), figure(image("images/ising-spins-3.0.gif", width: 100%)), align(center)[#h(4em)$T = 1 (<T_c)$], align(center)[#h(4em)$T = 3 (>T_c)$])
+#grid(columns: 2, column-gutter: 50pt, figure(image("images/ising-spins-1.0.gif", width: 100%, alt: "Ising model at T = 1")), figure(image("images/ising-spins-3.0.gif", width: 100%, alt: "Ising model at T = 3")), align(center)[#h(4em)$T = 1 (<T_c)$], align(center)[#h(4em)$T = 3 (>T_c)$])
 
-#figure(image("images/ising-data.png", width: 80%),
+#figure(image("images/ising-data.png", width: 80%, alt: "Ising model data"),
 caption: [(a) the observable values for the Ising model at temperature $T = 1$ using the simple update MCMC. Each sweep processes to update every spin once, and the observable is averaged over 1000 samples. (b) the autocorrelation function as a function of the lag $tau$, the inverse slope of the line is the autocorrelation time $Theta$.]
 ) <fig:ising-data>
 
@@ -449,9 +450,9 @@ Instead of flip one spin a time, we can update a cluster of spins at a time. The
 This method improves both the *acceptance rate* and the *autocorrelation time*.
 
 The following results are obtained from the cluster update MCMC. We can see the system thermalizes in a few tens of sweeps.
-#grid(columns: 2, column-gutter: 50pt, figure(image("images/swising-spins-1.0.gif", width: 100%)), figure(image("images/swising-spins-3.0.gif", width: 100%)), align(center)[#h(4em)$T = 1 (<T_c)$], align(center)[#h(4em)$T = 3 (>T_c)$])
+#grid(columns: 2, column-gutter: 50pt, figure(image("images/swising-spins-1.0.gif", width: 100%, alt: "Ising model at T = 1")), figure(image("images/swising-spins-3.0.gif", width: 100%, alt: "Ising model at T = 3")), align(center)[#h(4em)$T = 1 (<T_c)$], align(center)[#h(4em)$T = 3 (>T_c)$])
 
-#figure(image("images/sw-data.png", width: 80%),
+#figure(image("images/sw-data.png", width: 80%, alt: "Ising model data"),
 caption: [The same observables as in @fig:ising-data, but using the cluster update MCMC. The autocorrelation time below $10^(-3)$ are not shown.]
 ) <fig:sw-data>
 
@@ -552,7 +553,7 @@ end
 
 We plot the output above in the following figure, where we can see a clear trend of exponential decay of the spectral gap with the inverse temperature.
 
-#figure(image("images/spectralgap.svg", width: 300pt),
+#figure(image("images/spectralgap.svg", width: 300pt, alt: "Spectral gap"),
 caption: [Spectral gap v.s. $1\/T$ of the Ising model ($J = -1$) on a circle of length $N=6$.],
 )
 

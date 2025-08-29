@@ -1,6 +1,7 @@
-#import "@preview/touying:0.4.2": *
-#import "@preview/touying-simpl-hkustgz:0.1.0" as hkustgz-theme
-#import "@preview/cetz:0.2.2": *
+#import "@preview/touying:0.6.1": *
+#import "@preview/touying-simpl-hkustgz:0.1.2": *
+#import "@preview/cetz:0.4.1": *
+#import "@preview/cetz-plot:0.1.2": plot
 #import "../shared/characters.typ": ina, christina, murphy
 
 #let globalvars = state("t", 0)
@@ -18,29 +19,21 @@
 }
 #set cite(style: "apa")
 
-#let m = hkustgz-theme.register()
-
 #show raw.where(block: true): it=>{
   block(radius:4pt, fill:gray.transparentize(90%), inset:1em, width:99%, text(it))
 }
 
-// Global information configuration
-#let m = (m.methods.info)(
-  self: m,
-  title: [Terminal, Vim, SSH and Git],
-  subtitle: [Basic programming toolchain],
-  author: [Jin-Guo Liu],
-  date: datetime.today(),
-  institution: [HKUST(GZ) - FUNH - Advanced Materials Thrust],
+#show: hkustgz-theme.with(
+  config-info(
+    title: [Terminal, Vim, SSH and Git],
+    subtitle: [Basic programming toolchain],
+    author: [Jin-Guo Liu],
+    date: datetime.today(),
+    institution: [HKUST(GZ) - FUNH - Advanced Materials Thrust],
+  ),
 )
 
-// Extract methods
-#let (init, slides) = utils.methods(m)
-#show: init
-
-// Extract slide functions
-#let (slide, empty-slide, title-slide, outline-slide, new-section-slide, ending-slide) = utils.slides(m)
-#show: slides.with()
+#outline-slide()
 
 == AMAT5315: Modern Scientific Computing
 #timecounter(1)
@@ -106,8 +99,6 @@ Note: PR is a pull request, which is a request to merge changes to the _reposito
 - Research label, e.g. Scientific Computing
 - Programming Language, e.g. Julia, Python
 - What do you expect from this course?
-
-#outline-slide()
 
 = Terminal Environment
 
@@ -524,10 +515,10 @@ Git is a distributed version control system. Developed by Linus Torvalds (yes, t
 
 The two most popular platforms that provide git services:
 #align(center + top, grid(columns: 2, gutter: 30pt, box(width: 300pt)[
-  #image("images/github.png", width: 50pt) #align(left + top, [*GitHub* is the most popular platform for hosting and collaborating on open-source projects.])
+  #image("images/github.png", width: 50pt, alt: "GitHub") #align(left + top, [*GitHub* is the most popular platform for hosting and collaborating on open-source projects.])
   ],
   box(width: 300pt)[
-  #image("images/gitlab.png", width: 50pt) #align(left + top, [*GitLab* is similar, but can be deployed on your own server.])
+  #image("images/gitlab.png", width: 50pt, alt: "GitLab") #align(left + top, [*GitLab* is similar, but can be deployed on your own server.])
   ])
 )
 

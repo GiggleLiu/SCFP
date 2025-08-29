@@ -1,6 +1,6 @@
-#import "@preview/touying:0.4.2": *
-#import "@preview/touying-simpl-hkustgz:0.1.0" as hkustgz-theme
-#import "@preview/cetz:0.2.2": *
+#import "@preview/touying:0.6.1": *
+#import "@preview/touying-simpl-hkustgz:0.1.2": *
+#import "@preview/cetz:0.4.1": *
 #import "../shared/characters.typ": ina, christina, murphy
 
 #let globalvars = state("t", 0)
@@ -23,29 +23,19 @@
   }
 }
 
-#let m = hkustgz-theme.register()
-
 #show raw.where(block: true): it=>{
   block(radius:4pt, fill:gray.transparentize(90%), inset:1em, width:99%, text(it))
 }
 
-// Global information configuration
-#let m = (m.methods.info)(
-  self: m,
-  title: [Julia: Correctness and Reproducibility],
-  subtitle: [],
-  author: [Jin-Guo Liu],
-  date: datetime.today(),
-  institution: [HKUST(GZ) - FUNH - Advanced Materials Thrust],
+#show: hkustgz-theme.with(
+  config-info(
+    title: [Julia: Correctness and Reproducibility],
+    subtitle: [],
+    author: [Jin-Guo Liu],
+    date: datetime.today(),
+    institution: [HKUST(GZ) - FUNH - Advanced Materials Thrust],
+  ),
 )
-
-// Extract methods
-#let (init, slides) = utils.methods(m)
-#show: init
-
-// Extract slide functions
-#let (slide, empty-slide, title-slide, outline-slide, new-section-slide, ending-slide) = utils.slides(m)
-#show: slides.with()
 
 #outline-slide()
 
@@ -240,7 +230,7 @@ ERROR: Some tests did not pass: 1 passed, 1 failed, 0 errored, 0 broken.
 ==
 #timecounter(1)
 
-#image("images/tropicalpackage.png", width: 80%)
+#image("images/tropicalpackage.png", width: 80%, alt: "TropicalNumbers.jl")
 
 - The CI of #link("https://github.com/TensorBFS/TropicalNumbers.jl", "TropicalNumbers.jl") pass, meaning all tests pass. CI resolves the issue that a developer may not have a fresh machine to run the tests.
 - The code coverage of TropicalNumbers is 86%, meaning 86% of the code is covered by tests.
@@ -248,7 +238,7 @@ ERROR: Some tests did not pass: 1 passed, 1 failed, 0 errored, 0 broken.
 == Live demo: GitHub Actions
 #timecounter(2)
 
-#image("images/github-actions.png")
+#image("images/github-actions.png", alt: "GitHub Actions")
 
 Let's check the details of tests runs: https://github.com/TensorBFS/TropicalNumbers.jl/actions
 
@@ -357,7 +347,7 @@ Note: it is not recommended to install all packages in the global environment. I
   content((rel:(2.4, 0), to: "download.mid"), s[3. Download])
   content((rel: (0.0, -1), to: "User"), [`] instantiate` or `]update`])
   rect((-3, -1), (3, 6.5), stroke: (dash: "dashed"))
-  content((0, 7.5), image("images/github.png", width: 2em))
+  content((0, 7.5), image("images/github.png", width: 2em, alt: "GitHub"))
   bezier("User.east", "User.north", (rel: (1.0, 1.0)), (rel: (-1.0, 1.0)), mark: (end: "straight"))
   content((rel: (4.0, 1.5), to: "User"), s[2. Resolve versions])
 }))
@@ -747,6 +737,6 @@ https://github.com/CodingThrust/AMAT5315-2025Spring-Homeworks/tree/main/hw3
 - Zulip (for discussions): https://julialang.zulipchat.com/
 - Slack (for discussions): https://julialang.org/slack/
 ], [
-  #image("images/juliazulip.png", width: 150pt)
+  #image("images/juliazulip.png", width: 150pt, alt: "Julia Zulip")
 ])
 

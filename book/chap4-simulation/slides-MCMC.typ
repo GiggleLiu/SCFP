@@ -1,7 +1,8 @@
-#import "@preview/touying:0.4.2": *
-#import "@preview/touying-simpl-hkustgz:0.1.0" as hkustgz-theme
-#import "@preview/cetz:0.2.2": canvas, draw, tree, vector, plot, decorations, coordinate
-#import "@preview/algorithmic:0.1.0"
+#import "@preview/touying:0.6.1": *
+#import "@preview/touying-simpl-hkustgz:0.1.2": *
+#import "@preview/cetz:0.4.1": canvas, draw, tree, vector, decorations, coordinate
+#import "@preview/cetz-plot:0.1.2": plot
+#import "@preview/algorithmic:1.0.3"
 #import algorithmic: algorithm
 #set math.mat(row-gap: 0.1em, column-gap: 0.7em)
 
@@ -73,29 +74,19 @@
 #let random_bools(p) = random_numbers.map(x => x < p)
 
 
-#let m = hkustgz-theme.register()
-
 #show raw.where(block: true): it=>{
   block(radius:4pt, fill:gray.transparentize(90%), inset:1em, width:99%, text(it))
 }
 
-// Global information configuration
-#let m = (m.methods.info)(
-  self: m,
-  title: [Ising Model and Monte Carlo Methods],
-  subtitle: [],
-  author: [Jin-Guo Liu],
-  date: datetime.today(),
-  institution: [HKUST(GZ) - FUNH - Advanced Materials Thrust],
+#show: hkustgz-theme.with(
+  config-info(
+    title: [Ising Model and Monte Carlo Methods],
+    subtitle: [],
+    author: [Jin-Guo Liu],
+    date: datetime.today(),
+    institution: [HKUST(GZ) - FUNH - Advanced Materials Thrust],
+  ),
 )
-
-// Extract methods
-#let (init, slides) = utils.methods(m)
-#show: init
-
-// Extract slide functions
-#let (slide, empty-slide, title-slide, outline-slide, new-section-slide, ending-slide) = utils.slides(m)
-#show: slides.with()
 
 #outline-slide()
 
@@ -202,7 +193,7 @@ The solution space as $S$, and $bold(s) in S$ is the configuration of spins, e.g
 
 == Phase transition
 
-#figure(image("images/magnets.png", width: 200pt))
+#figure(image("images/magnets.png", width: 200pt, alt: "Magnets"))
 #figure(canvas({
   import draw: *
   let s(it) = text(14pt, it)
@@ -275,7 +266,7 @@ julia> solve(spin_glass, ConfigsMin())[]  # solve the spin glass ground state
 
 == The low energy landscape
 
-#figure(image("images/grid66.svg", width: 70%))
+#figure(image("images/grid66.svg", width: 70%, alt: "Energy landscape"))
 
 - The two degenerate ground states are the all-up and all-down configurations.
 - Configurations are connected if they differ by flipping a single spin.
@@ -377,9 +368,9 @@ An MCMC algorithm that satisfies the above two conditions:
 
 #algorithm({
   import algorithmic: *
-  Function([Metropolis-Hastings], args: ([$beta$], [$n$]), {
+  Function([Metropolis-Hastings], ([$beta$], [$n$]), {
     Assign([$bold(s)$], [Initial a random configuration])
-    For(cond: [$i = 1$ to $n$], {
+    For($i = 1, dots, n$, {
       Assign([$bold(s)'$], [propose a new configuration with prior probability $T(bold(s)arrow.r bold(s)')$])
       Assign([$bold(s)$], [$bold(s)' "with probability:" min(1, (T(bold(s)' arrow.r bold(s)) p(bold(s)'))/(T(bold(s) arrow.r bold(s)') p(bold(s))))$])
     })
@@ -415,7 +406,7 @@ The bias should be compensated by the acceptance probability.
 
 == Results: Simple update MCMC
 - $T_c approx 2.269$, below this temperature, the system is in the ferromagnetic phase.
-#grid(columns: 2, column-gutter: 50pt, figure(image("images/ising-spins-1.0.gif", width: 300pt)), figure(image("images/ising-spins-3.0.gif", width: 300pt)), align(center)[$T = 1$], align(center)[$T = 3$])
+#grid(columns: 2, column-gutter: 50pt, figure(image("images/ising-spins-1.0.gif", width: 300pt, alt: "Ising model at T = 1")), figure(image("images/ising-spins-3.0.gif", width: 300pt, alt: "Ising model at T = 3")), align(center)[$T = 1$], align(center)[$T = 3$])
 
 == Quantities that we are interested in
 
@@ -428,16 +419,16 @@ $
 $
 
 
-#figure(image("images/ising-data.png", width: 80%))
+#figure(image("images/ising-data.png", width: 80%, alt: "Ising model data"))
 
 
 == Results: Cluster update MCMC
 - Swendsen-Wang update: Instead of updating one spin at a time, we update a cluster of spins at a time.
-#grid(columns: 2, column-gutter: 50pt, figure(image("images/swising-spins-1.0.gif", width: 300pt)), figure(image("images/swising-spins-3.0.gif", width: 300pt)), align(center)[$T = 1$], align(center)[$T = 3$])
+#grid(columns: 2, column-gutter: 50pt, figure(image("images/swising-spins-1.0.gif", width: 300pt, alt: "Ising model at T = 1")), figure(image("images/swising-spins-3.0.gif", width: 300pt, alt: "Ising model at T = 3")), align(center)[$T = 1$], align(center)[$T = 3$])
 
 
 ==
-#figure(image("images/sw-data.png", width: 80%))
+#figure(image("images/sw-data.png", width: 80%, alt: "Ising model data"))
 
 == Metric of a good MCMC method
 
@@ -506,7 +497,7 @@ For a Metropolis-Hastings algorithm sampling from the Boltzmann distribution, th
 == Live coding: Computing the transition matrix
 
 Spectral gap v.s. $1\/T$ of the Ising model ($J = -1$) on a circle of length $N=6$.
-#figure(image("images/spectralgap.svg", width: 400pt))
+#figure(image("images/spectralgap.svg", width: 400pt, alt: "Spectral gap"))
 
 == Estimate the gap: Cheeger's inequality
 
@@ -525,7 +516,7 @@ where:
 == Cheeger's inequality - Intuition
 
 
-#figure(image("images/grid66.svg", width: 70%))
+#figure(image("images/grid66.svg", width: 70%, alt: "Energy landscape"))
 
 == Cheeger's inequality
 Cheeger's inequality relates the Cheeger constant $h(G)$ to the second smallest eigenvalue $lambda_2$ of the normalized Laplacian matrix $L = I - D^(-1/2) A D^(-1/2)$, where $D$ is the degree matrix and $A$ is the adjacency matrix:
