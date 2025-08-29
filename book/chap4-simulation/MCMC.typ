@@ -95,7 +95,6 @@
 _Jin-Guo Liu_])
 
 
-
 == Main references
 - Lecture note of Anders Sandvik: #link("https://physics.bu.edu/~py502/lectures5/mc.pdf")[Monte Carlo simulations in classical statistical physics]
 - Book: The nature of computation, @Moore2011, Chapter 12-13
@@ -603,6 +602,5 @@ $
 This means that a graph with a large Cheeger constant (good expansion properties) will have a small mixing time, allowing MCMC methods to converge quickly to the stationary distribution.
 
 In practice, for spin glass systems, the Cheeger constant provides a quantitative measure of how "glassy" the energy landscape is. Systems with small Cheeger constants have energy landscapes with high barriers between different metastable states, making equilibration difficult and necessitating techniques like parallel tempering to efficiently sample the state space.
-
 
 #bibliography("refs.bib")
