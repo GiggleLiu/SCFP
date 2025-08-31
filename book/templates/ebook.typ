@@ -1,4 +1,4 @@
-#import "@preview/shiroa:0.2.3": *
+#import "@local/shiroa:0.2.3": *
 #import "/contrib/typst/gh-pages.typ": part-style, project
 
 #let _page-project = project

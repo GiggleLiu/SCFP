@@ -12,8 +12,8 @@
 #let clip(image, top: 0pt, bottom: 0pt, left: 0pt, right: 0pt) = {
   box(clip: true, image, inset: (top: -top, right: -right, left: -left, bottom: -bottom))
 }
-#let terminal(code) = {
-  box(radius: 4pt, inset: 5pt, fill:black, width: 500pt, text(14pt, fill: silver)[
+#let terminal(code, width: 100%) = {
+  box(radius: 4pt, inset: 5pt, fill:black, width: width, text(13pt, fill: silver)[
   #code
   ])
 }
@@ -39,10 +39,10 @@
 #timecounter(1)
 
 - Lecturer: Jinguo LIU
-- Teaching assistant: Zhong-Yi NI
+- Teaching assistant: Huanhai ZHOU
 
 === How to communicate?
-Zulip stream: `AMAT5315-2025Spring`, please let me know if you do not have access yet.
+Zulip stream: `AMAT5315-2025Fall` (you will have access soon).
 
 == Books (optional)
 #timecounter(1)
@@ -52,7 +52,6 @@ Zulip stream: `AMAT5315-2025Spring`, please let me know if you do not have acces
   - Tag: Matrix, tensor, sparse matrices and their operations
 - *The nature of computation*, Cristopher Moore and Stephan Mertens, 2011,
   - Tag: Computational theory, probabilistic process
-- *Scientific computing: an introductory survey*, Michael T. Heath, 2018.
 
 == Lectures: 12 in total
 #timecounter(1)
@@ -77,7 +76,7 @@ Zulip stream: `AMAT5315-2025Spring`, please let me know if you do not have acces
 #timecounter(1)
 #align(center, box(stroke: black, inset: 10pt)[100% through homework])
 
-- We use the standard code review process (#link("https://github.com/CodingThrust/AMAT5315-2025Spring-Homeworks")[Guide]) in GitHub.
+- We use the standard code review process (#link("https://github.com/CodingThrust/AMAT5315-2025Fall-Homeworks")[Guide]) in GitHub.
 
 #align(center, canvas({
     import draw: *
@@ -170,7 +169,7 @@ MiB Swap:   2048.0 total,   1945.8 free,    102.2 used.   6791.0 avail Mem
      15 root      20   0       0      0      0 S   0.0   0.0   0:10.23 ksoftirqd/0
      16 root      20   0       0      0      0 I   0.0   0.0 111:21.15 rcu_preempt
      17 root      rt   0       0      0      0 S   0.0   0.0   1:47.78 migration/0
-```)
+```, width: 100%)
 
 == Control a remote machine:
 #timecounter(1)
@@ -292,6 +291,12 @@ images              lammps.typ          refs.bib            slides-software.typ 
 $ cat testfile
 hello-world
 ```
+
+== Live code
+
+1. Connect to remote
+2. Download the lecture notes
+3. Compile them to PDF files
 
 == Edit files: Vim
 #timecounter(3)

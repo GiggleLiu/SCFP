@@ -11,4 +11,10 @@ build:
 serve:
 	cd book && shiroa serve
 
-.PHONY: init build serve
+compile-all:
+	cd book && find . -path "*/chap*/*.typ" -exec typst compile --root=. {} \;
+
+clean-pdf:
+	cd book && find . -path "*/chap*/*.pdf" -exec rm {} \;
+
+.PHONY: init build serve compile-all clean-pdf
