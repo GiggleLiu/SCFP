@@ -60,17 +60,16 @@ Zulip stream: `AMAT5315-2025Fall` (you will have access soon).
 === PART 1: High Performance Computing
 - Open source toolchain: Terminal, Git and SSH
 - The Julia programming language: Basics & Advanced topics (2 lectures)
-
-=== PART 2: Mathematical Modeling
 - Matrix computation: Basic & Advanced topics (2 lectures)
 - Sparse matrices, dominant eigenvalues and eigenvectors
-- Tensor network methods
-- Optimization & automatic differentiation (2 lectures)
-- Mathematical optimization: linear programming and integer programming
 
-=== PART 3: Applications
-- Probabilistic inference
-- Spin-glass and other computational hard problems
+=== PART 2: Different Ways to Solve Spin Glass
+- The spin glass problem, theoreticaly perspective
+- Monte Carlo methods
+- Tensor network methods
+- Mathematical optimization: linear programming and integer programming
+- Branching and bound
+- Physics inspired methods
 
 == Assessment
 #timecounter(1)
@@ -356,6 +355,12 @@ PID    COMMAND      %CPU  TIME     #TH    #WQ  #PORT MEM    PURG   CMPRS  PGRP  
 ```])
 
 = SSH - Remote Access
+== Live demo
+
+- Connect to remote machine with VSCode/Cursor.
+- Edit a file
+- Compile all typst files
+
 == Remote access - all top 500 clusters use linux!
 ```
 ssh     # the OpenSSH remote login client
