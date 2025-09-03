@@ -100,6 +100,12 @@ Note: PR is a pull request, which is a request to merge changes to the _reposito
 
 = Terminal Environment
 
+== Why terminal and Git?
+
+
+Reference: The Missing Semester of Your CS Education
+- https://missing.csail.mit.edu/
+
 == What is a terminal?
 #timecounter(1)
 
