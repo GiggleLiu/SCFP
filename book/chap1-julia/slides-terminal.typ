@@ -7,7 +7,7 @@
 #let globalvars = state("t", 0)
 #let timecounter(minutes) = [
   #globalvars.update(t => t + minutes)
-  #place(dx: 100%, dy: 0%, align(right, text(16pt, red)[#context globalvars.get()min]))
+  #place(dx: 100%, dy: -5%, align(right, text(16pt, red)[#context globalvars.get()min]))
 ]
 #let clip(image, top: 0pt, bottom: 0pt, left: 0pt, right: 0pt) = {
   box(clip: true, image, inset: (top: -top, right: -right, left: -left, bottom: -bottom))
@@ -122,84 +122,13 @@ README.md hw1
 README.md
 ```)
 
-== Edit a file:
-#timecounter(1)
-Here, we use the default editor `vim` to edit the file `README.md`.
-
-#terminal(```bash
-(base) ➜  hw1 git:(main) vim README.md
-```)
-
-== Run a program:
-#timecounter(1)
-You can access the Julia REPL by typing `julia` in the terminal.
-
-#terminal(```
-(base) ➜  hw1 git:(main) julia
-               _
-   _       _ _(_)_     |  Documentation: https://docs.julialang.org
-  (_)     | (_) (_)    |
-   _ _   _| |_  __ _   |  Type "?" for help, "]?" for Pkg help.
-  | | | | | | |/ _` |  |
-  | | |_| | | | (_| |  |  Version 1.11.3 (2025-01-21)
- _/ |\__'_|_|_|\__'_|  |  Official https://julialang.org/ release
-|__/                   |
-
-julia> print("hello, world!")
-hello, world!
-julia>
-```)
-
-== Monitor the system resources:
-#timecounter(1)
-You can monitor the system resources by typing `top` in the terminal.
-
-#terminal(```bash
-top - 08:11:56 up 312 days, 11:46,  2 users,  load average: 0.00, 0.00, 0.00
-Tasks: 291 total,   1 running, 290 sleeping,   0 stopped,   0 zombie
-%Cpu(s):  0.0 us,  0.1 sy,  0.0 ni, 99.9 id,  0.0 wa,  0.0 hi,  0.0 si,  0.0 st
-MiB Mem :   7896.6 total,    414.1 free,    804.6 used,   6678.0 buff/cache
-MiB Swap:   2048.0 total,   1945.8 free,    102.2 used.   6791.0 avail Mem
-
-    PID USER      PR  NI    VIRT    RES    SHR S  %CPU  %MEM     TIME+ COMMAND
-    996 root      20   0   76324   5760   4608 S   0.3   0.1 343:13.53 vmtoolsd
- 678990 group1    20   0   16308   4352   3456 R   0.3   0.1   0:00.02 top
-      1 root      20   0  166708  11776   8320 S   0.0   0.1   5:10.09 systemd
-      2 root      20   0       0      0      0 S   0.0   0.0   0:02.24 kthreadd
-      3 root       0 -20       0      0      0 I   0.0   0.0   0:00.00 rcu_gp
-      4 root       0 -20       0      0      0 I   0.0   0.0   0:00.00 rcu_par_gp
-      5 root       0 -20       0      0      0 I   0.0   0.0   0:00.00 slub_flushwq
-      6 root       0 -20       0      0      0 I   0.0   0.0   0:00.00 netns
-     11 root       0 -20       0      0      0 I   0.0   0.0   0:00.00 mm_percpu_wq
-     12 root      20   0       0      0      0 I   0.0   0.0   0:00.00 rcu_tasks_kthread
-     13 root      20   0       0      0      0 I   0.0   0.0   0:00.00 rcu_tasks_rude_kthread
-     14 root      20   0       0      0      0 I   0.0   0.0   0:00.00 rcu_tasks_trace_kthread
-     15 root      20   0       0      0      0 S   0.0   0.0   0:10.23 ksoftirqd/0
-     16 root      20   0       0      0      0 I   0.0   0.0 111:21.15 rcu_preempt
-     17 root      rt   0       0      0      0 S   0.0   0.0   1:47.78 migration/0
-```, width: 100%)
-
-== Control a remote machine:
-#timecounter(1)
-You can even control a remote machine from your local machine using `ssh`.
-
-#terminal(```bash
-(base) ➜  hw1 git:(main) ssh group1@amat5315
-group1@10.100.0.179's password:
-Welcome to Ubuntu 22.04.4 LTS (GNU/Linux 6.5.0-26-generic x86_64)
-
- * Documentation:  https://help.ubuntu.com
- * Management:     https://landscape.canonical.com
- * Support:        https://ubuntu.com/pro
-
-Expanded Security Maintenance for Applications is not enabled.
-
-Last login: Mon Feb 10 07:53:55 2025 from 10.22.6.162
-
-group1@amat-course-site:~$ hostname  # check the hostname
-amat-course-site
-```)
-
+== What can you do in a terminal?
+#timecounter(2)
+- *File Operations*: `ls`, `cd`, `mkdir`, `rm`
+- *Text Processing*: `cat`, `echo`, `grep`
+- *File Editing*: `vim`
+- *System Monitoring*: `top`, `ps`
+- *Remote Access*: `ssh`, `scp`
 
 == How to get a terminal?
 #timecounter(1)
@@ -300,11 +229,36 @@ $ cat testfile
 hello-world
 ```
 
+== Remote access - all top 500 clusters use linux!
+```
+ssh     # the OpenSSH remote login client
+```
+
+The Secure Shell (SSH) protocol is a method for securely sending commands to a computer over an unsecured network. SSH uses cryptography to authenticate and encrypt connections between devices.
+
+The basic usage of `ssh` is like:
+```bash
+ssh <username>@<hostname>
+```
+where `<username>` is the user's account name and `<hostname>` is the host name or IP of the target machine. You will get logged in after inputting the password.
+
 == Live code
 
 1. Connect to remote
 2. Download the lecture notes
 3. Compile them to PDF files
+
+== Download results
+#timecounter(2)
+
+```bash
+scp <username>@<hostname>:<path/to/remote/file> <path/to/local/directory>
+```
+
+Similarly, you can upload files to the server with:
+```bash
+scp <path/to/local/file> <username>@<hostname>:<path/to/remote/directory>
+```
 
 == Edit files: Vim
 #timecounter(3)
@@ -363,96 +317,70 @@ PID    COMMAND      %CPU  TIME     #TH    #WQ  #PORT MEM    PURG   CMPRS  PGRP  
 ...
 ```])
 
-= SSH - Remote Access
 == Live demo
 
 - Connect to remote machine with VSCode/Cursor.
 - Edit a file
 - Compile all typst files
 
-== Remote access - all top 500 clusters use linux!
-```
-ssh     # the OpenSSH remote login client
-```
+// == Security your connections: Passwords are not safe
+// #timecounter(2)
+// #align(center, box(stroke: black, inset: 10pt, width: 600pt, align(left, [
+// \u{1F430} \u{1F430} \u{1F430}: If someone knocks on the door, how do we know its you?
 
-The Secure Shell (SSH) protocol is a method for securely sending commands to a computer over an unsecured network. SSH uses cryptography to authenticate and encrypt connections between devices.
+// \u{1F407}: I will sing "小兔子乖乖，把门儿开开。". Then you know I am your mum
+// ])))
 
-The basic usage of `ssh` is like:
-```bash
-ssh <username>@<hostname>
-```
-where `<username>` is the user's account name and `<hostname>` is the host name or IP of the target machine. You will get logged in after inputting the password.
+// #v(20pt)
+// What is the problem of using passwords?
+// - Hard to remember,
+// - Repeated typing,
+// - #highlight("Not safe") in a public network
 
-== Download results
-#timecounter(2)
+// == Verify your identity without transmitting any private information
+// #timecounter(2)
+// #align(center, box(stroke: black, inset: 10pt, width: 700pt, align(left, [
+// \u{1F43A}: I hear your secret!
 
-```bash
-scp <username>@<hostname>:<path/to/remote/file> <path/to/local/directory>
-```
+// \u{1F407}: I will create a pair of key and lock, leave the lock to my children. They send a locked box to me through the hole, I will use the key to unlock it and read the message. Then, they will know me. the key is always in my pocket.
+// ])))
 
-Similarly, you can upload files to the server with:
-```bash
-scp <path/to/local/file> <username>@<hostname>:<path/to/remote/directory>
-```
+// == Public key cryptography
+// #timecounter(1)
+// SSH encryption is based on the public key cryptography.
+// - Key $arrow.r$ Private key in SSH
+// - Lock $arrow.r$ Public key in SSH
 
-== Security your connections: Passwords are not safe
-#timecounter(2)
-#align(center, box(stroke: black, inset: 10pt, width: 600pt, align(left, [
-\u{1F430} \u{1F430} \u{1F430}: If someone knocks on the door, how do we know its you?
+// You keep the private key, and upload the public key to the server:
+// ```bash
+// ssh-copy-id <username>@<hostname>
+// ```
 
-\u{1F407}: I will sing "小兔子乖乖，把门儿开开。". Then you know I am your mum
-])))
+// When the server wants to verify your identity, it will use the public key to encrypt a message, and ask you to decrypt it with the private key. If you cannot decrypt it, then you must be a stranger. #highlight("The private key is never transmitted to the internet!")
 
-#v(20pt)
-What is the problem of using passwords?
-- Hard to remember,
-- Repeated typing,
-- #highlight("Not safe") in a public network
+// == Recap
+// #timecounter(1)
 
-== Verify your identity without transmitting any private information
-#timecounter(2)
-#align(center, box(stroke: black, inset: 10pt, width: 700pt, align(left, [
-\u{1F43A}: I hear your secret!
+// #grid(columns: 2, gutter: 50pt, canvas({
+//   import draw: *
+//   content((0, 0), align(center, box(stroke: black, inset: 10pt, width: 300pt)[#text(16pt)[Terminal: A text based window to control a linux operating system \ #box(stroke: black, inset: 10pt)[Vim: an editor in terminal environment]]]), name: "terminal")
 
-\u{1F407}: I will create a pair of key and lock, leave the lock to my children. They send a locked box to me through the hole, I will use the key to unlock it and read the message. Then, they will know me. the key is always in my pocket.
-])))
-
-== Public key cryptography
-#timecounter(1)
-SSH encryption is based on the public key cryptography.
-- Key $arrow.r$ Private key in SSH
-- Lock $arrow.r$ Public key in SSH
-
-You keep the private key, and upload the public key to the server:
-```bash
-ssh-copy-id <username>@<hostname>
-```
-
-When the server wants to verify your identity, it will use the public key to encrypt a message, and ask you to decrypt it with the private key. If you cannot decrypt it, then you must be a stranger. #highlight("The private key is never transmitted to the internet!")
-
-== Recap
-#timecounter(1)
-
-#grid(columns: 2, gutter: 50pt, canvas({
-  import draw: *
-  content((0, 0), align(center, box(stroke: black, inset: 10pt, width: 300pt)[#text(16pt)[Terminal: A text based window to control a linux operating system \ #box(stroke: black, inset: 10pt)[Vim: an editor in terminal environment]]]), name: "terminal")
-
-  content((0, -5), box(stroke: black, inset: 10pt, width: 300pt)[#text(16pt)[SSH: A tool to access remote machines from anywhere]], name: "ssh")
-  line("terminal", "ssh", stroke: black, mark: (start: "straight"))
-}),
-canvas({
-  import draw: *
-  circle((0, 6), radius: (6.5, 1), name: "remote")
-  circle((0, 0), radius: (6.5, 1), name: "local")
-  content("remote", [Remote (\u{1F512})])
-  content("local", [Local (\u{1F511})])
-  line((name: "remote", anchor: 240deg), (name: "local", anchor: 120deg), stroke: black, mark: (start: "straight"), name: "first")
-  line((name: "remote", anchor: 270deg), (name: "local", anchor: 90deg), stroke: black, mark: (end: "straight"), name: "second")
-  line((name: "remote", anchor: 300deg), (name: "local", anchor: 60deg), stroke: black, mark: (start: "straight"), name: "third")
-  content("first.mid", box(fill: white, inset: 5pt)[Connect])
-  content("second.mid", box(fill: white, inset: 5pt)[Encrypted\ Message])
-  content("third.mid", box(fill: white, inset: 5pt)[Decrypted\ Message])
-}))
+//   content((0, -5), box(stroke: black, inset: 10pt, width: 300pt)[#text(16pt)[SSH: A tool to access remote machines from anywhere]], name: "ssh")
+//   line("terminal", "ssh", stroke: black, mark: (start: "straight"))
+// }),
+// canvas({
+//   import draw: *
+//   circle((0, 6), radius: (6.5, 1), name: "remote")
+//   circle((0, 0), radius: (6.5, 1), name: "local")
+//   content("remote", [Remote (\u{1F512})])
+//   content("local", [Local (\u{1F511})])
+//   line((name: "remote", anchor: 240deg), (name: "local", anchor: 120deg), stroke: black, mark: (start: "straight"), name: "first")
+//   line((name: "remote", anchor: 270deg), (name: "local", anchor: 90deg), stroke: black, mark: (end: "straight"), name: "second")
+//   line((name: "remote", anchor: 300deg), (name: "local", anchor: 60deg), stroke: black, mark: (start: "straight"), name: "third")
+//   content("first.mid", box(fill: white, inset: 5pt)[Connect])
+//   content("second.mid", box(fill: white, inset: 5pt)[Encrypted\ Message])
+//   content("third.mid", box(fill: white, inset: 5pt)[Decrypted\ Message])
+// }))
 
 
 = Git - Version Control
