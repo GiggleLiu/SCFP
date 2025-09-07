@@ -5,6 +5,8 @@
 #import "@preview/cetz:0.4.1": *
 #import "../shared/characters.typ": ina, christina, murphy
 
+#show par: set text(20pt)
+
 #let globalvars = state("t", 0)
 #let timecounter(minutes) = [
   #globalvars.update(t => t + minutes)
@@ -16,7 +18,7 @@
 #set cite(style: "apa")
 
 #show raw.where(block: true): it=>{
-  block(radius:4pt, fill:gray.transparentize(90%), inset:1em, width:99%, text(it))
+  block(radius:4pt, fill:gray.transparentize(90%), inset:1em, width:99%, text(it, 12pt))
 }
 
 #show: hkustgz-theme.with(
@@ -29,6 +31,7 @@
   ),
 )
 
+#title-slide()
 #outline-slide()
 
 = Introduction
@@ -60,8 +63,14 @@ Many prominent scientists and engineers have switched to Julia:
 Julia is a just-in-time (JIT) compiled language. It means that the code is compiled to machine code at runtime.
 It is as concise (concise $!=$ simple) as Python, but runs much faster!
 #figure(
-  image("images/benchmark.png", width: 400pt, alt: "Benchmark"),
+  image("images/benchmark.png", width: 350pt, alt: "Benchmark"),
 )
+
+== Video Watching
+
+- High Performance in Dynamic Languages (Steven Johnson):
+ https://www.youtube.com/watch?v=6JcMuFgnA6U&ab_channel=MITOpenCourseWare
+
 
 == Benchmarking and Profiling
 #timecounter(5)
@@ -126,197 +135,6 @@ julia> Profile.print(; mincount=10)  # Print the profile results
 
 julia> Profile.clear()   # Clear the profile results
 ```
-
-== Hands-on: Benchmarking and Profiling
-#timecounter(20)
-
-1. Check the case study: Hamiltonian dynamics at the bottom of this page: https://scfp.jinguo-group.science/chap1-julia/julia-basic.html . Create a local project folder, copy-paste the program into a local file: `nbody.jl`. Open the project with VSCode.
-2. Use `@benchmark` to benchmark the performance of the program, and `Profile` to profile the program. Save the benchmark and profile results to a markdown file.
-3. Remove the type annotation of the field `m` of the `Body` type, and compare the performance of the original and the modified versions.
-  ```julia
-struct Body{T <: Real}
-    x::NTuple{3, T}
-    v::NTuple{3, T}
-    m   # remove the type annotation
-end
-```
-
-== Walk through the code
-#timecounter(5)
-
-Defining a type with `struct`:
-
-```julia
-struct Body{T <: Real}
-    x::NTuple{3,T}
-    v::NTuple{3,T}
-    m::T
-end
-```
-
-- `::`: type declaration
-- `<:`: subtype
-- `NTuple{3,T}`: a tuple of 3 elements of type `T`, tuples are immutable and faster.
-- `T`: the type parameter name
-
-== Function and loops
-#timecounter(2)
-
-#box(text(16pt)[```julia
-function simulate!(bodies::Vector{Body{T}}, n::Int, dt::T) where T
-    # Advance velocities by half a timestep
-    step_velocity!(bodies, dt/2)
-    # Advance positions and velocities by one timestep
-    for _ = 1:n
-        step_position!(bodies, dt)
-        step_velocity!(bodies, dt)
-    end
-    # Advance velocities backwards by half a timestep
-    step_velocity!(bodies, -dt/2)
-end
-```
-])
-
-- `!` is part of function name, it is a convention for _in-place operations_.
-- `Vector{Body{T}}`: a vector of `Body{T}` type, vectors are _mutable_.
-- `where T`: infer the type parameter `T` from the argument.
-
-== The Hamiltonian Dynamics
-#timecounter(2)
-In the Hamiltonian dynamics simulation, we have the following equation of motion:
-$ m (partial^2 bold(x))/(partial t^2) = bold(f)(bold(x)). $
-
-Equivalently, by denoting $bold(v) = (partial bold(x))/(partial t)$, we have the first-order differential equations:
-$
-cases(m (partial bold(v))/(partial t) &= bold(f)(bold(x)),
-(partial bold(x))/(partial t) &= bold(v))
-$
-
-== The Verlet Algorithm
-#timecounter(3)
-It is a typical Hamiltonian dynamics, which can be solved numerically by the Verlet algorithm @Verlet1967. The algorithm is as follows:
-
-#algorithm({
-  import algorithmic: *
-  Function("Verlet", args: ([$bold(x)$], [$bold(v)$], [$bold(f)$], [$m$], [$d t$], [$n$]), {
-    Assign([$bold(v)$], [$bold(v) + (bold(f)(bold(x)))/m d t \/ 2$ #h(2em)#Ic([update velocity at time $d t \/ 2$])])
-    For(cond: [$i = 1 dots n$], {
-      Cmt[time step $t = i d t$]
-      Assign([$bold(x)$], [$bold(x) + bold(v) d t$ #h(2em)#Ic([update position at time $t$])])
-      Assign([$bold(v)$], [$bold(v) + (bold(f)(bold(x)))/m d t$ #h(2em)#Ic([update velocity at time $t + d t\/2$])])
-    })
-    Assign([$bold(v)$], [$bold(v) - (bold(f)(bold(x)))/m d t \/ 2$ #h(2em)#Ic([velocity at time $n d t$])])
-    Return[$bold(x)$, $bold(v)$]
-  })
-})
-
-The Verlet algorithm is a simple yet robust algorithm for solving the differential equation of motion. It is the most widely used algorithm in molecular dynamics simulation.
-
-== Broadcasting
-#timecounter(2)
-
-#box(text(16pt)[```julia
-function step_velocity!(bodies::Vector{Body{T}}, dt::T) where T
-    # Calculate the force on each body due to the other bodies in the system.
-    @inbounds for i in 1:lastindex(bodies)-1, j in i+1:lastindex(bodies)
-        Δx = bodies[i].x .- bodies[j].x 
-        distance = sum(abs2, Δx)
-        mag = dt * inv(sqrt(distance))^3   # `^` is power operator
-        bodies[i] = Body(bodies[i].x, bodies[i].v .- Δx .* (mag * bodies[j].m), bodies[i].m)
-        bodies[j] = Body(bodies[j].x, bodies[j].v .+ Δx .* (mag * bodies[i].m), bodies[j].m)
-    end
-end
-```
-])
-
-- `bodies[i].x`: access the `x` field of the `i`-th element of `bodies`.
-- "`.`": broadcast operator, apply the operation element-wise.
-- `sum(abs2, Δx)`: apply `abs2` to each element of `Δx`, and then sum the results.
-- `@inbounds`: a macro, skip the bounds check for the loop.
-
-== Step position
-#timecounter(1)
-
-#box(text(16pt)[```julia
-function step_position!(bodies::Vector{Body{T}}, dt::T) where T
-    @inbounds for i in eachindex(bodies)
-        bi = bodies[i]
-        bodies[i] = Body(bi.x .+ bi.v .* dt, bi.v, bi.m)
-    end
-end
-```
-])
-
-== Total energy of the system
-#timecounter(2)
-
-#box(text(16pt)[```julia
-function energy(bodies::Vector{Body{T}}) where T
-    e = zero(T)
-    # Kinetic energy of bodies
-    @inbounds for b in bodies
-        e += T(0.5) * b.m * sum(abs2, b.v)
-    end
-    
-    # Potential energy between body i and body j
-    @inbounds for i in 1:lastindex(bodies)-1, j in i+1:lastindex(bodies)
-        Δx = bodies[i].x .- bodies[j].x
-        e -= bodies[i].m * bodies[j].m / sqrt(sum(abs2, Δx))
-    end
-    return e
-end
-```
-])
-- `zero(T)`: return a zero value of type `T`.
-- `T(0.5)`: convert the value `0.5` to type `T`.
-
-== Main simulation - avoid using global variables!
-#timecounter(2)
-
-#box(text(12pt)[```julia
-function solar_system()
-    SOLAR_MASS = 4 * π^2
-    DAYS_PER_YEAR = 365.24
-    jupiter = Body((4.841e+0, -1.160e+0, -1.036e-1),
-        ( 1.660e-3, 7.699e-3, -6.905e-5) .* DAYS_PER_YEAR,
-        9.547e-4 * SOLAR_MASS)
-    saturn = Body((8.343e+0, 4.125e+0, -4.035e-1),
-        (-2.767e-3, 4.998e-3, 2.304e-5) .* DAYS_PER_YEAR,
-        2.858e-4 * SOLAR_MASS)
-    uranus = Body((1.289e+1, -1.511e+1, -2.23e-1),
-        ( 2.96e-3, 2.378e-3, -2.96e-5) .* DAYS_PER_YEAR,
-        4.36e-5 * SOLAR_MASS)
-    neptune = Body((1.537e+1, -2.591e+1, 1.792e-1),
-        ( 2.680e-3, 1.628e-3, -9.515e-5) .* DAYS_PER_YEAR,
-        5.151e-5 * SOLAR_MASS)
-    sun = Body((0.0, 0.0, 0.0),
-        (-1.061e-6, -8.966e-6, 6.553e-8) .* DAYS_PER_YEAR,
-        SOLAR_MASS)
-    return [jupiter, saturn, uranus, neptune, sun]
-end
-```
-])
-Because global variables are not type stable, since they can be changed at any time.
-
-== Main simulation
-#timecounter(1)
-```julia
-bodies = solar_system()
-@info "Initial energy: $(energy(bodies))"
-@time simulate!(bodies, 50000000, 0.01);
-@info "Final energy: $(energy(bodies))"
-```
-- `@info`: print the message and the value of the variable. similar functions/macros are `print`, `println`, `display`, `show`, `@warn`, `@error`, `@debug`, `@show`, etc.
-- `$`: interpolate the value of the variable.
-- `@time`: time the execution of the code.
-
-== Type stability
-#timecounter(1)
-
-```julia
-julia> @code_warntype step_velocity!(bodies, 0.01)
-```
-
 
 == Just-In-Time (JIT) Compilation
 #timecounter(1)
@@ -546,7 +364,42 @@ typeof(y)
 })))
 )
 
+== Example: define a rigid body
+```julia
+struct GenericBody
+    x   # coordinate
+    v   # velocity
+    m   # mass
+end
 
+mass(body::GenericBody) = body.m
+body = GenericBody((1.0, 2.0, 3.0), (2.0, 3.0, 4.0), 3.0)
+mass(body)
+body.m = 3.0   # how to fix this?
+```
+
+== V2: with concrete types
+```julia
+struct ConcreteBody
+    x::NTuple{3, Float64}
+    v::NTuple{3, Float64}
+    m::Float64
+end
+body = ConcreteBody((1.0, 2.0, 3.0), (2.0, 3.0, 4.0), 3.0)
+body = ConcreteBody((1.0, 2.0), (2.0, 3.0), 3.0)  # how to fix?
+```
+
+== V3: with type parameters
+
+```julia
+struct ParameterizedBody{D, T <: Real}
+    x::NTuple{D, T}
+    v::NTuple{D, T}
+    m::T
+end
+body = ParameterizedBody((1.0, 2.0), (2.0, 3.0), 3.0)
+body = ParameterizedBody((1.0, 2.0), (2.0, 3.0), 3)  # how to fix this?
+```
 
 // == Primitive types and composite types
 // - _primitive types_: those directly supported by the instruction set architecture.
@@ -1010,6 +863,199 @@ At 144 nanoseconds, Python is:
 - 70 times slower than the Julia implementation
 
 As a remark, when Julia compiler fails to infer the types, it will fall back to the dynamic dispatch mode. Then it also suffers from the problem of cache misses.
+
+== Hands-on: Benchmarking and Profiling
+#timecounter(20)
+
+1. Check the case study: Hamiltonian dynamics at the bottom of this page: https://scfp.jinguo-group.science/chap1-julia/julia-basic.html . Create a local project folder, copy-paste the program into a local file: `nbody.jl`. Open the project with VSCode.
+2. Use `@benchmark` to benchmark the performance of the program, and `Profile` to profile the program. Save the benchmark and profile results to a markdown file.
+3. Remove the type annotation of the field `m` of the `Body` type, and compare the performance of the original and the modified versions.
+  ```julia
+struct Body{T <: Real}
+    x::NTuple{3, T}
+    v::NTuple{3, T}
+    m   # remove the type annotation
+end
+```
+
+== Walk through the code
+#timecounter(5)
+
+Defining a type with `struct`:
+
+```julia
+struct Body{T <: Real}
+    x::NTuple{3,T}
+    v::NTuple{3,T}
+    m::T
+end
+```
+
+- `::`: type declaration
+- `<:`: subtype
+- `NTuple{3,T}`: a tuple of 3 elements of type `T`, tuples are immutable and faster.
+- `T`: the type parameter name
+
+== Function and loops
+#timecounter(2)
+
+#box(text(16pt)[```julia
+function simulate!(bodies::Vector{Body{T}}, n::Int, dt::T) where T
+    # Advance velocities by half a timestep
+    step_velocity!(bodies, dt/2)
+    # Advance positions and velocities by one timestep
+    for _ = 1:n
+        step_position!(bodies, dt)
+        step_velocity!(bodies, dt)
+    end
+    # Advance velocities backwards by half a timestep
+    step_velocity!(bodies, -dt/2)
+end
+```
+])
+
+- `!` is part of function name, it is a convention for _in-place operations_.
+- `Vector{Body{T}}`: a vector of `Body{T}` type, vectors are _mutable_.
+- `where T`: infer the type parameter `T` from the argument.
+
+== The Hamiltonian Dynamics
+#timecounter(2)
+In the Hamiltonian dynamics simulation, we have the following equation of motion:
+$ m (partial^2 bold(x))/(partial t^2) = bold(f)(bold(x)). $
+
+Equivalently, by denoting $bold(v) = (partial bold(x))/(partial t)$, we have the first-order differential equations:
+$
+cases(m (partial bold(v))/(partial t) &= bold(f)(bold(x)),
+(partial bold(x))/(partial t) &= bold(v))
+$
+
+== The Verlet Algorithm
+#timecounter(3)
+It is a typical Hamiltonian dynamics, which can be solved numerically by the Verlet algorithm @Verlet1967. The algorithm is as follows:
+
+#algorithm({
+  import algorithmic: *
+  Function("Verlet", args: ([$bold(x)$], [$bold(v)$], [$bold(f)$], [$m$], [$d t$], [$n$]), {
+    Assign([$bold(v)$], [$bold(v) + (bold(f)(bold(x)))/m d t \/ 2$ #h(2em)#Ic([update velocity at time $d t \/ 2$])])
+    For(cond: [$i = 1 dots n$], {
+      Cmt[time step $t = i d t$]
+      Assign([$bold(x)$], [$bold(x) + bold(v) d t$ #h(2em)#Ic([update position at time $t$])])
+      Assign([$bold(v)$], [$bold(v) + (bold(f)(bold(x)))/m d t$ #h(2em)#Ic([update velocity at time $t + d t\/2$])])
+    })
+    Assign([$bold(v)$], [$bold(v) - (bold(f)(bold(x)))/m d t \/ 2$ #h(2em)#Ic([velocity at time $n d t$])])
+    Return[$bold(x)$, $bold(v)$]
+  })
+})
+
+The Verlet algorithm is a simple yet robust algorithm for solving the differential equation of motion. It is the most widely used algorithm in molecular dynamics simulation.
+
+== Broadcasting
+#timecounter(2)
+
+#box(text(16pt)[```julia
+function step_velocity!(bodies::Vector{Body{T}}, dt::T) where T
+    # Calculate the force on each body due to the other bodies in the system.
+    @inbounds for i in 1:lastindex(bodies)-1, j in i+1:lastindex(bodies)
+        Δx = bodies[i].x .- bodies[j].x 
+        distance = sum(abs2, Δx)
+        mag = dt * inv(sqrt(distance))^3   # `^` is power operator
+        bodies[i] = Body(bodies[i].x, bodies[i].v .- Δx .* (mag * bodies[j].m), bodies[i].m)
+        bodies[j] = Body(bodies[j].x, bodies[j].v .+ Δx .* (mag * bodies[i].m), bodies[j].m)
+    end
+end
+```
+])
+
+- `bodies[i].x`: access the `x` field of the `i`-th element of `bodies`.
+- "`.`": broadcast operator, apply the operation element-wise.
+- `sum(abs2, Δx)`: apply `abs2` to each element of `Δx`, and then sum the results.
+- `@inbounds`: a macro, skip the bounds check for the loop.
+
+== Step position
+#timecounter(1)
+
+#box(text(16pt)[```julia
+function step_position!(bodies::Vector{Body{T}}, dt::T) where T
+    @inbounds for i in eachindex(bodies)
+        bi = bodies[i]
+        bodies[i] = Body(bi.x .+ bi.v .* dt, bi.v, bi.m)
+    end
+end
+```
+])
+
+== Total energy of the system
+#timecounter(2)
+
+#box(text(16pt)[```julia
+function energy(bodies::Vector{Body{T}}) where T
+    e = zero(T)
+    # Kinetic energy of bodies
+    @inbounds for b in bodies
+        e += T(0.5) * b.m * sum(abs2, b.v)
+    end
+    
+    # Potential energy between body i and body j
+    @inbounds for i in 1:lastindex(bodies)-1, j in i+1:lastindex(bodies)
+        Δx = bodies[i].x .- bodies[j].x
+        e -= bodies[i].m * bodies[j].m / sqrt(sum(abs2, Δx))
+    end
+    return e
+end
+```
+])
+- `zero(T)`: return a zero value of type `T`.
+- `T(0.5)`: convert the value `0.5` to type `T`.
+
+== Main simulation - avoid using global variables!
+#timecounter(2)
+
+#box(text(12pt)[```julia
+function solar_system()
+    SOLAR_MASS = 4 * π^2
+    DAYS_PER_YEAR = 365.24
+    jupiter = Body((4.841e+0, -1.160e+0, -1.036e-1),
+        ( 1.660e-3, 7.699e-3, -6.905e-5) .* DAYS_PER_YEAR,
+        9.547e-4 * SOLAR_MASS)
+    saturn = Body((8.343e+0, 4.125e+0, -4.035e-1),
+        (-2.767e-3, 4.998e-3, 2.304e-5) .* DAYS_PER_YEAR,
+        2.858e-4 * SOLAR_MASS)
+    uranus = Body((1.289e+1, -1.511e+1, -2.23e-1),
+        ( 2.96e-3, 2.378e-3, -2.96e-5) .* DAYS_PER_YEAR,
+        4.36e-5 * SOLAR_MASS)
+    neptune = Body((1.537e+1, -2.591e+1, 1.792e-1),
+        ( 2.680e-3, 1.628e-3, -9.515e-5) .* DAYS_PER_YEAR,
+        5.151e-5 * SOLAR_MASS)
+    sun = Body((0.0, 0.0, 0.0),
+        (-1.061e-6, -8.966e-6, 6.553e-8) .* DAYS_PER_YEAR,
+        SOLAR_MASS)
+    return [jupiter, saturn, uranus, neptune, sun]
+end
+```
+])
+Because global variables are not type stable, since they can be changed at any time.
+
+== Main simulation
+#timecounter(1)
+```julia
+bodies = solar_system()
+@info "Initial energy: $(energy(bodies))"
+@time simulate!(bodies, 50000000, 0.01);
+@info "Final energy: $(energy(bodies))"
+```
+- `@info`: print the message and the value of the variable. similar functions/macros are `print`, `println`, `display`, `show`, `@warn`, `@error`, `@debug`, `@show`, etc.
+- `$`: interpolate the value of the variable.
+- `@time`: time the execution of the code.
+
+== Type stability
+#timecounter(1)
+
+```julia
+julia> @code_warntype step_velocity!(bodies, 0.01)
+```
+
+
+
 
 ==
 #bibliography("refs.bib")
