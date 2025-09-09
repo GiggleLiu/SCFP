@@ -66,19 +66,25 @@ It is as concise (concise $!=$ simple) as Python, but runs much faster!
   image("images/benchmark.png", width: 350pt, alt: "Benchmark"),
 )
 
-== Video Watching
-
-- High Performance in Dynamic Languages (Steven Johnson):
- https://www.youtube.com/watch?v=6JcMuFgnA6U&ab_channel=MITOpenCourseWare
-
-
-== Benchmarking and Profiling
-#timecounter(5)
-
-#link("https://benchmarksgame-team.pages.debian.net/benchmarksgame/fastest/julia-ifx.html")[The Computer Language Benchmarks Game]
+== Benchmarking
+#timecounter(3)
 
 - How to measure the performance of your code? `BenchmarkTools`
   - Run the function for multiple times to get the minimum time.
+
+```julia
+julia> using BenchmarkTools
+
+julia> a, b = randn(1000, 1000), randn(1000, 1000);
+
+julia> @btime a * b;
+  1.234 ms (0 allocations: 0 bytes)
+```
+
+== Profiling
+#timecounter(2)
+
+#link("https://benchmarksgame-team.pages.debian.net/benchmarksgame/fastest/julia-ifx.html")[The Computer Language Benchmarks Game]
 
 - How to find the bottleneck of your code? `Profile`
   - _Event based profiler_, e.g. triggered by the function call event.
@@ -162,7 +168,7 @@ The more you tell the compiler, the more efficient code it can generate.
 )
 
 ```julia
-julia> @code_native step_velocity!($bodies, 0.01)
+julia> @code_native make(5)
 ```
 
 = Julia Type System
@@ -1054,8 +1060,10 @@ bodies = solar_system()
 julia> @code_warntype step_velocity!(bodies, 0.01)
 ```
 
+== Video Watching
 
-
+- High Performance in Dynamic Languages (Steven Johnson):
+ https://www.youtube.com/watch?v=6JcMuFgnA6U&ab_channel=MITOpenCourseWare
 
 ==
 #bibliography("refs.bib")
