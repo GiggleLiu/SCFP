@@ -10,7 +10,7 @@
 #let globalvars = state("t", 0)
 #let timecounter(minutes) = [
   #globalvars.update(t => t + minutes)
-  #place(dx: 100%, dy: 0%, align(right, text(16pt, red)[#context globalvars.get()min]))
+  #place(dx: 100%, dy: -5%, align(right, text(16pt, red)[#context globalvars.get()min]))
 ]
 #let clip(image, top: 0pt, bottom: 0pt, left: 0pt, right: 0pt) = {
   box(clip: true, image, inset: (top: -top, right: -right, left: -left, bottom: -bottom))
@@ -18,7 +18,7 @@
 #set cite(style: "apa")
 
 #show raw.where(block: true): it=>{
-  block(radius:4pt, fill:gray.transparentize(90%), inset:1em, width:99%, text(it, 12pt))
+  block(radius:4pt, fill:gray.transparentize(90%), inset:1em, width:99%, text(it, 10pt))
 }
 
 #show: hkustgz-theme.with(
@@ -81,7 +81,7 @@ julia> @btime a * b;
   1.234 ms (0 allocations: 0 bytes)
 ```
 
-== Profiling
+== Profiling the bottleneck
 #timecounter(2)
 
 #link("https://benchmarksgame-team.pages.debian.net/benchmarksgame/fastest/julia-ifx.html")[The Computer Language Benchmarks Game]
@@ -109,6 +109,15 @@ pkg> add BenchmarkTools
 ```
 
 Type `Backspace` to return to the normal mode. Type `Ctrl-C` to cancel the current command. Type `Ctrl-D` to exit the REPL.
+
+== Hands-on: Benchmarking and profiling the binary tree program
+#timecounter(1)
+
+Set up the environment:
+
+1. Download the code.
+2. Open the code in VSCode/Cursor.
+3. Press `Shift+Enter` to run the code.
 
 == Benchmarking
 #timecounter(1)
