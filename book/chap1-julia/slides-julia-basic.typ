@@ -204,6 +204,19 @@ The more you tell the compiler, the more efficient code it can generate.
 julia> @code_native make(5)
 ```
 
+== Example: Complex number
+#timecounter(1)
+
+```julia
+struct CNumber{T}
+    a::T
+    b::T
+end
+Base.:(+)(a::CNumber, b::CNumber) = CNumber(a.a + b.a, a.b + b.b)
+@btime x + y setup=(x=CNumber(1.0, 2.0); y=CNumber(3.0, 4.0))
+```
+Why is it so fast?
+
 = Julia Type System
 
 == Parameterized types
