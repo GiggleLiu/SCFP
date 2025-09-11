@@ -208,9 +208,9 @@ julia> @code_native make(5)
 #timecounter(1)
 
 ```julia
-struct CNumber{T}
-    a::T
-    b::T
+struct CNumber
+    a::Float64
+    b::Float64
 end
 Base.:(+)(a::CNumber, b::CNumber) = CNumber(a.a + b.a, a.b + b.b)
 @btime x + y setup=(x=CNumber(1.0, 2.0); y=CNumber(3.0, 4.0))
@@ -753,6 +753,134 @@ julia> fight(Human(170), Human(180))
 "loss"
 ```
 
+== Hands-on
+
+1. Clone the repo: https://github.com/TensorBFS/TropicalNumbers.jl to your local machine.
+2. Run the tests in your VSCode/Cursor.
+3. Answer the questions:
+  - What is the supertype of `TropicalAndOr`?
+  - How many subtypes does `AbstractSemiring` have?
+  - Can we subtype `Tropical`?
+  - Is `Tropical(2.0)` an instance of `TropicalTypes`?
+  - What are the type parameters of `CountingTropical`?
+  - If we add `TropicalAndOr` and `TropicalMinPlus`, what will happen?
+
+// == Tutorial: Tropical Numbers
+// #timecounter(4)
+// In the following, we show how to customize a special number system, called _semirings_ (rings without "`-`" operation).
+
+// https://github.com/TensorBFS/TropicalNumbers.jl
+
+// A Topical algebra can be described as a tuple $(R, plus.circle, times.circle, bb(0), bb(1))$, where $R$ is the set, $plus.circle$ and $times.circle$ are the operations and $bb(0)$ and $bb(1)$ are their identity element, respectively. In this package, the following tropical algebras are implemented:
+// - `TropicalAndOr`: $({T, F}, or, and, F, T)$;
+// - `Tropical` (`TropicalMaxPlus`): $(bb(R), max, +, -infinity, 0)$;
+// - `TropicalMinPlus`: $(bb(R), min, +, infinity, 0)$;
+// - `TropicalMaxMul`: $(bb(R^+), max, *, 0, 1)$.
+
+
+// == Example: Tropical Numbers
+// #timecounter(3)
+// #align(left, text(14pt)[```julia
+// abstract type AbstractSemiring <: Number end
+
+// struct Tropical{T <: Real} <: AbstractSemiring
+//     n::T
+//     Tropical{T}(x) where T = new{T}(T(x))
+//     function Tropical(x::T) where T <: Real
+//         new{T}(x)  # constructor
+//     end
+//     function Tropical{T}(x::Tropical{T}) where T <: Real
+//         x
+//     end
+//     function Tropical{T1}(x::Tropical{T2}) where {T1 <: Real, T2 <: Real}
+//         new{T1}(T2(x.n))
+//     end
+// end
+// ```])
+
+// == Overloading arithemetics operations
+// #timecounter(2)
+// `Base` is the module of the built-in functions. e.g. `Base.:*` is the multiplication operator.
+// `Base.zero` is the zero element of the type.
+
+// ```julia
+// # we use ":" to avoid ambiguity
+// Base.:*(a::Tropical, b::Tropical) = Tropical(a.n + b.n)
+// Base.:+(a::Tropical, b::Tropical) = Tropical(max(a.n, b.n))
+
+// # `Type{Tropical{T}}` is the type of the Tropical{T} type.
+// Base.zero(::Type{Tropical{T}}) where T = typemin(Tropical{T})
+// Base.zero(::Tropical{T}) where T = zero(Tropical{T})
+
+// Base.one(::Type{Tropical{T}}) where T = Tropical(zero(T))
+// Base.one(::Tropical{T}) where T = one(Tropical{T})
+// ```
+
+
+// == Experiment: Comparing with C and Python
+
+// === Comparing with C
+// First, let's write a C implementation:
+// #align(left, text(14pt)[```c
+// // demo.c
+// #include <stddef.h>
+// int c_factorial(size_t n) {
+//     int s = 1;
+//     for (size_t i=1; i<=n; i++) {
+//         s *= i;
+//     }
+//     return s;
+// }
+// ```
+// ])
+
+// ==
+// Compile the C code to a shared library:
+// #box(text(14pt)[```bash
+// gcc demo.c -fPIC -O3 -shared -o demo.so
+// ```
+// ])
+
+// Now we can call this C function from Julia using the `@ccall` macro:
+
+// #box(text(14pt)[```julia
+// julia> using Libdl
+
+// julia> c_factorial(x) = Libdl.@ccall "./demo.so".c_factorial(x::Csize_t)::Int
+
+// julia> @benchmark c_factorial(5)
+// BenchmarkTools.Trial: 10000 samples with 1000 evaluations.
+//  Range (min … max):  7.333 ns … 47.375 ns  ┊ GC (min … max): 0.00% … 0.00%
+//  Time  (median):     7.458 ns              ┊ GC (median):    0.00%
+//  Time  (mean ± σ):   7.764 ns ±  1.620 ns  ┊ GC (mean ± σ):  0.00% ± 0.00%
+// ```
+// ])
+
+// The C implementation takes about 7.3 nanoseconds—remarkably close to Julia's performance.
+
+// == Comparing with Python
+// Let's examine how Python performs on the same task:
+
+// ```python
+// def factorial(n):
+//     x = 1
+//     for i in range(1, n+1):
+//         x = x * i
+//     return x
+// ```
+
+// Using IPython's timing utilities:
+// ```ipython
+// In [7]: timeit factorial(5)
+// 144 ns ± 0.379 ns per loop (mean ± std. dev. of 7 runs, 10,000,000 loops each)
+// ```
+
+// At 144 nanoseconds, Python is:
+// - 20 times slower than the C implementation
+// - 70 times slower than the Julia implementation
+
+// As a remark, when Julia compiler fails to infer the types, it will fall back to the dynamic dispatch mode. Then it also suffers from the problem of cache misses.
+
 == Why object oriented programming is bad?
 #timecounter(1)
 
@@ -794,129 +922,8 @@ Q: how many methods can you write in Julia/Python?
 
 Comment: Julia provides exponentially large method space, while for OOP languages, its linear. This explains why overloading "+" is so hard in OOP languages.
 
-== Hands-on
 
-1. Clone the repo: https://github.com/TensorBFS/TropicalNumbers.jl to your local machine.
-2. Run the tests in your VSCode/Cursor.
-3. After that, you can try to complete the second homework.
-
-== Tutorial: Tropical Numbers
-#timecounter(4)
-In the following, we show how to customize a special number system, called _semirings_ (rings without "`-`" operation).
-
-https://github.com/TensorBFS/TropicalNumbers.jl
-
-A Topical algebra can be described as a tuple $(R, plus.circle, times.circle, bb(0), bb(1))$, where $R$ is the set, $plus.circle$ and $times.circle$ are the operations and $bb(0)$ and $bb(1)$ are their identity element, respectively. In this package, the following tropical algebras are implemented:
-- `TropicalAndOr`: $({T, F}, or, and, F, T)$;
-- `Tropical` (`TropicalMaxPlus`): $(bb(R), max, +, -infinity, 0)$;
-- `TropicalMinPlus`: $(bb(R), min, +, infinity, 0)$;
-- `TropicalMaxMul`: $(bb(R^+), max, *, 0, 1)$.
-
-
-== Example: Tropical Numbers
-#timecounter(3)
-#align(left, text(14pt)[```julia
-abstract type AbstractSemiring <: Number end
-
-struct Tropical{T <: Real} <: AbstractSemiring
-    n::T
-    Tropical{T}(x) where T = new{T}(T(x))
-    function Tropical(x::T) where T <: Real
-        new{T}(x)  # constructor
-    end
-    function Tropical{T}(x::Tropical{T}) where T <: Real
-        x
-    end
-    function Tropical{T1}(x::Tropical{T2}) where {T1 <: Real, T2 <: Real}
-        new{T1}(T2(x.n))
-    end
-end
-```])
-
-== Overloading arithemetics operations
-#timecounter(2)
-`Base` is the module of the built-in functions. e.g. `Base.:*` is the multiplication operator.
-`Base.zero` is the zero element of the type.
-
-```julia
-# we use ":" to avoid ambiguity
-Base.:*(a::Tropical, b::Tropical) = Tropical(a.n + b.n)
-Base.:+(a::Tropical, b::Tropical) = Tropical(max(a.n, b.n))
-
-# `Type{Tropical{T}}` is the type of the Tropical{T} type.
-Base.zero(::Type{Tropical{T}}) where T = typemin(Tropical{T})
-Base.zero(::Tropical{T}) where T = zero(Tropical{T})
-
-Base.one(::Type{Tropical{T}}) where T = Tropical(zero(T))
-Base.one(::Tropical{T}) where T = one(Tropical{T})
-```
-
-
-== Experiment: Comparing with C and Python
-
-=== Comparing with C
-First, let's write a C implementation:
-#align(left, text(14pt)[```c
-// demo.c
-#include <stddef.h>
-int c_factorial(size_t n) {
-    int s = 1;
-    for (size_t i=1; i<=n; i++) {
-        s *= i;
-    }
-    return s;
-}
-```
-])
-
-==
-Compile the C code to a shared library:
-#box(text(14pt)[```bash
-gcc demo.c -fPIC -O3 -shared -o demo.so
-```
-])
-
-Now we can call this C function from Julia using the `@ccall` macro:
-
-#box(text(14pt)[```julia
-julia> using Libdl
-
-julia> c_factorial(x) = Libdl.@ccall "./demo.so".c_factorial(x::Csize_t)::Int
-
-julia> @benchmark c_factorial(5)
-BenchmarkTools.Trial: 10000 samples with 1000 evaluations.
- Range (min … max):  7.333 ns … 47.375 ns  ┊ GC (min … max): 0.00% … 0.00%
- Time  (median):     7.458 ns              ┊ GC (median):    0.00%
- Time  (mean ± σ):   7.764 ns ±  1.620 ns  ┊ GC (mean ± σ):  0.00% ± 0.00%
-```
-])
-
-The C implementation takes about 7.3 nanoseconds—remarkably close to Julia's performance.
-
-== Comparing with Python
-Let's examine how Python performs on the same task:
-
-```python
-def factorial(n):
-    x = 1
-    for i in range(1, n+1):
-        x = x * i
-    return x
-```
-
-Using IPython's timing utilities:
-```ipython
-In [7]: timeit factorial(5)
-144 ns ± 0.379 ns per loop (mean ± std. dev. of 7 runs, 10,000,000 loops each)
-```
-
-At 144 nanoseconds, Python is:
-- 20 times slower than the C implementation
-- 70 times slower than the Julia implementation
-
-As a remark, when Julia compiler fails to infer the types, it will fall back to the dynamic dispatch mode. Then it also suffers from the problem of cache misses.
-
-== Hands-on: Benchmarking and Profiling
+== Hands-on: Rigid body simulation
 #timecounter(20)
 
 1. Check the case study: Hamiltonian dynamics at the bottom of this page: https://scfp.jinguo-group.science/chap1-julia/julia-basic.html . Create a local project folder, copy-paste the program into a local file: `nbody.jl`. Open the project with VSCode.
