@@ -66,6 +66,30 @@ It is as concise (concise $!=$ simple) as Python, but runs much faster!
   image("images/benchmark.png", width: 350pt, alt: "Benchmark"),
 )
 
+== Understanding performance
+
+- Floating point operations (FLOP): number of floating point operations ($+$, $-$, $*$ and $\/$)
+- Floating point operations per second (FLOPS)
+- Big-O notation: the scaling behavior of a program, e.g. for a problem of size $n$, $O(1)$ is constant, $O(n)$ is linear, $O(n^gamma)$ is polynomial, $O(2^n)$ is exponential.
+
+== Example
+
+Matrix multiplication: $C = A B$, where $A in CC^(n times n)$, $B in CC^(n times n)$, $C in CC^(n times n)$. The algorithm is
+```julia
+for i in 1:n
+  for j in 1:n
+    for k in 1:n
+      C[i, j] += A[i, k] * B[k, j]
+    end
+  end
+end
+```
+
+== Solution
+- Floating point operations: $2 n^3$ - measure implementation
+- Floating point operations per second: $2 n^3 \/ t$ - measure device
+- Time complexity: $O(n^3)$ - measure algorithm
+
 == Benchmarking
 #timecounter(3)
 
