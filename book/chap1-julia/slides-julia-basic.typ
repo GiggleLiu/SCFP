@@ -922,6 +922,172 @@ Q: how many methods can you write in Julia/Python?
 
 Comment: Julia provides exponentially large method space, while for OOP languages, its linear. This explains why overloading "+" is so hard in OOP languages.
 
+= Array operations
+
+== Initialize an Array
+#timecounter(2)
+
+Array type `Array{T, N}` has two type parameters: `T` is the element type, and `N` is the number of dimensions.
+
+```julia
+# Basic array creation
+A = [1, 2, 3]                         # vector
+B = [1 2 3; 4 5 6; 7 8 9]             # matrix
+
+# Specialized constructors
+uninitialized_vector = Vector{Int}(undef, 3)  # uninitialized (fast)
+zero_vector = zeros(3)                # zero vector
+rand_vector = randn(Float32, 3, 3)    # random normal distribution
+const_matrix = fill(2.0, 3, 3)        # constant matrix
+step_vector = collect(1:3)            # collect from range
+```
+
+Unlike C, Python, and R, Julia array indexing starts from 1.
+
+== Array Indexing and Views
+#timecounter(2)
+
+```julia
+A = [1, 2, 3]
+A[1]      # first element
+A[end]    # last element
+A[1:2]    # first two elements
+A[2:-1:1] # reverse order
+
+B = [1 2 3; 4 5 6; 7 8 9]
+B[1:2]            # first two elements (column-major)
+B[1:2, 1:2]       # 2×2 submatrix (copies data)
+
+view(B, 1:2, 1:2) # view of the submatrix (no copy)
+```
+
+*Important*: `view()` returns a reference without copying data, while indexing creates a copy.
+
+== Broadcasting and Map-Reduce
+#timecounter(3)
+
+*Broadcasting* applies functions element-wise with loop fusion:
+
+```julia
+x = 0:0.1π:2π
+y = sin.(x) .+ cos.(3 .* x)        # Broadcasting (preferred)
+y = map(a -> sin(a) + cos(3a), x)  # Mapping version
+
+# Protect from broadcasting
+Ref([3,2,1,0]) .* (1:3)  # [[3,2,1,0], [6,4,2,0], [9,6,3,0]]
+```
+
+*Reduction* operations:
+```julia
+sum(1:10)                    # 55
+foldl(+, 1:10)              # left fold
+foldr(+, 1:10)              # right fold
+reduce(+, 1:10)             # unspecified order (parallelizable)
+mapreduce(abs2, +, 1:10)    # map then reduce (no intermediate arrays)
+```
+
+== Filtering and Searching
+#timecounter(2)
+
+```julia
+# Filtering
+filter(iseven, 1:10)        # [2, 4, 6, 8, 10]
+
+# Searching
+findfirst(iseven, 1:10)     # 2 (first index)
+findlast(iseven, 1:10)      # 10 (last index)
+findall(iseven, 1:10)       # [2, 4, 6, 8, 10] (all indices)
+```
+
+== Memory Layout and Performance
+#timecounter(3)
+
+Julia uses *column-major* order (like Fortran/MATLAB), unlike C/Python's row-major order.
+
+#figure(canvas(length: 1.2cm, {
+  import draw: *
+  content((0, 0), text(14pt)[$ mat(a_(1 1), a_(1 2), a_(1 3); a_(2 1), a_(2 2), a_(2 3); a_(3 1), a_(3 2), a_(3 3)) $])
+  line((-1, 0.6), (-1, -0.6), (0, 0.6), (0, -0.6), (1, 0.6), (1, -0.6), mark: (end: "straight"))
+  content((0, -1.2), text(12pt)[Column-major (Julia)])
+  
+  set-origin((4, 0))
+  content((0, 0), text(14pt)[$ mat(a_(1 1), a_(1 2), a_(1 3); a_(2 1), a_(2 2), a_(2 3); a_(3 1), a_(3 2), a_(3 3)) $])
+  line((-1, 0.6), (1, 0.6), (-1, 0), (1, 0), (-1, -0.6), (1, -0.6), mark: (end: "straight"))
+  content((0, -1.2), text(12pt)[Row-major (C/Python)])
+}))
+
+```julia
+A = randn(3000, 3000)
+
+# Slow - row-major traversal
+@btime sum(A[i,j]^2 for i=1:size(A,1), j=1:size(A,2))
+
+# Fast - column-major traversal  
+@btime sum(A[i,j]^2 for j=1:size(A,2), i=1:size(A,1))
+```
+
+== Strides and Linear Indexing
+#timecounter(2)
+
+*Strides* describe memory layout:
+```julia
+A = randn(3, 4, 5)
+strides(A)  # (1, 3, 12) - distance between elements in each dimension
+
+# Convert between linear and cartesian indices
+linear_inds = LinearIndices(A)
+linear_inds[2,3,2]  # returns 20
+
+cart_inds = CartesianIndices(A) 
+cart_inds[20]       # returns CartesianIndex(2, 3, 2)
+```
+
+Understanding memory layout is crucial for performance optimization.
+
+== BLAS and LAPACK
+#timecounter(2)
+
+Julia uses optimized libraries for linear algebra:
+- *BLAS*: Basic Linear Algebra Subprograms (vector/matrix operations)
+- *LAPACK*: Linear Algebra PACKage (advanced operations)
+
+```julia
+using LinearAlgebra
+
+# Check BLAS configuration
+BLAS.get_config()
+BLAS.get_num_threads()
+
+# Matrix multiplication benchmark
+A = randn(1000, 1000)
+@btime A * A  # Should achieve high GFLOPS
+
+# Performance = 2n³ / time_in_seconds FLOPS
+```
+
+Modern CPUs can achieve hundreds of GFLOPS with optimized BLAS.
+
+== Example: Triangular Lattice
+#timecounter(2)
+
+Generate a triangular lattice using broadcasting:
+
+```julia
+# Basis vectors
+b1 = [1, 0]
+b2 = [0.5, sqrt(3)/2]
+n = 5
+
+# Two equivalent approaches
+mesh1 = [i * b1 + j * b2 for i in 1:n, j in 1:n]  # List comprehension
+mesh2 = (1:n) .* Ref(b1) .+ (1:n)' .* Ref(b2)     # Broadcasting
+
+# Visualization with CairoMakie
+using CairoMakie
+scatter(vec(getindex.(mesh2, 1)), vec(getindex.(mesh2, 2)))
+```
+
+This demonstrates Julia's concise syntax for mathematical operations.
 
 == Hands-on: Rigid body simulation
 #timecounter(20)
