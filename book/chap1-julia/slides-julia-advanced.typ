@@ -57,16 +57,16 @@
   content((6, -1), s[Extensibility, easy to use et al.])
 }))
 
-== Die! script
+== No script
 
 #align(center, text(36pt, strike[Script]))
 
 == This lecture
 
-We focus on:
-- Understand the package *versioning* and dependency management
-- What is *unit test*, how to setup unit tests and package dependencies
-- How to setup *CI/CD* to automate the testing and deployment
+We focus on correctness:
+- Reproducibable environment: package *versioning* and local environment
+- Metric of correctness: *unit test* and test coverage
+- Consistency: setup *CI/CD* to automate the testing and deployment
 
 = Unit test and CI/CD
 
