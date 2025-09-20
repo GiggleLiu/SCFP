@@ -39,6 +39,7 @@
   ),
 )
 
+#title-slide()
 #outline-slide()
 
 = Linear Equations
@@ -280,6 +281,24 @@ p - sqrt(p^2 + q)       # -4.0978193283081055e-8
 Q: which one is more accurate? Hint: imagine we perform "$-$" operation on two very close large numbers.
 
 == Condition number
+#timecounter(2)
+
+For a general function $f: x arrow.r.long y = f(x)$, the *relative condition number* is defined as:
+
+$
+kappa_"rel"(f, x) = lim_(epsilon arrow.r 0) sup_(|delta x| <= epsilon |x|) frac(|f(x + delta x) - f(x)|\/|f(x)|, |delta x|\/|x|)
+$
+
+- _Interpretation_: $kappa_"rel"(f, x)$ measures how much the *relative error* in the output $y$ can be amplified compared to the *relative error* in the input $x$.
+
+- _Alternative definition_: If $f$ is differentiable, then
+$
+kappa_"rel"(f, x) = frac(|f'(x)| |x|, |f(x)|)
+$
+
+- _Remark_: A problem is well-conditioned if $kappa_"rel" approx O(1)$ and ill-conditioned if $kappa_"rel" >> 1$.
+
+== Condition number for linear system
 #timecounter(2)
 
 - _Condition number_ of a matrix $A$ is defined as $kappa(A) = ||A|| ||A^(-1)|| >=1$. If the condition number is close to 1, the matrix is _well-conditioned_, otherwise it is _ill-conditioned_.
