@@ -531,13 +531,33 @@ where $
         C = mat(-c, c, 0, dots, 0, 0; c, -2c, c, dots, 0, 0; dots.v, dots.v, dots.v, dots.down, dots.v, dots.v; 0, 0, 0, dots, 0, c; 0, 0, 0, dots, c, -c)
       $
 
-== Tasks
+== Goal
 Run and play with the simulation: https://github.com/GiggleLiu/ScientificComputingDemos/tree/main/SpringSystem
 
 1. Reproduce the following result:
 #figure(image("images/springs-demo.gif", width: 300pt, alt: "Spring chain"))
 
-== Task
+== Step by step
+
+1. Clone this repository to your local machine:
+  ```bash
+  $ git clone https://github.com/GiggleLiu/ScientificComputingDemos.git
+  ```
+2. Initialize the environment first by running the following command in the terminal:
+  ```bash
+  $ dir=SpringSystem make init
+  ```
+
+==
+3. Run the demos by running the following command in the terminal:
+  ```bash
+  $ dir=SpringSystem make test
+  $ dir=SpringSystem make example
+  ```
+  `make test` is used to run the tests in the `SpringSystem` directory. `make example` is used to run the examples in the `SpringSystem` directory. The `SpringSystem` is the name of the directory where the demos are located. You can replace it with the name of the directory where the demos are located.
+
+
+== Homework task
 
 - Implement dual species spring chain, the mass is 1 on even sites and 2 on odd sites, stiffness constant is $C = 1$. The boundary condition is periodic.
 - Show the density of states at different energy with binned bar plot. The $x$-axis is the energy, the $y$-axis is the population.

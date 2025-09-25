@@ -696,8 +696,8 @@ Some special matrices have special properties that can be exploited for efficien
 == Hands-on: Implement and improve a simple Lanczos algorithm
 1. Run the demo code in folder: `SimpleKrylov/examples` with:
    ```bash
-   $ make init-SimpleKrylov
-   $ make example-SimpleKrylov
+   $ dir=SimpleKrylov make init
+   $ dir=SimpleKrylov make example
    ```
 2. Explain the inconsistency between the results of `SimpleKrylov` and the exact results.
 3. Estimate the approximate number of iterations required to reach the machine precision in the Arnoldi iteration example.

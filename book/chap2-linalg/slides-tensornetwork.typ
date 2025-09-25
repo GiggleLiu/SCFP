@@ -885,8 +885,8 @@ $
 
 - Run the example code in folder `HiddenMarkovModel` of our demo repository.
   ```bash
-  make init-HiddenMarkovModel
-  make example-HiddenMarkovModel
+  dir=HiddenMarkovModel make init
+  dir=HiddenMarkovModel make example
   ```
 
 - Tasks:
