@@ -255,7 +255,7 @@ git push origin main
 
 It is not possible to cover all the feature of git. We will list a few useful commands and resources for git learning.
 
-```
+```bash
 # global config
 git config  # Get and set repository or global options
 
