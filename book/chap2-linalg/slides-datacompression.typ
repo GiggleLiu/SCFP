@@ -602,8 +602,8 @@ LAPACK routine names follow the pattern: `XYYZZZ`, where:
 - Notebooks: https://github.com/mitmath/computational-thinking
 
 == Tasks
-1. Read the code demo: https://github.com/GiggleLiu/ScientificComputingDemos/tree/main/ImageProcessing
-2. Randomly pick an online image, and apply the two algorithms to compress the image.
+1. Run the code demo: https://github.com/GiggleLiu/ScientificComputingDemos/tree/main/ImageProcessing
+2. Compress the image in the HSV channel.
 
 ==
 #bibliography("refs.bib")

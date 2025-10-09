@@ -175,20 +175,6 @@ Here, $u$ represents frequency in the _frequency domain_, while $x$ represents p
 
 == Discrete Fourier Transform
 #timecounter(1)
-#figure(canvas({
-  import draw: *
-  let s(it) = text(12pt)[#it]
-  let r = 1.5
-  circle((0, 0), radius: r, name: "circle")
-  let n = 8
-  for i in range(n){
-    let (x, y) = (calc.cos(i * 2 * calc.pi/n), calc.sin(i * 2 * calc.pi/n))
-    line((x*r, y*r), (1.1*x*r, 1.1*y*r), name: "line" + str(i))
-  }
-  content((0, r + 0.4), s[$0 = 2 pi$])
-  content((0, 0), s[$omega = e^(-2pi i\/n)$])
-}),
-)
 When working with discrete data over a finite domain, we use the discrete Fourier transform (DFT). For a vector $bold(x) = (x_0, x_1, dots, x_(n-1))$ of length $n$, the DFT is defined as:
 $ y_k = sum_(j=0)^(n-1) x_j e^(-2pi i k j\/n) = sum_(j=0)^(n-1) x_j omega^(k j) = F_n bold(x) $ 
 

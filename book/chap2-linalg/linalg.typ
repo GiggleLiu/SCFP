@@ -441,23 +441,7 @@ It transforms a function in the time/space domain into a representation in the _
 $ g(u) = cal(F)(f(x)) = integral_(-infinity)^infinity e^(-2 pi i u x) f(x) dif x\
 f(x) = cal(F)^(-1)(g(u)) = 1/(2pi) integral_(-infinity)^infinity e^(2 pi i u x) g(u) dif u
 $
-Here, $u$ represents frequency in the _frequency domain_, while $x$ represents position/time in the _physical domain_.
-
-#figure(canvas({
-  import draw: *
-  let s(it) = text(12pt)[#it]
-  let r = 1.5
-  circle((0, 0), radius: r, name: "circle")
-  let n = 8
-  for i in range(n){
-    let (x, y) = (calc.cos(i * 2 * calc.pi/n), calc.sin(i * 2 * calc.pi/n))
-    line((x*r, y*r), (1.1*x*r, 1.1*y*r), name: "line" + str(i))
-  }
-  content((0, r + 0.4), s[$0 = 2 pi$])
-  content((0, 0), s[$omega = e^(-2pi i\/n)$])
-}),
-)
-When working with discrete data over a finite domain, we use the discrete Fourier transform (DFT). For a vector $bold(x) = (x_0, x_1, dots, x_(n-1))$ of length $n$, the DFT is defined as:
+Here, $u$ represents frequency in the _frequency domain_, while $x$ represents position/time in the _physical domain_. When working with discrete data over a finite domain, we use the discrete Fourier transform (DFT). For a vector $bold(x) = (x_0, x_1, dots, x_(n-1))$ of length $n$, the DFT is defined as:
 $ y_k = sum_(j=0)^(n-1) x_j e^(-2pi i k j\/n) = sum_(j=0)^(n-1) x_j omega^(k j) = F_n bold(x) $ 
 
 where $omega = e^(-2pi i\/n)$ is the primitive $n$th root of unity. $F_n$ is the _DFT matrix_:
@@ -472,6 +456,24 @@ dots.v , dots.v , dots.v , dots.down , dots.v;
 $
 
 The inverse transformation is given by $F_n^dagger x\/n$. The DFT matrix is unitary up to a scale factor: $F_n F_n^dagger = n I$.
+
+=== Cooley-Tukey FFT
+
+$ F_n x = mat(
+  I_(n/2), D_(n/2);
+  I_(n/2), -D_(n/2)
+) mat(
+  F_(n/2), 0;
+  0, F_(n/2)
+) vec(x_("odd"), x_("even")) $
+
+where:
+- $F_n$ is the DFT matrix of size n
+- $D_n = "diag"(1, omega, omega^2, ..., omega^(n-1))$ is a diagonal matrix
+- $omega = e^(-2pi i\/n)$ is the primitive nth root of unity
+- $x_("odd")$ and $x_("even")$ contain the odd and even indexed elements of x
+
+This decomposition leads to the recurrence relation $T(n) = 2T(n/2) + O(n)$, which solves to $O(n log n)$ total operations.
 The Julia package `FFTW.jl` contains an extremely efficient implementation of FFT.
 
 ```julia
@@ -573,9 +575,99 @@ end
 @test p * q ≈ fast_polymul(p, q)
 ```
 
-
-
 == Application 2: Image compression
-(TBD)
+
+Images often contain redundant information that can be efficiently represented in the frequency domain. The 2D Fourier transform allows us to decompose an image into its frequency components, where most of the energy is typically concentrated in the low-frequency components. This property enables effective image compression.
+
+For a 2D signal (image) $f(x,y)$, the 2D Discrete Fourier Transform is defined as:
+$ F(u,v) = sum_(x=0)^(m-1) sum_(y=0)^(n-1) f(x,y) e^(-2pi i(u x\/m + v y\/n)) $
+
+The inverse transform recovers the original image:
+$ f(x,y) = 1/(m n) sum_(u=0)^(m-1) sum_(v=0)^(n-1) F(u,v) e^(2pi i(u x\/m + v y\/n)) $
+
+#exampleblock[
+*Image Compression with FFT*
+
+Consider compressing a grayscale image using the Fast Fourier Transform:
+
+```julia
+using FFTW, Images
+
+# Load and convert image to grayscale
+# You can also use `load("myimage.png")` to load the image from your local file system.
+img = load(download("https://i.imgur.com/VGPeJ6s.jpg"))
+gray_img = Gray.(img)
+```
+
+You will see the famous corgi in Julia image processing community named Philip.
+#figure(image("images/philip-gray.png", width: 40%), caption: [The original image of Philip.])
+
+```julia
+# Apply 2D FFT
+img_data = Float64.(gray_img)  # Convert to Float64
+img_fft = fftshift(fft(img_data))
+
+# Visualize frequency spectrum (log scale for better visibility)
+spectrum = log.(1 .+ abs.(img_fft))
+Gray.(spectrum ./ maximum(spectrum))
+```
+You will see the frequency spectrum of the image, which is mostly black, meaning having very small amplitude.
+#figure(image("images/philip-k.png", width: 40%), caption: [The frequency spectrum of Philip.])
+
+The frequency spectrum shows that most energy concentrates in the center (low frequencies). We can compress by setting small coefficients to zero:
+
+```julia
+# Set threshold - discard coefficients below tolerance
+tolerance = 100  # Adjust based on desired compression
+img_fft_compressed = copy(img_fft)
+img_fft_compressed[abs.(img_fft_compressed) .< tolerance] .= 0
+
+# Convert to sparse matrix for efficient storage
+using SparseArrays
+sparse_fft = sparse(img_fft_compressed)
+
+# Compression ratio
+compression_ratio = nnz(sparse_fft) / length(img_fft)
+println("Compression ratio: $(compression_ratio * 100)%")
+```
+With this tolerance, the compression ratio is about $22.1%$, which means about we keep only about 1/5 of the original image data. However, the reconstructed image turns out not very different from the original one.
+
+```julia
+# Reconstruct image using inverse FFT
+img_recovered = ifft(ifftshift(Matrix(sparse_fft)))
+recovered_img = Gray.(abs.(img_recovered))
+```
+
+#figure(image("images/philip-reconstructed.png", width: 40%), caption: [The reconstructed image with the tolerance set to 100.])
+
+The compression quality depends on the tolerance parameter:
+- *Low tolerance*: More coefficients retained, better quality, less compression
+- *High tolerance*: Fewer coefficients retained, lower quality, more compression
+
+This technique forms the basis of JPEG compression, which uses the related Discrete Cosine Transform (DCT) instead of FFT.
+]
+
+*Comparison with DCT*
+
+The Discrete Cosine Transform (DCT) is closely related to FFT but produces only real coefficients for real inputs, making it more efficient for image compression:
+
+```julia
+using FFTW
+
+# DCT compression
+img_dct = dct(img_data)
+img_dct_compressed = copy(img_dct)
+tolerance = sort(vec(img_dct_compressed))[round(Int, length(img_dct_compressed) * 0.78)]
+img_dct_compressed[abs.(img_dct_compressed) .< tolerance] .= 0
+
+# Reconstruct
+img_recovered_dct = idct(img_dct_compressed)
+recovered_img_dct = Gray.(abs.(img_recovered_dct))
+```
+
+The DCT is preferred in practice (e.g., JPEG standard) because:
+1. It produces real-valued coefficients for real images
+2. Better energy compaction for typical images
+3. Eliminates boundary discontinuities that FFT introduces
 
 #bibliography("refs.bib")
