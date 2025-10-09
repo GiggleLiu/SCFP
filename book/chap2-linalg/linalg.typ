@@ -435,16 +435,25 @@ Any initial condition can be expressed as a linear combination of these eigenmod
 
 == Fast Fourier Transform
 
-The Fourier transform is a *linear transformation* widely used in signal processing, image processing and physics.
-It transforms a function in the time/space domain into a representation in the _frequency domain_. For a complex-valued function $f(x)$, the Fourier transform and its inverse transform are defined as:
+The Fourier transform is a fundamental *linear transformation* that decomposes a signal into its constituent frequencies. It is indispensable in signal processing, image processing, quantum mechanics, and many other fields. The key insight is that many signals that appear complex in the time or space domain have simple, sparse representations in the frequency domain.
 
-$ g(u) = cal(F)(f(x)) = integral_(-infinity)^infinity e^(-2 pi i u x) f(x) dif x\
-f(x) = cal(F)^(-1)(g(u)) = 1/(2pi) integral_(-infinity)^infinity e^(2 pi i u x) g(u) dif u
-$
-Here, $u$ represents frequency in the _frequency domain_, while $x$ represents position/time in the _physical domain_. When working with discrete data over a finite domain, we use the discrete Fourier transform (DFT). For a vector $bold(x) = (x_0, x_1, dots, x_(n-1))$ of length $n$, the DFT is defined as:
-$ y_k = sum_(j=0)^(n-1) x_j e^(-2pi i k j\/n) = sum_(j=0)^(n-1) x_j omega^(k j) = F_n bold(x) $ 
+=== Continuous Fourier Transform
 
-where $omega = e^(-2pi i\/n)$ is the primitive $n$th root of unity. $F_n$ is the _DFT matrix_:
+For a continuous complex-valued function $f(x)$, the Fourier transform and its inverse are defined as:
+
+$ hat(f)(u) = cal(F)(f(x)) = integral_(-infinity)^infinity e^(-2 pi i u x) f(x) dif x $
+$ f(x) = cal(F)^(-1)(hat(f)(u)) = integral_(-infinity)^infinity e^(2 pi i u x) hat(f)(u) dif u $
+
+Here, $u$ represents frequency in the _frequency domain_, while $x$ represents position/time in the _physical domain_. The exponential $e^(-2pi i u x) = cos(2pi u x) - i sin(2pi u x)$ acts as a basis function that oscillates at frequency $u$.
+
+=== Discrete Fourier Transform (DFT)
+
+In practice, we work with discrete, finite-length signals. For a vector $bold(x) = (x_0, x_1, dots, x_(n-1))$ of length $n$, the DFT transforms it into frequency domain $bold(y) = (y_0, y_1, dots, y_(n-1))$:
+
+$ y_k = sum_(j=0)^(n-1) x_j e^(-2pi i k j\/n) = sum_(j=0)^(n-1) x_j omega^(k j) $ <eq:dft>
+
+where $omega = e^(-2pi i\/n)$ is the primitive $n$-th root of unity. This is a matrix-vector multiplication $bold(y) = F_n bold(x)$, where $F_n$ is the _DFT matrix_:
+
 $
 F_n = mat(
 1 , 1 , 1 , dots , 1;
@@ -453,28 +462,35 @@ F_n = mat(
 dots.v , dots.v , dots.v , dots.down , dots.v;
 1 , omega^(n-1) , omega^(2n-2) , dots , omega^((n-1)^2)
 ).
-$
+$ <eq:dft-matrix>
 
-The inverse transformation is given by $F_n^dagger x\/n$. The DFT matrix is unitary up to a scale factor: $F_n F_n^dagger = n I$.
+*Properties:*
+- The DFT is a linear transformation with $O(n^2)$ complexity for direct computation
+- The inverse DFT is given by $bold(x) = F_n^dagger bold(y)\/n$
+- The DFT matrix is unitary up to scaling: $F_n F_n^dagger = n I$
 
-=== Cooley-Tukey FFT
+=== The Cooley-Tukey Fast Fourier Transform
 
-$ F_n x = mat(
+Direct computation of the DFT via matrix multiplication requires $O(n^2)$ operations, which becomes prohibitive for large $n$. The Fast Fourier Transform (FFT) algorithm, developed by Cooley and Tukey in 1965 (though earlier versions existed), reduces this to $O(n log n)$ through a divide-and-conquer strategy.
+
+The key observation is that the DFT of size $n$ can be decomposed into two DFTs of size $n\/2$. By separating the input into odd and even indices:
+
+$ F_n bold(x) = mat(
   I_(n/2), D_(n/2);
   I_(n/2), -D_(n/2)
 ) mat(
   F_(n/2), 0;
   0, F_(n/2)
-) vec(x_("odd"), x_("even")) $
+) mat(bold(x)_("even"); bold(x)_("odd")) $
 
 where:
-- $F_n$ is the DFT matrix of size n
-- $D_n = "diag"(1, omega, omega^2, ..., omega^(n-1))$ is a diagonal matrix
-- $omega = e^(-2pi i\/n)$ is the primitive nth root of unity
-- $x_("odd")$ and $x_("even")$ contain the odd and even indexed elements of x
+- $bold(x)_("even") = (x_0, x_2, x_4, dots)$ and $bold(x)_("odd") = (x_1, x_3, x_5, dots)$ are the even and odd indexed elements
+- $D_(n/2) = "diag"(1, omega, omega^2, ..., omega^(n/2-1))$ is a diagonal _twiddle factor_ matrix
+- $omega = e^(-2pi i\/n)$ is the primitive $n$-th root of unity
 
-This decomposition leads to the recurrence relation $T(n) = 2T(n/2) + O(n)$, which solves to $O(n log n)$ total operations.
-The Julia package `FFTW.jl` contains an extremely efficient implementation of FFT.
+This decomposition leads to the recurrence relation $T(n) = 2T(n/2) + O(n)$, which by the Master theorem solves to $T(n) = O(n log n)$.
+
+The Julia package `FFTW.jl` provides a highly optimized implementation of FFT that is used throughout scientific computing:
 
 ```julia
 julia> using FFTW
