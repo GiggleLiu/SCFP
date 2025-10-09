@@ -381,7 +381,7 @@ where $Q in bb(C)^(m times min(m, n))$ is an orthogonal matrix (i.e. $Q^dagger Q
 #timecounter(2)
 Let $A = Q R$, the least squares problem $min_x ||A x - b||_2^2$ is equivalent to
 $
-  min_x ||Q R x - b||_2^2 = underbrace(min_y ||R x - Q^dagger b||_2^2, "zero") + ||Q^dagger_bot b||_2^2\
+  min_x ||Q R x - b||_2^2 = underbrace(min_x ||R x - Q^dagger b||_2^2, "zero") + ||Q^dagger_bot b||_2^2\
   arrow.double.r R x = Q^dagger b
 $
 where $Q^dagger_bot$ is the orthogonal complement of $Q^dagger$, i.e. $Q^dagger_bot Q = 0$ and $Q^dagger_bot Q^dagger = I$.
