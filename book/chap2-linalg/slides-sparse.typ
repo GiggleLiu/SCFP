@@ -52,7 +52,7 @@
   }
 }
 
-= Hands-on
+= Hands-on preparation
 == Hands-on: Implement and improve a simple Lanczos algorithm
 1. Run the demo code in folder: `SimpleKrylov/examples` with:
    ```bash
