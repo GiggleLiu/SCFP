@@ -52,6 +52,14 @@
   }
 }
 
+= Hands-on
+== Hands-on: Implement and improve a simple Lanczos algorithm
+1. Run the demo code in folder: `SimpleKrylov/examples` with:
+   ```bash
+   $ dir=SimpleKrylov make init
+   $ dir=SimpleKrylov make example
+   ```
+
 = Sparse Matrices
 
 == Example 1: The stiffness matrix of a spring chain
@@ -594,7 +602,9 @@ $ T = mat(
 where $Q = (q_1 | q_2 | dots | q_k)$, and $op("span")({q_1, q_2, dots, q_k}) = cal(K)(A, q_1, k)$.
 
 == The Lanczos algorithm
+
 The Lanczos algorithm is basically a Gram-Schmidt orthogonalization process applied to the Krylov subspace:
+
 #algorithm({
   import algorithmic: *
   Function("Lanczos", args: ([$A$], [$q_1$], [$T$], [$Q$]), {
@@ -692,17 +702,22 @@ Some special matrices have special properties that can be exploited for efficien
     [*Eigenvalue problem*], [$O(n^2)$@Dhillon2004 @Sandryhaila2013],
 ))
 
-= Hands-on
-== Hands-on: Implement and improve a simple Lanczos algorithm
-1. Run the demo code in folder: `SimpleKrylov/examples` with:
-   ```bash
-   $ dir=SimpleKrylov make init
-   $ dir=SimpleKrylov make example
-   ```
-2. Explain the inconsistency between the results of `SimpleKrylov` and the exact results.
-3. Estimate the approximate number of iterations required to reach the machine precision in the Arnoldi iteration example.
-4. Verify the following property for the Laplacian matrix of a graph:
+== Summary
+
+- For large scale linear systems, the most widely used data structure is *`SparseMatrixCSC`*, other format include tensor network et al.
+- For symmetric dominant eigenvalue problem, the *Lanczos algorithm* is the most widely used method. For non-symmetric dominant eigenvalue problem, the *Arnoldi algorithm* is the most widely used method. Other methods include Jacobi-Davidson method et al.
+  - Reorthogonalization is crucial for the stability of the Lanczos and Arnoldi algorithms.
+  - Restarting is used to reduce the memory usage.
+  - Block Lanczos is used to compute degenerate eigenvalues.
+
+== Hands-on tasks
+
+1. Explain the inconsistency between the results of `SimpleKrylov` and the exact results.
+2. Estimate the approximate number of iterations required to reach the machine precision in the Arnoldi iteration example.
+3. Verify the following property for the Laplacian matrix of a graph:
    The number of connected components in the graph is the dimension of the nullspace of the Laplacian and the algebraic multiplicity of the 0 eigenvalue. The Laplacian matrix is defined as $L = D - A$, where $D$ is the diagonal degree matrix and $A$ is the adjacency matrix.
+
+Video watching: https://www.youtube.com/watch?v=DRyZDPDWQkM
 
 ==
 #bibliography("refs.bib")
