@@ -131,9 +131,7 @@ $
 
 == Issue of SVD
 - Computational cost: $O(m n^2)$ for SVD, $O(n^2)$ for each data reconstruction.
-
-=== Observation
-- The sparsity of images are similar, ideally, the dataset should be all images in this universe. Insight: the transformation is a constant linear map. What is it?
+- Imagine we have an image dataset of size $1000 times 1000 times "n"$.
 
 == Basis for sparsity
 

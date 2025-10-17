@@ -137,6 +137,14 @@
 
 = Spin Systems and Phase Transitions
 
+== Preparation
+
+Go to the `ScientificComputingDemos` folder and type
+```bash
+$ git pull
+$ dir=IsingModel make init
+```
+
 == What is a spin?
 
 A spin is a $plus.minus 1$ variable, with physical interpretation of a magnetic moment.
@@ -264,12 +272,12 @@ julia> solve(spin_glass, ConfigsMin())[]  # solve the spin glass ground state
 ```
 ]))
 
-== The low energy landscape
+// == The low energy landscape
 
-#figure(image("images/grid66.svg", width: 70%, alt: "Energy landscape"))
+// #figure(image("images/grid66.svg", width: 70%, alt: "Energy landscape"))
 
-- The two degenerate ground states are the all-up and all-down configurations.
-- Configurations are connected if they differ by flipping a single spin.
+// - The two degenerate ground states are the all-up and all-down configurations.
+// - Configurations are connected if they differ by flipping a single spin.
 
 == Estimate the observables at finite temperature
 
@@ -435,6 +443,7 @@ $
 === Acceptance rate
 In the ferrromagnetic phase, the MCMC method can easily get stuck in one of the ground states. A clever design can help the sampler to escape the local minimum, the cluster update proposed in @Swendsen1987 is a good example. When the prior is the same as the target distribution, the sampling the the most efficient, it has acceptance rate 1.
 
+==
 === Autocorrelation time
 Because a new sample in the MCMC method is generated from the previous sample, we often have time correlated samples in MCMC methods.
 Since the correlated samples are not independent, we effectively have less samples than we expect.
@@ -513,10 +522,10 @@ where:
 - $E(S, V backslash S)$ is the set of edges between $S$ and its complement
 - $"vol"(S) = sum_(v in S) d_v$ is the volume of set $S$, with $d_v$ being the degree of vertex $v$
 
-== Cheeger's inequality - Intuition
+// == Cheeger's inequality - Intuition
 
 
-#figure(image("images/grid66.svg", width: 70%, alt: "Energy landscape"))
+// #figure(image("images/grid66.svg", width: 70%, alt: "Energy landscape"))
 
 == Cheeger's inequality
 Cheeger's inequality relates the Cheeger constant $h(G)$ to the second smallest eigenvalue $lambda_2$ of the normalized Laplacian matrix $L = I - D^(-1/2) A D^(-1/2)$, where $D$ is the degree matrix and $A$ is the adjacency matrix:
@@ -550,8 +559,8 @@ This means that a graph with a large Cheeger constant (good expansion properties
 == Hands-on: Implement and improve a simple Lanczos algorithm
 1. Run the demo code in folder: `IsingModel/examples` with:
    ```bash
-   $ make init-IsingModel
-   $ make example-IsingModel
+   $ dir=IsingModel make init
+   $ dir=IsingModel make example
    ```
 2. Read the code in `IsingModel/src/ising2d.jl`, change the ferromagenetic coupling to antiferromagnetic, and run the simulation again.
 3. Read the code in `IsingModel/src/ising2d.jl`, change the ferromagenetic coupling to random coupling, and run the simulation again.
