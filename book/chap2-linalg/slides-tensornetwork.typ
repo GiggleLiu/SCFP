@@ -57,10 +57,12 @@
   labelnode("line.mid", label, name: name)
 }
 
+#title-slide()
 #outline-slide()
 
 = Tensor network representation
 
+== Definition
 _Tensor network_ is a diagrammatic representation of multilinear maps.
 - A tensor is represented as a node
 - An index is represented as a hyperedge (a hyperedge can connect to any number of nodes)
@@ -205,7 +207,7 @@ C_(i k) = "contract"({i,j,k}, {A_(i j), B_(j k)}, {i, k}),
 $
 where the input matrices $A$ and $B$ are indexed by the variable sets ${i, j}, {j, k}$, respectively, which are subsets of $Lambda = {i, j, k}$. As a remark of notation, when an set is used as subscripts, we omit the comma and the braces. The output tensor is indexed by variables ${i, k}$ and the summation runs over variables $Lambda without {i, k} = {j}$. 
 
-= Tensor network contraction orders
+== Tensor network contraction orders
 
 - The contraction complexity is determined by the chosen contraction order represented by a binary tree.
 - Finding the optimal contraction order, i.e., the contraction order with minimal complexity, is NP-complete@Markov2008.
@@ -293,117 +295,6 @@ $
 caption: [The time to optimize the contraction order for different methods. The x-axis is the time to optimize the contraction order, and the y-axis is the time to contract the tensor network. For details, please check #link("https://arrogantgao.github.io/blogs/contractionorder/")[this blog].]
 )
 
-
-== Local search method
-
-- The local search method@Kalachev2021 is a heuristic method based on the idea of simulated annealing.
-#let triangle(loc, radius) = {
-  import draw: *
-  let (x, y) = loc
-  let r1 = (x, y)
-  let r2 = (x + 0.5 * radius, y - radius)
-  let r3 = (x - 0.5 * radius, y - radius)
-  line(r1, r2, r3, close:true, fill:white, stroke:black)
-}
-#figure(canvas(length:0.6cm, {
-  import draw: *
-  // petersen graph
-  let rootroot = (0, 0)
-  let root = (-0.8, -1)
-  let left = (-1.6, -2)
-  let right = (0.0, -2)
-  let leftleft = (-2.4, -3)
-  let leftright = (-0.8, -3)
-  let rightleft = (-0.8, -3)
-  let rightright = (0.8, -3)
-  
-  line(rootroot, root, stroke: (dash: "dashed"))
-
-  for (a, b) in ((root, left), (root, right), (left, leftleft), (left, leftright)){
-    line(a, b)
-  }
-
-  for (l, i) in ((right, "C"), (leftleft, "A"), (leftright, "B")){
-    // manual-square(l, radius:0.4)
-    triangle(l, 1.0)
-    content((l.at(0), l.at(1) - 0.6), text(11pt, i))
-  }
-
-  content((1.2, 0), text(16pt)[$arrow$])
-  content((1.2, -3), text(16pt)[$arrow$])
-
-  set-origin((5, 2))
-  line(rootroot, root, stroke: (dash: "dashed"))
-  for (a, b) in ((root, left), (root, right), (left, leftleft), (left, leftright)){
-    line(a, b)
-  }
-  for (l, i) in ((leftleft, "C"), (leftright, "B"), (right, "A")){
-    // manual-square(l, radius:0.4)
-    triangle(l, 1.0)
-    content((l.at(0), l.at(1) - 0.6), text(11pt, i))
-  }
-
-  set-origin((0, -4))
-  line(rootroot, root, stroke: (dash: "dashed"))
-  for (a, b) in ((root, left), (root, right), (left, leftleft), (left, leftright)){
-    line(a, b)
-  }
-  for (l, i) in ((leftleft, "A"), (leftright, "C"), (right, "B")){
-    // manual-square(l, radius:0.4)
-    triangle(l, 1.0)
-    content((l.at(0), l.at(1) - 0.6), text(11pt, i))
-  }
-
-  set-origin((4, 2))
-  line(rootroot, root, stroke: (dash: "dashed"))
-  for (a, b) in ((root, left), (root, right), (right, rightright), (right, rightleft)){
-    line(a, b)
-  }
-  for (l, i) in ((left, "A"), (rightleft, "B"), (rightright, "C")){
-    // manual-square(l, radius:0.4)
-    triangle(l, 1.0)
-    content((l.at(0), l.at(1) - 0.6), text(11pt, i))
-  }
-
-  content((2, 0), text(16pt)[$arrow$])
-  content((2, -3), text(16pt)[$arrow$])
-
-  set-origin((5, 2))
-  line(rootroot, root, stroke: (dash: "dashed"))
-  for (a, b) in ((root, left), (root, right), (right, rightright), (right, rightleft)){
-    line(a, b)
-  }
-  for (l, i) in ((left, "C"), (rightleft, "B"), (rightright, "A")){
-    // manual-square(l, radius:0.4)
-    triangle(l, 1.0)
-    content((l.at(0), l.at(1) - 0.6), text(11pt, i))
-  }
-
-  set-origin((0, -4))
-  line(rootroot, root, stroke: (dash: "dashed"))
-  for (a, b) in ((root, left), (root, right), (right, rightright), (right, rightleft)){
-    line(a, b)
-  }
-  for (l, i) in ((left, "B"), (rightleft, "A"), (rightright, "C")){
-    // manual-square(l, radius:0.4)
-    triangle(l, 1.0)
-    content((l.at(0), l.at(1) - 0.6), text(11pt, i))
-  }
-}),
-)
-
-$
-  (A * B) * C = (A * C) * B = (C * B) * A, \
-  A * (B * C) = B * (A * C) = C * (B * A),
-$
-
-== Simulated annealing
-- Ergodicity: such transformations do not change the result of the contraction.
-- Detailed balance: the transformation is accepted with a probability given by the Metropolis criterion, which is
-$
-  p_("accept") = min(1, e^(-beta Delta cal(L))),
-$
-where $beta$ is the inverse temperature, and $Delta cal(L)$ is the difference of the cost of the new and old contraction trees.
 
 == Slicing tensor networks
 
@@ -528,8 +419,21 @@ The optimal contraction order is closely related to the _tree decomposition_@Mar
 == Live Coding: Contraction order optimization
 https://tensorbfs.github.io/OMEinsumContractionOrders.jl/dev/
 
+= Compute the partition function of spin glass model
+
+== Partition function of spin glass model
+The partition function of a spin glass model on a graph $G = (V, E)$ is defined as
+$
+Z = sum_(bold(s)) exp(-beta H(bold(s))),
+$
+where $beta$ is the inverse temperature, $bold(s) = {s_i}_(i in V)$ are the spin variables, and the Hamiltonian is given by
+$
+H(bold(s)) = - sum_( (i,j) in E ) J_(i j) s_i s_j - sum_(i in V) h_i s_i,
+$
+where $J_(i j)$ are the coupling constants and $h_i$ are the external fields.
+
 = Data compression
-=== References:
+== References:
 - Era of big data processing: a new approach via tensor networks and tensor decompositions @Cichocki2014
 
 == Singular value decomposition - revisited
