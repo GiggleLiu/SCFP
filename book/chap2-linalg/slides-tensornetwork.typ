@@ -60,6 +60,17 @@
 #title-slide()
 #outline-slide()
 
+== Hands-on: Preparation
+
+Goto the `ScientificComputingDemos` repository and pull the latest changes:
+```bash
+git pull
+```
+Then initialize the environment:
+```bash
+dir=TensorRenormalizationGroup make init
+```
+
 = Tensor network representation
 
 == Definition
@@ -431,6 +442,26 @@ $
 H(bold(s)) = - sum_( (i,j) in E ) J_(i j) s_i s_j - sum_(i in V) h_i s_i,
 $
 where $J_(i j)$ are the coupling constants and $h_i$ are the external fields.
+
+== Partition function to tensor network
+
+$
+  Z = sum_(bold(s)) product_( (i,j) in E ) e^(-beta J_(i j) s_i s_j) product_(i in V) e^(-beta h_i s_i)
+$
+
+It corresponds to the following tensor network:
+$
+  cases(Lambda = {s_i | i in V},
+  cal(T) = {e^(-beta J_(i j) s_i s_j) | (i, j) in E} union {e^(-beta h_i s_i) | i in V},
+  V_0 = emptyset
+  )
+$
+
+== Tensor renormalization group (TRG)
+
+Goal: Consider a inifitely large spin glass model on a square lattice. Compute the partition function: $ln(Z)$ per site.
+1. Write down its tensor network representation.
+2. Compute the partition function recursively through coarse graining.
 
 = Data compression
 == References:
