@@ -624,6 +624,35 @@ Let us focus on a $2 times 2$ block:
   line("T3", "T0")
 }))
 
+== Question for you
+
+- Can we use a more direct approach?
+#figure(canvas({
+  import draw: *
+  let s(it) = text(14pt, it)
+  // Step 1: SVD decomposition
+  let locs = ((1, -1), (1, 1), (-1, 1), (-1, -1))
+  for (k, loc) in locs.enumerate() {
+    circle(loc, radius: 0.3, name: "T" + str(k), fill: white)
+    line("T" + str(k), (rel: (loc.at(0) * 0.8, 0)))
+    line("T" + str(k), (rel: (0, loc.at(1) * 0.8)))
+  }
+  line("T0", "T1")
+  line("T1", "T2")
+  line("T2", "T3")
+  line("T3", "T0")
+  content((4, 0), [$arrow.r$])
+  
+  set-origin((7, 0))
+  circle((0, 0), radius: 0.4, fill: red, name: "A")
+  line("A", (rel: (-1, 0)))
+  line("A", (rel: (0, -1)))
+  line("A", (rel: (1, 0)))
+  line("A", (rel: (0, 1)))
+}))
+
+- We need to truncate the bond dimension after each SVD/Eigen decomposition. Is that optimal way to truncated the bond dimension?
+ 
 = Data compression
 == References:
 - Era of big data processing: a new approach via tensor networks and tensor decompositions @Cichocki2014
