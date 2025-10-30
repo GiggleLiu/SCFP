@@ -104,7 +104,7 @@ $
 
 Diagrammatic representation:
 - The tensors associated with the same variable are connected by the same hyperedge.
-- If a variable appears in the output tensor, the hyperedge is left _open_.
+- If a variable appears in the output tensor, the hyperedge is left _open_. Otherwise, it is _closed_ by connecting the two tensors.
 
 #align(center, text(10pt, canvas({
   import draw: *
@@ -118,6 +118,7 @@ Diagrammatic representation:
 `einsum` (Einstein summation convention) notation: `ij,jk->ik`
 - The intputs and outputs are separated by `->`.
 - The indices of different input tensors are separated by commas: `ij,jk`.
+- The indices not appearing in the output are summed over.
 
 == Example 2: Proving trace permutation rule
 Prove the trace permutation rule: $tr(A B C) = tr(C A B) = tr(B C A)$.
@@ -195,29 +196,6 @@ In this example, we use the `OMEinsum` package to compute some simple tensor net
 })))
 
 
-== Mathematical notation
-
-A tensor network can be represented by a triple of $(Lambda, cal(T), V_0)$@Liu2022@Roa2024, where:
-- $Lambda$ is the set of variables present in the network.
-- $cal(T) = { T_(V_k) }_(k=1)^K$ is the set of input tensors, where each tensor $T_(V_k)$ is associated with the labels $V_k$.
-- $V_0$ specifies the labels of the output tensor.
-
-Specifically, each tensor $T_(V_k) in cal(T)$ is labeled by a set of variables $V_k subset.eq Lambda$, where the cardinality $|V_k|$ equals the rank of $T_(V_k)$.
-
-== Tensor contraction
-The multilinear map, or the *contraction*, applied to this triple is defined as
-$
-T_(V_0) = "contract"(Lambda, cal(T), V_0) ouset(=, "def") sum_(m in cal(D)_(Lambda without V_0)) product_(T_V in cal(T)) T_(V|M=m),
-$
-where $M = Lambda without V_0$. $T_(V|M=m)$ denotes a slicing of the tensor $T_V$ with the variables $M$ fixed to the values $m$. The summation runs over all possible configurations of the variables in $M$.
-
-== Example: Matrix multiplication
-Matrix multiplication can be described as the contraction of a tensor network given by
-$
-C_(i k) = "contract"({i,j,k}, {A_(i j), B_(j k)}, {i, k}),
-$
-where the input matrices $A$ and $B$ are indexed by the variable sets ${i, j}, {j, k}$, respectively, which are subsets of $Lambda = {i, j, k}$. As a remark of notation, when an set is used as subscripts, we omit the comma and the braces. The output tensor is indexed by variables ${i, k}$ and the summation runs over variables $Lambda without {i, k} = {j}$. 
-
 == Tensor network contraction orders
 
 - The contraction complexity is determined by the chosen contraction order represented by a binary tree.
@@ -268,6 +246,7 @@ $
 
 
 == Trade-off between contraction order optimization and contraction
+
 #figure(canvas(length:0.9cm, {
   import draw: *
   let s(it) = text(11pt, it)
@@ -302,9 +281,7 @@ $
   content((rel: (3.0, 0), to: "plot.bipartition"), s[Min cut (`KaHyParBipartite`)])
   content((rel: (0, -0.8), to: "plot.tw"), box(fill: white, inset: 1pt, s[Exact tree-width (`ExactTreewidth`)\ State compression]))
   content((rel: (-1.0, -0.4), to: "plot.tamaki"), box(fill: white, s[Positive instance driven], inset: 1pt))
-}),
-caption: [The time to optimize the contraction order for different methods. The x-axis is the time to optimize the contraction order, and the y-axis is the time to contract the tensor network. For details, please check #link("https://arrogantgao.github.io/blogs/contractionorder/")[this blog].]
-)
+}))
 
 
 == Slicing tensor networks
@@ -427,8 +404,26 @@ The optimal contraction order is closely related to the _tree decomposition_@Mar
 #enum(numbering: "(a)", [A tensor network.], [A line graph for the tensor network. Labels are connected if and only if they appear in the same tensor.], [A tree decomposition (T. D.) of the line graph.])
 
 
-== Live Coding: Contraction order optimization
-https://tensorbfs.github.io/OMEinsumContractionOrders.jl/dev/
+== Live Coding: AFM spin glass partition function
+
+Graph topology is as follows, each line represents a AFM coupling $J = 1$:
+#canvas({
+  import draw: *
+
+  let d = 1.1
+  let s(it) = text(11pt, it)
+  let locs_labels = ((0, 0), (d, 0), (0, -d), (0, -2 * d), (d, -2 * d), (2 * d, 0), (2 * d, -d), (2 * d, -2 * d))
+  let texts = ("A", "B", "C", "D", "E", "F", "G", "H")
+  for (loc, t) in locs_labels.zip(texts) {
+    circle(loc, radius: 0.3, name: t)
+  }
+  for (a, b) in (("A", "B"), ("A", "C"), ("B", "C"), ("C", "D"), ("C", "E"), ("D", "E"), ("E", "G"), ("G", "H"), ("E", "H"), ("F", "G"), ("F", "B"), ("B", "G")) {
+    line(a, b)
+  }
+})
+
+1. The bruteforce enumeration approach.
+2. The tensor network approach.
 
 = Compute the partition function of spin glass model
 
@@ -457,7 +452,31 @@ $
   )
 $
 
-== Tensor renormalization group (TRG)
+== Set notation of tensor networks
+
+A tensor network can be represented by a triple of $(Lambda, cal(T), V_0)$@Liu2022@Roa2024, where:
+- $Lambda$ is the set of variables present in the network.
+- $cal(T) = { T_(V_k) }_(k=1)^K$ is the set of input tensors, where each tensor $T_(V_k)$ is associated with the labels $V_k$.
+- $V_0$ specifies the labels of the output tensor.
+
+Specifically, each tensor $T_(V_k) in cal(T)$ is labeled by a set of variables $V_k subset.eq Lambda$, where the cardinality $|V_k|$ equals the rank of $T_(V_k)$.
+
+== Tensor contraction
+The multilinear map, or the *contraction*, applied to this triple is defined as
+$
+T_(V_0) = "contract"(Lambda, cal(T), V_0) ouset(=, "def") sum_(m in cal(D)_(Lambda without V_0)) product_(T_V in cal(T)) T_(V|M=m),
+$
+where $M = Lambda without V_0$. $T_(V|M=m)$ denotes a slicing of the tensor $T_V$ with the variables $M$ fixed to the values $m$. The summation runs over all possible configurations of the variables in $M$.
+
+== Example: Matrix multiplication
+Matrix multiplication can be described as the contraction of a tensor network given by
+$
+C_(i k) = "contract"({i,j,k}, {A_(i j), B_(j k)}, {i, k}),
+$
+where the input matrices $A$ and $B$ are indexed by the variable sets ${i, j}, {j, k}$, respectively, which are subsets of $Lambda = {i, j, k}$. As a remark of notation, when an set is used as subscripts, we omit the comma and the braces. The output tensor is indexed by variables ${i, k}$ and the summation runs over variables $Lambda without {i, k} = {j}$. 
+
+
+== Hands-on: Tensor renormalization group (TRG)
 
 Goal: Consider a inifitely large spin glass model on a square lattice. Compute the partition function: $ln(Z)$ per site.
 1. Write down its tensor network representation.
