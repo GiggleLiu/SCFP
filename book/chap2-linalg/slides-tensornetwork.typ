@@ -415,7 +415,7 @@ Graph topology is as follows, each line represents a AFM coupling $J = 1$:
   let locs_labels = ((0, 0), (d, 0), (0, -d), (0, -2 * d), (d, -2 * d), (2 * d, 0), (2 * d, -d), (2 * d, -2 * d))
   let texts = ("A", "B", "C", "D", "E", "F", "G", "H")
   for (loc, t) in locs_labels.zip(texts) {
-    circle(loc, radius: 0.3, name: t)
+    circle(loc, radius: 0.2, name: t, fill: black)
   }
   for (a, b) in (("A", "B"), ("A", "C"), ("B", "C"), ("C", "D"), ("C", "E"), ("D", "E"), ("E", "G"), ("G", "H"), ("E", "H"), ("F", "G"), ("F", "B"), ("B", "G")) {
     line(a, b)
@@ -481,6 +481,148 @@ where the input matrices $A$ and $B$ are indexed by the variable sets ${i, j}, {
 Goal: Consider a inifitely large spin glass model on a square lattice. Compute the partition function: $ln(Z)$ per site.
 1. Write down its tensor network representation.
 2. Compute the partition function recursively through coarse graining.
+
+== TRG - Part 1: Preparation of tensor network
+
+#figure(canvas({
+  import draw: *
+  let s(it) = text(14pt, it)
+  
+  // Original lattice
+  content((-5.5, 2), s[Step 1: Original lattice\ (Note: extends to infinity)])
+  let d = 1.0
+  for i in range(4) {
+    for j in range(4) {
+      circle((-7 + i*d, 0.5 - j*d), radius: 0.15, name: "t"+str(i)+str(j), fill: black)
+    }
+  }
+  // Draw horizontal connections
+  for j in range(4) {
+    for i in range(3) {
+      line("t"+str(i)+str(j), "t"+str(i+1)+str(j))
+    }
+  }
+  // Draw vertical connections
+  for i in range(4) {
+    for j in range(3) {
+      line("t"+str(i)+str(j), "t"+str(i)+str(j+1))
+    }
+  }
+  
+  set-origin((8, 0))
+  content((-6, 2), s[Step 2: Convert to tensor network\ Q: what are the tensor elements?])
+  let d = 1.0
+  for i in range(4) {
+    for j in range(4) {
+      circle((-7 + i*d, 0.5 - j*d), radius: 0, name: "t"+str(i)+str(j), fill: none)
+    }
+  }
+  // Draw horizontal connections
+  for j in range(4) {
+    for i in range(3) {
+      line("t"+str(i)+str(j), "t"+str(i+1)+str(j), name: "line"+str(i)+str(j))
+      circle("line"+str(i)+str(j)+".mid", fill: white, radius: 0.2)
+    }
+  }
+  // Draw vertical connections
+  for i in range(4) {
+    for j in range(3) {
+      line("t"+str(i)+str(j), "t"+str(i)+str(j+1), name: "line"+str(i)+str(j))
+      circle("line"+str(i)+str(j)+".mid", fill: white, radius: 0.2)
+    }
+  }
+  circle((-6, -1.5), radius: 0.8, stroke: (dash: "dashed"))
+ 
+  // Original lattice
+  set-origin((8, 0))
+  content((-5.5, 2), s[Step 3: Star contraction\ Q: what is the einsum notation\ for this star contraction?])
+  let d = 1.0
+  for i in range(4) {
+    for j in range(4) {
+      circle((-7 + i*d, 0.5 - j*d), radius: 0.2, name: "t"+str(i)+str(j), fill: white)
+    }
+  }
+  // Draw horizontal connections
+  for j in range(4) {
+    for i in range(3) {
+      line("t"+str(i)+str(j), "t"+str(i+1)+str(j))
+    }
+  }
+  // Draw vertical connections
+  for i in range(4) {
+    for j in range(3) {
+      line("t"+str(i)+str(j), "t"+str(i)+str(j+1))
+    }
+  }
+}))
+ 
+== TRG - Part 2: Coarse graining via SVD
+Let us focus on a $2 times 2$ block:
+#figure(canvas({
+  import draw: *
+  let s(it) = text(14pt, it)
+  // Step 1: SVD decomposition
+  content((3, 3), s[Step 1: Eigen decomposition on each tensor: $A = U S U^dagger$, then insert blue tensors as $U sqrt(S)$])
+  let locs = ((1, -1), (1, 1), (-1, 1), (-1, -1))
+  for (k, loc) in locs.enumerate() {
+    circle(loc, radius: 0.3, name: "T" + str(k), fill: white)
+    line("T" + str(k), (rel: (loc.at(0) * 0.8, 0)))
+    line("T" + str(k), (rel: (0, loc.at(1) * 0.8)))
+  }
+  line("T0", "T1")
+  line("T1", "T2")
+  line("T2", "T3")
+  line("T3", "T0")
+  
+  set-origin((6, 0))
+  let locs = ((1, -1), (1, 1), (-1, 1), (-1, -1))
+  for (k, loc) in locs.enumerate() {
+    circle(loc.map(x => x * 0.7), radius: 0.3, name: "A" + str(k), fill: blue)
+    circle(loc.map(x => x / 0.7), radius: 0.3, name: "B" + str(k), fill: blue)
+    line("A" + str(k), "B" + str(k))
+    line("B" + str(k), (rel: (loc.at(0) * 0.8, 0)))
+    line("B" + str(k), (rel: (0, loc.at(1) * 0.8)))
+  }
+  line("A0", "A1")
+  line("A1", "A2")
+  line("A2", "A3")
+  line("A3", "A0")
+  circle((1.08, 1.08), radius: 1, stroke: (dash: "dashed"))
+ 
+  set-origin((-10, -6.0))
+
+  content((2, 3), s[Step 2: Contract and form new tensors])
+  
+  for (k, loc) in locs.enumerate() {
+    circle(loc.map(x => x * 0.7), radius: 0.3, name: "A" + str(k), fill: blue)
+    line("A" + str(k), (rel: (loc.at(0) * 0.5, loc.at(1) * 0.5)))
+  }
+  line("A0", "A1")
+  line("A1", "A2")
+  line("A2", "A3")
+  line("A3", "A0")
+  circle((0, 0), radius: 1.4, stroke: (dash: "dashed"))
+  content((3, 0), [$arrow.r$])
+  circle((5, 0), radius: 0.3, name: "A", fill: green)
+  line("A", (rel: (0.8, 0.8)))
+  line("A", (rel: (-0.8, 0.8)))
+  line("A", (rel: (0.8, -0.8)))
+  line("A", (rel: (-0.8, -0.8)))
+ 
+  set-origin((12, 0))
+  content((0, 2.5), s[Step 3: We got a new lattice\ Q: what is its size?])
+  for (k, loc) in ((1, 0), (0, 1), (-1, 0), (0, -1)).enumerate() {
+    circle(loc, radius: 0.3, fill: green, name: "T" + str(k))
+    line("T" + str(k), (rel: (0.7, 0.7)))
+    line("T" + str(k), (rel: (-0.7, 0.7)))
+    line("T" + str(k), (rel: (0.7, -0.7)))
+    line("T" + str(k), (rel: (-0.7, -0.7)))
+  }
+  line("T0", "T1")
+  line("T1", "T2")
+  line("T2", "T3")
+  line("T3", "T0")
+}))
 
 = Data compression
 == References:
