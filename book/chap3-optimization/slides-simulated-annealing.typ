@@ -90,17 +90,8 @@
   ),
 )
 
+#title-slide()
 #outline-slide()
-
-== Challenge resolved: A PR to KrylovKit.jl
-#timecounter(15)
-
-#box(stroke: black, inset: 0.5em, [
-  Resolve the following issue in KrylovKit.jl: https://github.com/Jutho/KrylovKit.jl/issues/87 . If you can resolve the issue, please submit a pull request to the repository. If your PR is merged, your final grade will be $A+$.
-])
-
-Link: https://github.com/Jutho/KrylovKit.jl/pull/125
-
 
 = Spin glass and computational complexity
 
@@ -114,6 +105,12 @@ Link: https://github.com/Jutho/KrylovKit.jl/pull/125
 Spin glass ground state finding problem is hard, it is NP-complete (hardest problems in NP), which is believed to be impossible to solve in polynomial time.
 
 *NP problems*: _Decision problems_, features the property that given a solution, it is _easy to verify_ whether the solution is correct in polynomial time.
+
+
+== Live coding
+
+1. greedy method to find the ground state of a spin glass.
+2. using real number relaxation.
 
 == Example: Factoring a number
 

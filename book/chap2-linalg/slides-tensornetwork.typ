@@ -404,27 +404,6 @@ The optimal contraction order is closely related to the _tree decomposition_@Mar
 #enum(numbering: "(a)", [A tensor network.], [A line graph for the tensor network. Labels are connected if and only if they appear in the same tensor.], [A tree decomposition (T. D.) of the line graph.])
 
 
-== Live Coding: AFM spin glass partition function
-
-Graph topology is as follows, each line represents a AFM coupling $J = 1$:
-#canvas({
-  import draw: *
-
-  let d = 1.1
-  let s(it) = text(11pt, it)
-  let locs_labels = ((0, 0), (d, 0), (0, -d), (0, -2 * d), (d, -2 * d), (2 * d, 0), (2 * d, -d), (2 * d, -2 * d))
-  let texts = ("A", "B", "C", "D", "E", "F", "G", "H")
-  for (loc, t) in locs_labels.zip(texts) {
-    circle(loc, radius: 0.2, name: t, fill: black)
-  }
-  for (a, b) in (("A", "B"), ("A", "C"), ("B", "C"), ("C", "D"), ("C", "E"), ("D", "E"), ("E", "G"), ("G", "H"), ("E", "H"), ("F", "G"), ("F", "B"), ("B", "G")) {
-    line(a, b)
-  }
-})
-
-1. The bruteforce enumeration approach.
-2. The tensor network approach.
-
 = Compute the partition function of spin glass model
 
 == Partition function of spin glass model
@@ -474,6 +453,27 @@ $
 C_(i k) = "contract"({i,j,k}, {A_(i j), B_(j k)}, {i, k}),
 $
 where the input matrices $A$ and $B$ are indexed by the variable sets ${i, j}, {j, k}$, respectively, which are subsets of $Lambda = {i, j, k}$. As a remark of notation, when an set is used as subscripts, we omit the comma and the braces. The output tensor is indexed by variables ${i, k}$ and the summation runs over variables $Lambda without {i, k} = {j}$. 
+
+== Live Coding: AFM spin glass partition function
+
+Graph topology is as follows, each line represents a AFM coupling $J = 1$:
+#canvas({
+  import draw: *
+
+  let d = 1.1
+  let s(it) = text(11pt, it)
+  let locs_labels = ((0, 0), (d, 0), (0, -d), (0, -2 * d), (d, -2 * d), (2 * d, 0), (2 * d, -d), (2 * d, -2 * d))
+  let texts = ("A", "B", "C", "D", "E", "F", "G", "H")
+  for (loc, t) in locs_labels.zip(texts) {
+    circle(loc, radius: 0.2, name: t, fill: black)
+  }
+  for (a, b) in (("A", "B"), ("A", "C"), ("B", "C"), ("C", "D"), ("C", "E"), ("D", "E"), ("E", "G"), ("G", "H"), ("E", "H"), ("F", "G"), ("F", "B"), ("B", "G")) {
+    line(a, b)
+  }
+})
+
+1. The bruteforce enumeration approach.
+2. The tensor network approach.
 
 
 == Hands-on: Tensor renormalization group (TRG)
