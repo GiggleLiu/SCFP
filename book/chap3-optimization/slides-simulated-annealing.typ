@@ -824,7 +824,7 @@ Q: Will this simple algorithm work?
   let margin = 40
   
   // Run simulation
-  let t_max = 20
+  let t_max = 80
   let dt = 0.05
   let (x_traj, p_traj, e_traj) = euler_oscillator(1.0, 0.0, t_max, dt)
   
@@ -921,7 +921,7 @@ The Verlet algorithm is a simple yet robust algorithm for solving the differenti
 
 #figure(canvas({
   import draw: *
-  let t_max = 20
+  let t_max = 80
   let dt = 0.05
   let (x_traj, p_traj, e_traj) = verlet_oscillator(1.0, 0.0, t_max, dt)
   let t_array = range(x_traj.len()).map(i => i * dt)
