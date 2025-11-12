@@ -56,6 +56,7 @@
 }
 
 
+#title-slide()
 #outline-slide()
 
 = Introduction to optimization
@@ -176,7 +177,7 @@ Q: Is the following feasible region convex?
 
 == Convex optimization problems are easy to solve
 
-#align(center, table(inset: 9pt,
+#align(center, table(inset: 5pt,
   columns: (auto, auto, auto, auto),
   table.header([*Julia Package*], [*Features*], [*Algorithms*], [*Applications*]),
   table.cell(fill:yellow)[#link("https://github.com/jump-dev/JuMP.jl", "JuMP.jl")\ @Dunning2017], table.cell(fill:yellow)[Mathematical optimization modeling], table.cell(fill:yellow)[Linear programming\ Integer programming\ SDP, etc.], table.cell(fill:yellow)[Combinatorial optimization, planning and scheduling],
@@ -185,6 +186,7 @@ Q: Is the following feasible region convex?
 ))
 
 = Linear Programming (LP)
+== Definition
 _Linear Programming_ deals with the problem of optimizing a
 - *linear objective function*
 - subject to *linear equality and inequality constraints*
