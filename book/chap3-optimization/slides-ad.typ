@@ -29,7 +29,7 @@
 
 #show: hkustgz-theme.with(
   config-info(
-    title: [Automatic differentiation and checkpointing],
+    title: [Gradient-based optimization and automatic differentiation],
     subtitle: [],
     author: [Jin-Guo Liu],
     date: datetime.today(),
@@ -56,9 +56,13 @@
   }
 }
 
+#title-slide()
 #outline-slide()
 
+= Gradient-based optimization
+
 = Finite difference
+==
 The finite difference is a numerical method to approximate the derivative of a function.
 For a scalar function $f: RR arrow RR$, the second order (central) finite difference is given by:
 $ (partial f)/(partial x) = (f(x+Delta) - f(x-Delta))/(2Delta) + O(Delta^2), $
@@ -177,11 +181,11 @@ Q: How to represent `y = sin(x)^2 + cos(x)^2`?
 - _Forward mode AD_ presumes the scalar input. Given a program with scalar input $t$, we can denote the intermediate variables of the program as $bold(y)_i$, and their _derivatives_ as $dot(bold(y)_i) = (partial bold(y)_i)/(partial t)$.
 The _forward rule_ defines the transition between $bold(y)_i$ and $bold(y)_(i+1)$
 $
-dot(bold(y))_(i+1) = (diff bold(y)_(i+1))/(diff bold(y)_i) dot(bold(y))_i.
+dot(bold(y))_(i+1) = (partial bold(y)_(i+1))/(partial bold(y)_i) dot(bold(y))_i.
 $
-- _Remark_: In an automatic differentiation engine, the Jacobian matrix $(diff bold(y)_(i+1))/(diff bold(y)_i)$ is almost never computed explicitly in memory as it can be costly. Instead, the forward mode automatic differentiation can be implemented by overloading the function $f_i$ as
+- _Remark_: In an automatic differentiation engine, the Jacobian matrix $(partial bold(y)_(i+1))/(partial bold(y)_i)$ is almost never computed explicitly in memory as it can be costly. Instead, the forward mode automatic differentiation can be implemented by overloading the function $f_i$ as
 $
-f_i^("forward"): (bold(y)_i, dot(bold(y))_i) arrow.bar (bold(y)_(i+1), (diff bold(y)_(i+1))/(diff bold(y)_i) dot(bold(y))_i)
+f_i^("forward"): (bold(y)_i, dot(bold(y))_i) arrow.bar (bold(y)_(i+1), (partial bold(y)_(i+1))/(partial bold(y)_i) dot(bold(y))_i)
 $
 
 == Example
@@ -295,7 +299,7 @@ In many algorithms, we are only interested in Hessian vector product:
 - stochastic reconfiguration @Sorella1998 (or the Dirac-Frenkel variational principle @Raab2000)
 - Newton's method
 $
-  (diff^2 f)/(diff x^2)v = (diff ((diff f)/(diff x)v))/(diff x)
+  (partial^2 f)/(partial x^2)v = (partial ((partial f)/(partial x)v))/(partial x)
 $ <eq:hvp>
 - Obtaining the full Hessian matrix: $O(n)$ overhead ($n$ is the number of parameters).
 - Hessian vector product: $O(1)$ overhead.
@@ -321,9 +325,9 @@ $ <eq:hvp>
 
   content((rel: (-0.5, 0.2), to: "l1.mid"), s[$x$])
   content((rel: (0, 0.2), to: "l2.mid"), s[$f(x)$])
-  content((rel: (0.2, 0.2), to: "l3.mid"), s[$(diff f)/(diff x)$])
+  content((rel: (0.2, 0.2), to: "l3.mid"), s[$(partial f)/(partial x)$])
   content((rel: (0.2, -0.1), to: "l4.mid"), s[$v$])
-  content((rel: (0.3, 0.0), to: "l5.end"), s[$(diff f)/(diff x)v$])
+  content((rel: (0.3, 0.0), to: "l5.end"), s[$(partial f)/(partial x)v$])
 })) <fig:jacobian-vector>
 
 
@@ -706,8 +710,6 @@ $ make example-ADSeismic
   - Modify the number of checkpoints to see the effect. What is the minimum number of checkpoints?
   - Switch the AD engine to ForwardDiff.jl and compare the performance.
 
-==
-= Appendix
 == Differentiation of the Wave Propagation Equation
 Consider the propagation of the wave function $u(x_1, x_2, t)$ in a non-uniform two-dimensional medium governed by the following equation
 $ 
@@ -766,7 +768,7 @@ $ tr[A(C compose B)] = sum A^T compose C compose B = tr((C compose A^T)^T B) = t
 
 $ (C compose A)^T = C^T compose A^T $ <eq:transpose_compose>
 
-Let $cal(L)$ be a real function of a complex variable $x$, $ (diff cal(L))/(diff x^*) = ((diff cal(L))/(diff x))^* $ <eq:diff_complex>
+Let $cal(L)$ be a real function of a complex variable $x$, $ (partial cal(L))/(partial x^*) = ((partial cal(L))/(partial x))^* $ <eq:diff_complex>
 
 
 
@@ -802,13 +804,13 @@ $
 Considering a user-defined mapping $bold(F): RR^d times RR^n -> RR^d$ that encapsulates the optimality criteria of a given problem, an optimal solution, represented as $x(theta)$, is expected to satisfy the root condition of $bold(F)$ as follows:
 $ bold(F)(x^*(theta), theta) = 0 $ <eq-Ffunction>
 
-The function $x^*(theta): RR^n -> RR^d$ is implicitly defined. According to the implicit function theorem@Blondel2022, given a point $(x_0, theta_0)$ that satisfies $F(x_0, theta_0) = 0$ with a continuously differentiable function $bold(F)$, if the Jacobian $diff bold(F)/diff x$ evaluated at $(x_0, theta_0)$ forms a square invertible matrix, then there exists a function $x(dot)$ defined in a neighborhood of $theta_0$ such that $x^*(theta_0) = x_0$. Moreover, for all $theta$ in this neighborhood, it holds that $bold(F)(x^*(theta), theta) = 0$ and $(diff x^*)/(diff theta)$ exists. By applying the chain rule, the Jacobian $(diff x^*)/(diff theta)$ satisfies
+The function $x^*(theta): RR^n -> RR^d$ is implicitly defined. According to the implicit function theorem@Blondel2022, given a point $(x_0, theta_0)$ that satisfies $F(x_0, theta_0) = 0$ with a continuously differentiable function $bold(F)$, if the Jacobian $partial bold(F)/partial x$ evaluated at $(x_0, theta_0)$ forms a square invertible matrix, then there exists a function $x(dot)$ defined in a neighborhood of $theta_0$ such that $x^*(theta_0) = x_0$. Moreover, for all $theta$ in this neighborhood, it holds that $bold(F)(x^*(theta), theta) = 0$ and $(partial x^*)/(partial theta)$ exists. By applying the chain rule, the Jacobian $(partial x^*)/(partial theta)$ satisfies
 
-$ (diff bold(F)(x^*, theta))/(diff x^*) (diff x^*)/(diff theta) + (diff bold(F)(x^*, theta))/(diff theta) = 0 $
+$ (partial bold(F)(x^*, theta))/(partial x^*) (partial x^*)/(partial theta) + (partial bold(F)(x^*, theta))/(partial theta) = 0 $
 
-Computing $diff x^* / diff theta$ entails solving the system of linear equations expressed as
+Computing $partial x^* / partial theta$ entails solving the system of linear equations expressed as
 
-$ underbrace((diff bold(F)(x^*, theta))/(diff x^*), "V" in RR^(d times d)) underbrace((diff x^*)/(diff theta), "J" in RR^(d times n)) = -underbrace((diff bold(F)(x^*, theta))/(diff theta), "P" in RR^(d times n)) $ <eq-implicit-linear-equation>
+$ underbrace((partial bold(F)(x^*, theta))/(partial x^*), "V" in RR^(d times d)) underbrace((partial x^*)/(partial theta), "J" in RR^(d times n)) = -underbrace((partial bold(F)(x^*, theta))/(partial theta), "P" in RR^(d times n)) $ <eq-implicit-linear-equation>
 
 Therefore, the desired Jacobian is given by $J = V^(-1)P$. In many practical situations, explicitly constructing the Jacobian matrix is unnecessary. Instead, it suffices to perform left-multiplication or right-multiplication by $V$ and $P$. These operations are known as the vector-Jacobian product (VJP) and the Jacobian-vector product (JVP), respectively. They are valuable for determining $x(theta)$ using reverse-mode and forward-mode automatic differentiation (AD), respectively.
 

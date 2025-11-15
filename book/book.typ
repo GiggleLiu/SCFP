@@ -24,6 +24,7 @@
     = Optimization
     #chapter("chap3-optimization/simulated-annealing.typ")[Simulated annealing]
     #chapter("chap3-optimization/linear_integer.typ")[Mathematical Optimization]
+    #chapter("chap3-optimization/gradient-optimization.typ")[Gradient-based optimization]
     #chapter("chap3-optimization/ad.typ")[Automatic differentiation]
     = Simulation
     #chapter("chap4-simulation/MCMC.typ")[Monte Carlo methods]
