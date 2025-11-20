@@ -4,3 +4,4 @@ Manifest.toml
 *.swp
 .vscode/
 *.pdf
+book/chap3-optimization/codes/*.png
