@@ -58,6 +58,14 @@
 #title-slide()
 #outline-slide()
 
+== Gradient free optimization - Nelder-Mead
+
+The *Nelder-Mead method* (also known as *downhill simplex method* or *polytope method*) is a numerical method used to find a local minimum or maximum of an objective function in a multidimensional space.
+
+=== Video watch: Nelder-Mead method
+https://youtu.be/vOYlVvT3W80?si=1wAfjC4Z_p9jgK2T
+
+
 = Gradient Descent: The Foundation
 == Why gradient-based optimization?
 Optimization is at the heart of machine learning, engineering design, and scientific computing.
@@ -65,7 +73,7 @@ Optimization is at the heart of machine learning, engineering design, and scient
 *Key advantages:*
 - Leverage gradient (first-order derivative) information
 - Fast convergence rates for differentiable functions
-- Widely applicable in practice
+- Widely applicable in practice (e.g. machine learning), suited for high-dimensional (a lot of free parameters) problems
 
 == Learning objectives
 #box(fill: rgb("f0f8ff"), inset: 1em, radius: 5pt, width: 100%)[
@@ -143,7 +151,7 @@ end
 ```
 
 == Example: The Rosenbrock function
-The Rosenbrock function is the "fruit fly" of optimization research:
+The Rosenbrock function is very popular in optimization research:
 $ f(x_1, x_2) = (1 - x_1)^2 + 100(x_2 - x_1^2)^2 $
 
 *Why is this function special?*
@@ -219,6 +227,8 @@ end
 - Adds hyperparameter ($beta$) to tune
 - May oscillate around the minimum
 
+*Deeper reason:* If we scale the function $f(bold(x))$ by a constant $c > 0$, then the gradient $nabla f(bold(x))$ is scaled by $c$. Therefore, the momentum term $beta bold(v)_t$ is also scaled by $c$. This means that the previous methods are are sensitivy to the scale of the function.
+
 == AdaGrad
 #box(fill: rgb("fff5ee"), inset: 1em, radius: 5pt, width: 100%)[
   *The Core Insight*
@@ -260,7 +270,7 @@ end
 ```
 
 == Characteristics
-AdaGrad's main advantage is that it automatically adjusts the learning rate and is less sensitive to the choice of initial learning rate. However, the accumulated squared gradients grow monotonically, causing the effective learning rate to shrink over time, potentially leading to premature convergence.
+AdaGrad's main advantage is that it automatically adjusts the learning rate and is less sensitive to the choice of initial learning rate. However, the accumulated squared gradients grow monotonically, causing the effective learning rate to shrink over time, potentially leading to *premature convergence*.
 
 == Adam
 #box(fill: rgb("f0fff0"), inset: 1em, radius: 5pt, width: 100%)[
@@ -297,7 +307,7 @@ $ bold(theta)_(t+1) = bold(theta)_t - frac(alpha hat(bold(m))_t, sqrt(hat(bold(v
 - $epsilon = 10^(-8)$ (numerical stability)
 
 == Implementation
-```julia
+#text(16pt)[```julia
 function adam_optimize(f, x; niters, learning_rate, β1=0.9, β2=0.999, ϵ=1e-8)
     mt = zero(x)
     vt = zero(x)
@@ -315,7 +325,7 @@ function adam_optimize(f, x; niters, learning_rate, β1=0.9, β2=0.999, ϵ=1e-8)
     end
     return history
 end
-```
+```]
 
 == Why Adam works
 Adam has become one of the most popular optimization algorithms in machine learning due to:
@@ -328,7 +338,7 @@ Adam has become one of the most popular optimization algorithms in machine learn
 Julia provides a comprehensive collection of optimization algorithms through the `Optimisers.jl` package. This package includes implementations of various gradient-based optimizers with a unified interface.
 
 == Available optimizers
-```julia
+#text(14pt)[```julia
 using Optimisers, ForwardDiff
 
 # Available optimizers include:
@@ -348,85 +358,10 @@ function optimize_with_optimisers(f, x0, optimizer_type; niters=1000)
     
     return history
 end
-```
+```]
 
 == Features
 The package provides a clean, composable interface where different optimizers can be easily swapped and combined. It also supports advanced features like gradient clipping, weight decay, and learning rate schedules.
-
-== Method Comparison
-=== The big question
-#box(fill: rgb("f5f5dc"), inset: 1em, radius: 5pt, width: 100%)[
-  *Which Optimizer Should I Use?*
-  
-  *Short Answer:* Start with Adam. It works well for most problems!
-  
-  *Long Answer:* It depends on your problem...
-]
-
-== Complete comparison
-#figure(
-  table(
-    columns: 6,
-    align: center,
-    inset: 8pt,
-    [*Method*], [*Convergence*], [*Memory*], [*Hyperparameters*], [*Pros*], [*Cons*],
-    
-    [Gradient Descent], [Linear], [O(n)], [α], [Simple, stable], [Slow, sensitive to α],
-    [Momentum], [Superlinear], [O(n)], [α, β], [Faster, stable], [Can overshoot],
-    [AdaGrad], [Good], [O(n)], [α], [Auto-adapts], [Learning rate decay],
-    [Adam], [Fast], [O(n)], [α, β₁, β₂], [Robust, fast], [More complex],
-    [Newton], [Quadratic], [O(n²)], [None], [Very fast], [Expensive O(n³)],
-    [BFGS], [Superlinear], [O(n²)], [None], [Fast, no Hessian], [O(n²) memory],
-    [L-BFGS], [Superlinear], [O(mn)], [m], [Scalable], [Approximation errors],
-  ),
-  caption: [Complete comparison of optimization methods (n = problem size, m = memory parameter)]
-)
-
-== Practical Guidelines
-#box(fill: rgb("f0f8ff"), inset: 1em, radius: 5pt, width: 100%)[
-  *Choose Your Optimizer*
-  
-  1. *Problem size < 100 variables?* → Try Newton or BFGS
-  2. *Problem size 100-10,000?* → Use Adam or L-BFGS  
-  3. *Problem size > 10,000?* → Start with Adam
-  4. *Sparse gradients/NLP?* → Try AdaGrad
-  5. *Not sure?* → Use Adam (good default!)
-]
-
-== Hyperparameter tuning tips
-*Learning Rate Selection:*
-- Start with $alpha = 0.001$ for Adam, $alpha = 0.01$ for SGD
-- Too large → oscillation/divergence  
-- Too small → slow convergence
-- Use learning rate schedules: decay over time
-
-*Other Parameters:*
-- Adam: Use default $beta_1 = 0.9$, $beta_2 = 0.999$
-- Momentum: Try $beta = 0.9$ or $beta = 0.99$
-- L-BFGS: Use $m = 10$ (memory parameter)
-
-== Troubleshooting
-#box(fill: rgb("ffe4e1"), inset: 1em, radius: 5pt, width: 100%)[
-  *Problem:* Loss is exploding/NaN values
-  *Solution:* Reduce learning rate, check gradient computation
-  
-  *Problem:* Very slow convergence  
-  *Solution:* Increase learning rate, try Adam instead of SGD
-  
-  *Problem:* Oscillating around minimum
-  *Solution:* Reduce learning rate, add momentum
-  
-  *Problem:* Stuck in plateau
-  *Solution:* Check gradient computation, try different initialization
-]
-
-== Convergence monitoring
-Monitor these metrics during optimization:
-1. *Function value* $f(bold(theta)_t)$ (should decrease)
-2. *Gradient norm* $||nabla f(bold(theta)_t)||$ (should approach 0)
-3. *Parameter change* $||bold(theta)_(t+1) - bold(theta)_t||$ (should get smaller)
-
-Stop when: gradient norm < threshold OR parameter change < threshold OR max iterations reached.
 
 = Hessian-based Optimization
 == Newton's method
@@ -472,7 +407,7 @@ end
 - Expensive for high-dimensional problems
 
 == The BFGS algorithm
-https://youtu.be/VIoWzHlz7k8
+*Video watch: BFGS algorithm*: https://youtu.be/VIoWzHlz7k8
 
 The Broyden-Fletcher-Goldfarb-Shanno (BFGS) algorithm is a quasi-Newton method that approximates the Hessian matrix using only gradient information.
 
@@ -519,7 +454,7 @@ The golden section search is a technique for finding the minimum of a unimodal f
 The method uses the golden ratio $tau = frac(sqrt(5) - 1, 2) approx 0.618$ to place evaluation points that maintain the same proportional reduction in the search interval.
 
 == Golden section search: implementation
-```julia
+#columns(2)[#text(16pt)[```julia
 function golden_section_search(f, a, b; tol=1e-5)
     τ = (√5 - 1) / 2  # Golden ratio conjugate
     x1 = a + (1 - τ) * (b - a)
@@ -546,7 +481,7 @@ function golden_section_search(f, a, b; tol=1e-5)
     
     return f1 < f2 ? (x1, f1) : (x2, f2)
 end
-```
+```]]
 
 == Properties of golden section search
 *Properties:*
@@ -575,6 +510,7 @@ These techniques ensure that each iteration makes substantial progress toward th
   4. *Adam* combines the best ideas - excellent default choice
   5. *Newton/BFGS* use curvature - fastest for smooth problems
   6. *Line search* optimizes step size - improves any method
+  7. *Nelder-Mead* is a gradient free method - useful for low-dimensional problems
 ]
 
 == Method selection guidelines
@@ -607,8 +543,7 @@ These techniques ensure that each iteration makes substantial progress toward th
     [Newton], [2nd], [Quadratic], [O(n³)], [O(n²)], [Small-scale, accurate],
     [BFGS], [Quasi-2nd], [Superlinear], [O(n²)], [O(n²)], [Medium-scale],
     [L-BFGS], [Quasi-2nd], [Superlinear], [O(mn)], [O(mn)], [Large-scale],
-  ),
-  caption: [Comprehensive comparison of optimization methods. Here $n$ is the problem dimension and $m$ is the L-BFGS memory parameter.]
+  )
 )
 
 == Further reading
