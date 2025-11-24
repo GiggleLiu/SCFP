@@ -547,6 +547,7 @@ Please refer to the #link("https://jump.dev/JuMP.jl/stable/installation/#Support
 
 
 = Semidefinite Programming (SDP)
+==
 _Semidefinite programming_ is a generalization of linear programming. It is also a convex optimization problem, hence it is easy to solve.
 
 Recall that a symmetric matrix $A in bb(R)^(n times n)$ is positive semidefinite (PSD) if $x^T A x >= 0$ for all $x in bb(R)^n$. This property is equivalent to:

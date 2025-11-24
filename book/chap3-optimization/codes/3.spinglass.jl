@@ -47,7 +47,10 @@ function solve_spin_glass(J::Matrix, h::Vector; verbose = false)
 end
 
 # Example: Create an anti-ferromagnetic complete graph with 10 nodes
-J = triu(fill(1.0, 10, 10), 1)  # Upper triangular matrix filled with 1.0
-J += J'  # Make it symmetric by adding its transpose
+#J = triu(fill(1.0, 100, 100), 1)  # Upper triangular matrix filled with 1.0
+#J += J'  # Make it symmetric by adding its transpose
+using Graphs
+graph = random_regular_graph(100, 3)
+J = Matrix(adjacency_matrix(graph))
 h = zeros(size(J, 1))  # No external field
 Emin, configuration = solve_spin_glass(J, h)
