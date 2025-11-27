@@ -65,7 +65,27 @@ Modern scientific computing requires massive parallel processing:
 
 *GPU Advantage*: Thousands of cores working in parallel
 
-*Typical Speedup*: 10-100× for the right workloads @Nickolls2008
+*Typical Speedup*: 10-100× for the right workloads
+
+== CPU vs GPU: A Concrete Comparison
+
+Comparing a top-tier Data Center CPU vs GPU (approximate 2023 specs):
+
+#figure(
+  table(
+    columns: 3,
+    align: center,
+    inset: 10pt,
+    [*Metric*], [*AMD EPYC 9654 (CPU)*], [*NVIDIA H100 SXM (GPU)*],
+    [Cores], [96 (Complex)], [14,592 (Simple)],
+    [FP64 Performance], [~3-4 TFLOPS], [~34 TFLOPS (Tensor Core)],
+    [Memory Bandwidth], [~460 GB/s], [~3,350 GB/s],
+    [TDP (Power)], [360 W], [700 W],
+    [Efficiency], [~10 GFLOPS/W], [~48 GFLOPS/W],
+  )
+)
+
+*Key Takeaway*: GPU provides ~10x more raw compute and bandwidth, but consumes 2x power. Efficiency per watt is much higher!
 
 == CPU vs GPU: Different Philosophies
 
@@ -84,22 +104,6 @@ Modern scientific computing requires massive parallel processing:
 - *CPU*: Few powerful cores, optimized for sequential tasks
 - *GPU*: Many simple cores, optimized for parallel tasks
 - *SIMT*: Single Instruction, Multiple Threads
-
-== The Analogy
-
-Imagine painting 10,000 fence posts:
-
-*CPU Approach*: 
-- Hire 8-16 highly skilled painters
-- Each works very fast
-- But limited by number of workers
-
-*GPU Approach*:
-- Hire 10,000 students with brushes
-- Each works slower individually
-- All work simultaneously!
-
-*Result*: GPU finishes much faster for this parallel task
 
 == When to Use GPU Computing?
 
@@ -139,6 +143,7 @@ Julia's unique advantages for GPU programming @Besard2019:
 
 ```julia
 # This just works on GPU!
+using CUDA
 x = CUDA.randn(1_000_000)
 y = sin.(x) .+ cos.(x)  # Compiled to GPU automatically
 ```
@@ -559,9 +564,7 @@ img_reconstructed = CUFFT.ifft(img_freq)
   bob((0, 0), rescale: 1, flip: true, words: box(stroke: black, inset: 10pt)[*Live coding*: Using CUBLAS, CUSPARSE, and CUFFT])
 }))
 
-= Performance Optimization
-
-== The Memory Bottleneck
+== Performance Optimization: The Memory Bottleneck
 
 #box(fill: rgb("ffe4e1"), inset: 1em, width: 100%)[
   *⚠️ Performance Killer #2*
