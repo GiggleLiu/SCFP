@@ -1,4 +1,4 @@
-#import "@local/shiroa:0.2.3": *
+#import "@local/shiroa:0.3.0": *
 
 #show: book
 

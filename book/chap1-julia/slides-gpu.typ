@@ -167,6 +167,7 @@ CUDA.functional()  # Should return true
 CUDA.versioninfo() # Check installation
 ```
 
+==
 *Requirements*:
 - NVIDIA GPU (compute capability ≥ 3.5)
 - Proper NVIDIA drivers
@@ -174,6 +175,7 @@ CUDA.versioninfo() # Check installation
 
 == Your First GPU Program
 
+#slide[
 ```julia
 using CUDA
 
@@ -189,11 +191,12 @@ y_gpu = x_gpu .+ 1  # All on GPU!
 # Download result
 y = Array(y_gpu)
 ```
-
+][
 *What happened*?
 1. `CuArray()` uploads data to GPU memory
 2. `.+` executes on GPU (1000 parallel additions!)
 3. `Array()` downloads result back to CPU
+]
 
 == Live Demo: Setup and First Program
 
@@ -434,9 +437,6 @@ config = launch_config(10000)
 @cuda threads=config.threads blocks=config.blocks my_kernel(data)
 ```
 
-==
-*Why not always 1024?* Occupancy! Fewer threads/block → more concurrent blocks
-
 == Kernel Restrictions
 
 #grid(
@@ -463,13 +463,6 @@ config = launch_config(10000)
 - `@device_code_warntype` - Type checking
 - `@device_code_llvm` - LLVM IR
 - `@device_code_ptx` - GPU assembly
-
-== Live Demo: CUDA Kernels
-
-#figure(canvas(length: 1.8cm, {
-  import draw: *
-  bob((0, 0), rescale: 1, flip: true, words: box(stroke: black, inset: 10pt)[*Live coding*: Writing and launching CUDA kernels])
-}))
 
 = High-Performance GPU Libraries
 
@@ -519,7 +512,8 @@ B_gpu = A_gpu * A_gpu
 
 == CUFFT: Fast Fourier Transform
 
-GPU-accelerated FFT @NVIDIACUDA:
+#slide[
+GPU-accelerated FFT:
 
 ```julia
 using CUDA, FFTW
@@ -535,10 +529,11 @@ img_freq = CUFFT.fft(img)
 # Inverse
 img_reconstructed = CUFFT.ifft(img_freq)
 ```
-
+][
 *Performance*: 10-50× faster than CPU FFT
 
 *Applications*: Signal processing, image filtering, PDE solvers
+]
 
 == Library Performance Comparison
 
@@ -556,13 +551,6 @@ img_reconstructed = CUFFT.ifft(img_freq)
 )
 
 *Rule*: Always use libraries when available - they're highly optimized!
-
-== Live Demo: GPU Libraries
-
-#figure(canvas(length: 1.8cm, {
-  import draw: *
-  bob((0, 0), rescale: 1, flip: true, words: box(stroke: black, inset: 10pt)[*Live coding*: Using CUBLAS, CUSPARSE, and CUFFT])
-}))
 
 == Performance Optimization: The Memory Bottleneck
 
@@ -628,7 +616,7 @@ w = @. sin(x^2) + 1
 #box(fill: rgb("fff5ee"), inset: 1em, width: 100%)[
   *Memory Access Pattern Matters*
   
-  Adjacent threads should access adjacent memory locations @Sanders2010
+  Adjacent threads should access adjacent memory locations
 ]
 
 ```julia
@@ -653,7 +641,7 @@ end
 
 == Profiling GPU Code
 
-```julia
+#slide[```julia
 using CUDA, BenchmarkTools
 
 # Basic timing
@@ -665,12 +653,13 @@ using CUDA, BenchmarkTools
 # GPU profiler
 CUDA.@profile operation()
 ```
-
+][
 *Monitor*:
 1. Kernel execution time
 2. Memory transfers
 3. GPU utilization (should be > 80%)
 4. Memory bandwidth utilization
+]
 
 == Optimization Checklist
 
