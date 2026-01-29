@@ -1,7 +1,8 @@
 #import "../book.typ": book-page, cross-link
-#import "@preview/cetz:0.2.2": canvas, draw, tree, vector, decorations, plot, coordinate
+#import "@preview/cetz:0.4.1": canvas, draw, tree, vector, decorations, coordinate
+#import "@preview/cetz-plot:0.1.2": plot
 #import "@preview/ctheorems:1.1.3": *
-#import "@preview/algorithmic:0.1.0"
+#import "@preview/algorithmic:1.0.3"
 #import algorithmic: algorithm
 
 #show: book-page.with(title: "Simulated annealing")
@@ -567,7 +568,7 @@ Simulated annealing is an algorithm for finding the global optimum of a given fu
 - The thermal state at zero temperature is the ground state.
 - The thermal distribution are $beta$ and $beta + Delta beta$ are very close when $Delta beta$ is small (@fig:ising-energy-distribution).
 
-#figure(image("images/ising-energy-distribution.svg", width: 70%),
+#figure(image("images/ising-energy-distribution.svg", width: 70%, alt: "Ising energy distribution"),
 caption: [The binned energy distribution of spin configurations generated unbiasly from the ferromagnetic Ising model ($J_(i j) = -1, L = 10$) at different inverse temperatures $beta$. The method to generate the samples is the tensor network based method detailed in @Roa2024]
 ) <fig:ising-energy-distribution>
 
@@ -583,15 +584,15 @@ The algorithm works as follows:
 #algorithm(
   {
     import algorithmic: *
-    Function("SimulatedAnnealing", args: ([$bold(s)$], [$T_"init"$], [$alpha$], [$n_"steps"$]),
+    Function("SimulatedAnnealing", ([$bold(s)$], [$T_"init"$], [$alpha$], [$n_"steps"$]),
     {
-    For(cond: [$i = 1 dots n_"steps"$], {
+    For($i = 1 dots n_"steps"$, {
         Assign([$T$], [$alpha^i T_"init"$])
         // Choose a random spin to flip
         Assign([$bold(s)'$], [$bold(s)$ with random spin flipped])
           // Accept with probability $e^{-\Delta E/T}$ if energy increases
-        State([$r ~ cal(U)(0,1) quad$  #Ic[random number]]) 
-        If(cond: [$r < e^(-(H(bold(s)') - H(bold(s)))\/T)$], {
+        Line([$r ~ cal(U)(0,1) quad$  #CommentInline([random number])]) 
+        If($r < e^(-(H(bold(s)') - H(bold(s)))\/T)$, {
           Assign([$bold(s)$], [$bold(s)'$])
         })
       // Decrease temperature according to cooling schedule
@@ -721,7 +722,7 @@ This simple algorithm suffers from the energy drift problem, which is the energy
     x-min: 0,
     x-max: t_max,
     x-tick-step: 8,
-    legend: "legend.north",
+    legend: "north",
     y-tick-step: 1,
     
     // Position trajectory
@@ -739,7 +740,7 @@ This simple algorithm suffers from the energy drift problem, which is the energy
     x-min: 0,
     x-max: t_max,
     x-tick-step: 8,
-    legend: "legend.north",
+    legend: "north",
     y-tick-step: 1,
     // Momentum trajectory
     plot.add(
@@ -757,7 +758,7 @@ This simple algorithm suffers from the energy drift problem, which is the energy
     x-min: -2,
     x-max: 2,
     x-tick-step: 1,
-    legend: "legend.north",
+    legend: "north",
     y-tick-step: 1,
     // Energy trajectory
     plot.add(
@@ -810,14 +811,14 @@ The algorithm is as follows:
 
 #algorithm({
   import algorithmic: *
-  Function("Verlet", args: ([$bold(x)$], [$bold(v)$], [$bold(f)$], [$m$], [$d t$], [$n$]), {
-    Assign([$bold(v)$], [$bold(v) + (bold(f)(bold(x)))/m d t \/ 2$ #h(2em)#Ic([update velocity at time $d t \/ 2$])])
-    For(cond: [$i = 1 dots n$], {
-      Cmt[time step $t = i d t$]
-      Assign([$bold(x)$], [$bold(x) + bold(v) d t$ #h(2em)#Ic([update position at time $t$])])
-      Assign([$bold(v)$], [$bold(v) + (bold(f)(bold(x)))/m d t$ #h(2em)#Ic([update velocity at time $t + d t\/2$])])
+  Function("Verlet", ([$bold(x)$], [$bold(v)$], [$bold(f)$], [$m$], [$d t$], [$n$]), {
+    Assign([$bold(v)$], [$bold(v) + (bold(f)(bold(x)))/m d t \/ 2$ #h(2em)#CommentInline([update velocity at time $d t \/ 2$])])
+    For($i = 1 dots n$, {
+      Comment[time step $t = i d t$]
+      Assign([$bold(x)$], [$bold(x) + bold(v) d t$ #h(2em)#CommentInline([update position at time $t$])])
+      Assign([$bold(v)$], [$bold(v) + (bold(f)(bold(x)))/m d t$ #h(2em)#CommentInline([update velocity at time $t + d t\/2$])])
     })
-    Assign([$bold(v)$], [$bold(v) - (bold(f)(bold(x)))/m d t \/ 2$ #h(2em)#Ic([velocity at time $n d t$])])
+    Assign([$bold(v)$], [$bold(v) - (bold(f)(bold(x)))/m d t \/ 2$ #h(2em)#CommentInline([velocity at time $n d t$])])
     Return[$bold(x)$, $bold(v)$]
   })
 })
@@ -895,7 +896,7 @@ In our implementation, we set the parameters as follows:
 
 Given the total annealing time $t_"total"$, we slowly drive $a_0$ from $0$ to $2$ with a constant rate $2/t_"total"$. At the initial time, $a(t) = 0$, the ground state of the system is $x_i = 0$ for all $i$. At the final time, $a(t_"total") = 2$, the ground state of the system is the ground state of the spin glass. If the annealing time is long enough, we will find the final state is the ground state of the spin glass.
 
-#figure(image("images/bifurcation_energy_evolution.png", width: 80%),
+#figure(image("images/bifurcation_energy_evolution.png", width: 80%, alt: "Bifurcation energy evolution"),
 caption: [Evolution of energy (left panel) and states (right panel) under different two particle Hamiltonian dynamics (aSB, bSB and dSB) in @Goto2021. $J_12 = J_21 = 1$, times are in units of $0.01$, $c_0 = 0.2$ for all.]
 ) <fig:bifurcation-energy-evolution>
 

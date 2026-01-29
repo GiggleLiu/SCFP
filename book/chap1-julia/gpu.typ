@@ -1,6 +1,6 @@
-#import "../book.typ": book-page, cross-link, heading-reference
-#import "@preview/cetz:0.2.2": *
-#show: book-page.with(title: "Arrays and GPU Programming")
+//#import "../book.typ": book-page, cross-link, heading-reference
+#import "@preview/cetz:0.4.1": *
+//#show: book-page.with(title: "GPU Programming with Julia")
 
 #set math.equation(numbering: "(1)")
 #let boxed(it, width: 100%) = block(stroke: 1pt, inset: 10pt, radius: 4pt, width: width)[#it]
@@ -8,421 +8,1142 @@
 #show ref: it => {
   let el = it.element
   if el != none and el.func() == heading {
-    // Override heading references.
     link(el.location(), el.body)
   } else {
-    // Other references as usual.
     it
   }
 }
 
-#align(center, [= Arrays and GPU Programming\
+#align(center, [= GPU Programming with Julia\
 _Jin-Guo Liu_])
 
-= Array Operations
+#box(fill: rgb("f0f8ff"), inset: 1em, radius: 5pt, width: 100%)[
+  *Learning Objectives*
+  
+  By the end of this lecture, you will be able to:
+  - Understand the fundamental differences between CPU and GPU computing
+  - Create and manipulate GPU arrays in Julia using CUDA.jl
+  - Write and launch custom CUDA kernels for parallel computation
+  - Use high-performance GPU libraries (CUBLAS, CUSPARSE, CUFFT)
+  - Debug and optimize GPU code for maximum performance
+  - Choose appropriate strategies for different GPU computing tasks
+]
 
-== Initialize an array
-Array is a data structure that stores a collection of elements of the same type. In Julia, array type `Array{T, N}` has two type parameters: `T` is the type of the elements, and `N` is the number of dimensions. For example, `Array{Int, 2}` is a matrix of integers.
-An array can be instantiated in several ways:
+*Why do we need GPU computing?*
 
-```julia
-uninitialized_vector = Vector{Int}(undef, 3)  # uninitialized vector (fast)
+Modern scientific computing and machine learning require processing massive amounts of data. A single CPU, no matter how powerful, can only do so much. GPUs offer thousands of cores working in parallel, providing 10-100× speedups for the right workloads. Whether you're training neural networks, running molecular dynamics simulations, or processing images, GPU computing can dramatically accelerate your work.
 
-# Basic array creation
-A = [1, 2, 3]                         # vector
-B = [1 2 3; 4 5 6; 7 8 9]             # matrix
+= Introduction: The Parallel Computing Revolution
 
-zero_vector = zeros(3)                # zero vector
-rand_vector = randn(Float32, 3, 3)    # random normal distribution
-const_matrix = fill(2.0, 3, 3)        # constant matrix
-step_vector = collect(1:3)            # collect from range
+== Understanding the CPU vs GPU Paradigm
+
+Modern GPUs are designed for data-parallel computations, featuring thousands of simple cores optimized for throughput rather than latency @Nickolls2008. This architecture makes them ideal for scientific computing and machine learning workloads.
+
+#box(fill: rgb("fff5ee"), inset: 1em, radius: 5pt, width: 100%)[
+  *Intuition First!* 🤔
+  
+  Imagine you need to paint 10,000 fence posts:
+  - *CPU approach*: Hire a few highly skilled painters. Each works very fast, but there are only 8-16 of them.
+  - *GPU approach*: Hire 10,000 students with paintbrushes. Each works slower, but they all work simultaneously!
+  
+  The key insight: Different problems need different solutions!
+]
+
+#figure(
+  table(
+    columns: 4,
+    align: center,
+    [*Device*], [*Cores*], [*Clock Speed*], [*Best For*],
+    [Modern CPU], [8-64], [~3-5 GHz], [Complex logic, branching],
+    [Modern GPU], [1000s-10000s], [~1-2 GHz], [Simple, parallel operations],
+  ),
+  caption: [CPU vs GPU: Different tools for different jobs]
+)
+
+*Key Concepts:*
+- *Latency* (CPU): Time to complete a single task (microseconds)
+- *Throughput* (GPU): Total work completed per second (millions of operations)
+- *Parallelism*: Doing many things at once
+
+*🎯 Interactive Question:* If you need to multiply 1 million pairs of numbers, which is better? Think about it before reading on...
+
+*Answer:* GPU! This is a perfectly parallel problem - each multiplication is independent. The GPU can do thousands simultaneously.
+
+== When Should You Use GPU Computing?
+
+#box(fill: rgb("f0fff0"), inset: 1em, radius: 5pt, width: 100%)[
+  *The Big Idea* 💡
+  
+  GPUs excel at *data parallelism* - performing the same operation on many data elements simultaneously.
+]
+
+*✓ Excellent for GPUs:*
+- Large array operations (element-wise operations)
+- Matrix multiplication and linear algebra
+- Image and signal processing
+- Monte Carlo simulations (parallel random sampling)
+- Training neural networks
+- Fast Fourier Transforms (FFT)
+
+*✗ Poor for GPUs:*
+- Small datasets (< 1000 elements) - overhead dominates
+- Complex branching logic (if-else heavy code)
+- Sequential algorithms (each step depends on the previous)
+- Heavy CPU ↔ GPU data transfers
+
+*⚠️ The Golden Rule:* The speedup from parallel computation must outweigh the overhead of copying data to/from the GPU!
+
+*🎯 Quick Quiz:* Which would benefit more from GPU acceleration?
+- A) Computing `sin(x)` for 10 values
+- B) Computing `sin(x)` for 10 million values
+- C) A recursive Fibonacci function
+
+*Answer:* B! A has too little data (overhead dominates), C is inherently sequential.
+
+== Why Julia for GPU Computing?
+
+Julia provides a unique combination of advantages @Besard2018:
+
+1. *High-level syntax*: Write GPU code that looks like regular Julia
+2. *Performance*: Achieve near-CUDA-C performance without low-level programming
+3. *Native compilation*: Julia functions compile directly to GPU code
+4. *Composability*: GPU arrays work seamlessly with Julia's ecosystem
+
+*The magic:* Julia's compiler can take your high-level code and generate optimized GPU kernels automatically!
+
+= Getting Started with CUDA.jl
+
+CUDA.jl @Besard2019 is the primary Julia package for NVIDIA GPU programming, providing a high-level interface while maintaining performance comparable to native CUDA C code.
+
+== Installation and Verification
+
+#box(fill: rgb("fffacd"), inset: 1em, radius: 5pt, width: 100%)[
+  *💻 Live Setup Exercise*
+  
+  Let's get your GPU working with Julia!
+]
+
+*Step 1: Verify your GPU*
+
+First, check that you have an NVIDIA GPU with proper drivers:
+
+```bash
+nvidia-smi
 ```
 
-Unlike C, Python, and R, Julia array indexing starts from 1. This design choice aligns with mathematical notation and many scientific computing conventions.
-```julia
-A = [1, 2, 3]
-A[1]      # first element
-A[end]    # last element
-A[1:2]    # first two elements
-A[2:-1:1] # first two elements in reverse order
+This command shows:
+- GPU model and memory
+- Driver version
+- Current GPU utilization
+- Running processes
 
-B = [1 2 3; 4 5 6; 7 8 9]
-B[1:2]            # first two elements (column-major)
-B[2]              # the second element in linearized representation
-B[1:2, 1:2]       # 2×2 submatrix
+*What you should see:* A table showing your GPU information. If you get "command not found", your NVIDIA drivers aren't installed.
 
-view(B, 1:2, 1:2) # view of the submatrix
-```
-Remark: `view(B, 1:2, 1:2)` returns a view of the submatrix, which does not copy the data. It is different from `B[1:2, 1:2]` that returns a new matrix copies the data. For example,
+*Step 2: Install CUDA.jl*
 
 ```julia
-x = collect(1:4)
-y1 = x[1:2:end]
-y2 = view(x, 1:2:lastindex(x))
-y1 .= 100  # `x` is still [1, 2, 3, 4]
-y2 .= 100  # `x` is changed to [100, 2, 100, 4]
+using Pkg
+Pkg.add("CUDA")
+using CUDA
+
+# Test if CUDA is functional
+CUDA.functional()  # Should return true
 ```
 
-== Map, reduction, broadcasting, filtering and searching
+*🎯 Troubleshooting:* If `CUDA.functional()` returns `false`, check:
+1. Is your GPU NVIDIA? (AMD/Intel won't work with CUDA)
+2. Is compute capability ≥ 3.5? Run `CUDA.versioninfo()` to check
+3. Are drivers up to date?
 
-_Broadcasting_ in Julia provides a powerful way to apply functions element-wise across arrays. For example, to compute function $y = sin(x) + cos(3x)$ for each element $x$ in an array, you can use the following syntax:
-
-```julia
-x = 0:0.1π:2π
-y = sin.(x) .+ cos.(3 .* x)        # Broadcasting
-y = map(a -> sin(a) + cos(3a), x)  # The mapping version
-```
-
-When you have multiple broadcasting operations in a single expression, Julia performs loop fusion, executing all operations in a single pass without creating intermediate arrays. This often leads to better performance than having separate operations.
-
-Sometimes, you may want to protect an object from broadcasting. You can use `Ref` to prevent broadcasting over an entire object:
-
-```julia
-Ref([3,2,1,0]) .* (1:3)  # returns [[3, 2, 1, 0], [6, 4, 2, 0], [9, 6, 3, 0]]
-```
-
-_Reduction_ is a common operation in scientific computing. Given a generic vector of size $n$ and element type $T$, $bold(v) in T^n$, left and right folding this vector with a function $f: T times T arrow.r T$ is equivalent to computing
-$
-f(f(f(v_1, v_2), v_3), ..., v_n),
-$
-and 
-$
-f(v_1, f(v_2, f(v_3, ..., f(v_(n-1), v_n))))
-$
-respectively.
-
-For example, we can use `foldl` and `foldr` as follows:
-```julia
-foldl((x, y) -> [x, y], [1, 2, 3, 4])  # returns [[[1, 2], 3], 4]
-foldr((x, y) -> [x, y], [1, 2, 3, 4])  # returns [1, [2, [3, 4]]]
-```
-In many cases, the operation is commutative, so the result is the same regardless of the direction of folding. For example, to compute the sum of all elements in an array, you can use the following syntax:
-
-```julia
-sum(1:10)
-foldl(+, 1:10)
-foldr(+, 1:10)
-reduce(+, 1:10)
-```
-
-They are equivalent to each other in this case. `reduce` does not promise the order of evaluation, but it brings advantage in parallelization.
-
-_Map-reduce_ is an even more powerful operation that applies a function to each element of an array and then reduces the result. For example, to compute the squared norm of a vector, you can use the following syntax:
-```julia
-sum(abs2, 1:10)
-mapreduce(abs2, +, 1:10)
-```
-The first argument of `mapreduce` is the function applied to each element, the second argument is the reduction operation, and the third argument is the array.
-The whole process does not create intermediate arrays.
-
-_Filtering_ is another common operation in scientific computing. For example, to filter the even elements in an array, you can use the following syntax:
-```julia
-filter(iseven, 1:10)  # returns [2, 4, 6, 8, 10]
-```
-
-_Searching_ specific element(s) from an array can be achieved by `findfirst`, `findlast`, and `findall`:
-```julia
-findfirst(iseven, 1:10)  # returns 2
-findlast(iseven, 1:10)   # returns 10
-findall(iseven, 1:10)   # returns [2, 4, 6, 8, 10]
-```
-
-== High dimensional array indexing
-
-Arrays are stored as vectors in memory, either in row-major or column-major order. If a matrix is stored in row-major order, the elements are stored in the order on the left panel:
-#align(center, canvas({
-  import draw: *
-  let dx = 1
-  let dy = 0.6
-  content((0, 0), text(14pt)[$ mat(a_(1 1), a_(1 2), a_(1 3); a_(2 1), a_(2 2), a_(2 3); a_(3 1), a_(3 2), a_(3 3)) $])
-  line((-dx, dy), (-dx, -dy), (0, dy), (0, -dy), (dx, dy), (dx, -dy), mark: (end: "straight"))
-  content((0, -1.5), text(12pt)[Column-major order])
-  content((0, -2), text(12pt)[(Julia, Fortran)])
-  set-origin((5, 0))
-  content((0, 0), text(14pt)[$ mat(a_(1 1), a_(1 2), a_(1 3); a_(2 1), a_(2 2), a_(2 3); a_(3 1), a_(3 2), a_(3 3)) $])
-  line((-dx, dy), (dx, dy), (-dx, 0), (dx, 0), (-dx, -dy), (dx, -dy), mark: (end: "straight"))
-  content((0, -1.5), text(12pt)[Row-major order])
-  content((0, -2), text(12pt)[(C, Python)])
-}))
-
-Given a matrix `A` of size `(m, n)` stored in the column-major order, the row stride is $1$, while the column stride is $m$. It means the distance in memory between `A[i,j]` and `A[i+1,j]` is $1$, while the distance between `A[i,j]` and `A[i,j+1]` is $m$. When extends to higher dimension, we use strides to describe the distance between elements in each dimension.
-```julia
-A = randn(3, 4, 5)
-st = strides(A)  # returns (1, 3, 12)
-```
-Strides can be used to efficiently access elements in an array. For example, to access the element `A[2,3,2]`, we can use
-```julia
-ids = [2, 3, 2]
-
-A[1 + st[1] * (ids[1]-1) + st[2] * (ids[2]-1) + st[3] * (ids[3]-1)]
-A[mapreduce(i -> st[i] * (ids[i]-1), +, 1:ndims(A), init=1)]
-```
-
-In Julia, linear indices and cartesian indices can be converted to each other by `LinearIndices` and `CartesianIndices`:
-```julia
-inds = LinearIndices(A)
-inds[2,3,2]  # returns 20
-inds = CartesianIndices(A)
-inds[20]     # returns CartesianIndex(2, 3, 2)
-```
-
-The memory layout significantly affect the performance of array operations. Consider two implementations of the Frobenius norm:
-
-```julia
-# Row-major traversal (slower)
-function frobenius_norm(A::AbstractMatrix)
-    s = zero(eltype(A))  # zero element of the same type as the array
-    @inbounds for i in 1:size(A, 1)  # remove the bounds check
-        for j in 1:size(A, 2)
-            s += A[i, j]^2
-        end
-    end
-    return sqrt(s)
-end
-
-# Column-major traversal (faster)
-function frobenius_norm_colmajor(A::AbstractMatrix)
-    s = zero(eltype(A))
-    @inbounds for j in 1:size(A, 2)
-        for i in 1:size(A, 1)
-            s += A[i, j]^2
-        end
-    end
-    return sqrt(s)
-end
-```
-
-The column-major version is typically much faster due to better cache utilization.
-```julia
-julia> using BenchmarkTools
-
-julia> A = randn(3000, 3000);
-
-julia> @btime frobenius_norm($A);
-  44.408 ms (0 allocations: 0 bytes)
-
-julia> @btime frobenius_norm_colmajor($A);
-  10.235 ms (0 allocations: 0 bytes)
-```
-
-We can see by simply changing the order of the loop, the performance is improved by more than 2 times. This is because the memory access pattern is more cache-friendly.
-As shown in the figure @fig:memory-access, the cache is a small and fast memory that is located on or close to the CPU. `L3` cache is the largest and slowest, `L1` cache is the smallest and fastest. When the data is loaded from the main memory to the cache, the data is loaded in chunks.
-When CPU accesses the data, if the data is in the cache, it is called a cache hit, otherwise it is called a cache miss. The cache hit rate is a key factor that affects the performance of the program.
-When accessing the matrix in the column-major order in Julia, the stride is 1, so the cache hit rate is the highest.
-
-#figure(canvas({
-  import draw: *
-  let dx = 0.5
-  let dy = 1.2
-  let s(it) = text(11pt, it)
-  content((-2, dx/2), s[Main Memory])
-  for i in range(20){
-    rect((dx *i, 0), (dx * i + dx, dx), name: "m" + str(i), fill: if (2 < i and i < 8) { red } else { white })
-  }
-  content((-2, dx/2 - dy), s[Caches (L3, L2, L1)])
-  bezier("m4.north", "m5.north", (rel: (dx/2, 1)), mark: (end: "straight"), name: "s1")
-  content((rel: (-2, 0.3), to: "s1.mid"), s[Small stride, high hit rate])
-
-  bezier("m4.north", "m11.north", (rel: (3 * dx + dx/2, 2)), mark: (end: "straight"), name: "s2")
-  content((rel: (0, 0.3), to: "s2.mid"), s[Large stride, low hit rate])
-  for i in range(5){
-    rect((dx *i, -dy), (dx * i + dx, dx - dy), name: "c" + str(i))
-  }
-  line("m5.south", "c2.north", mark: (end: "straight"), name: "l1")
-  content((rel: (2.5, 0), to: "l1.mid"), s[High Latency, chunk-wise])
-  content((-2, dx/2 - 2*dy), s[CPU Registers])
-  for i in range(1){
-    rect((dx *i, -2*dy), (dx * i + dx, dx - 2*dy), name: "r" + str(i))
-  }
-  line("c1.south", "r0.north", mark: (end: "straight"), name: "l2")
-  content((rel: (1.2, 0), to: "l2.mid"), s[Low Latency])
-}), caption: [Memory access patterns. The data reading from the main memory can have high latency. When accessing data in the memory, the data is automatically loaded into the caches, which have lower latency. The data in the caches are further loaded into the CPU registers, which have the lowest latency.]) <fig:memory-access>
-
-== BLAS and LAPACK
-
-BLAS and LAPACK are the backends of linear algebra operations in many languages, including Julia.
-- BLAS (Basic Linear Algebra Subprograms) is a collection of routines that perform basic vector and matrix operations, such as addition, subtraction, multiplication, and division.
-- LAPACK (Linear Algebra PACKage) is a library of routines for solving systems of linear equations, least squares problems, eigenvalue problems, and singular value problems. It is built on top of BLAS.
-
-In Julia, you can call BLAS and LAPACK routines directly by using the `LinearAlgebra.BLAS` and `LinearAlgebra.LAPACK` modules. For example, to compute the 2-norm of a vector at odd indices, you can use the following syntax:
-```julia
-julia> using LinearAlgebra
-
-julia> BLAS.nrm2(4, fill(1.0, 8), 2)  # number of elements is 4, stride is 2
-2.0
-```
-These low-level routines are not easy to use. Julia `LinearAlgebra` module provides a high-level interface to BLAS and LAPACK routines. For example, to compute the 2-norm of a vector, you can use `LinearAlgebra.norm` instead, to compute the matrix multiplication, you can use "`*`" operation instead.
-
-The matrix multiplication in BLAS can fully utilize the modern CPUs, which provides a golden standard for the measuring the performance of a computing device. The performance is usually measured by the number of *floating point operations per second* (FLOPS).
-The floating point operations include addition, subtraction, multiplication and division. The FLOPS of a computing device can be related to multiple factors, such as the clock frequency, the number of cores, the number of instructions per cycle, and the number of floating point units. The simplest way to measure the FLOPS is to benchmark the speed of matrix multiplication:
-
-```julia
-julia> @btime $A * $A
-  2.967 ms (3 allocations: 7.63 MiB)
-```
-
-Since the number of FLOPS in a $n times n times n$ matrix multiplication is $2n^3$ (half of the operations are additions), the FLOPS can be calculated as: $2 times 1000^3 / (2.967 times 10^(-3)) approx 674 "GFLOPS"$.
-
-Ideally, the performance of matrix multiplication in all programming languages (Julia, Python, C, Matlab, etc.) using the same BLAS library should be the same. If the matrix multiplication does not reach the expected performance, you can
-1. Check the vendor's BLAS library
-  ```julia
-  julia> using LinearAlgebra
-
-  julia> BLAS.get_config()
-  LinearAlgebra.BLAS.LBTConfig
-  Libraries: 
-  └ [ILP64] libopenblas64_.so
-  ```
-  Here, we use the `libopenblas64_.so` library, which is the OpenBLAS library. For Intel CPUs, using the MKL library can achieve better performance.
-
-2. Check if the multi-threading is enabled:
-  ```julia
-  julia> BLAS.get_num_threads()
-  16
-  ```
-  If the number of threads is not the maximum, you can set the number of threads manually:
-  ```julia
-  julia> BLAS.set_num_threads(32)
-  ```
-  A special reminder is the number of threads used by BLAS is not the same as the number of threads used by Julia. In Julia, you can use the following command to get the number of threads:
-  ```julia
-  julia> Base.Threads.nthreads()
-  1
-  ```
-  This may be different from `BLAS.get_num_threads()`.
-
-LAPACK is also a low-level library, e.g. to compute the singular value decomposition of a matrix, you can use `LAPACK.gesvd!` that takes 3 arguments. Alternatively, you can use `LinearAlgebra.svd` that takes 1 argument to make life easier.
-```julia
-julia> U, S, V = LAPACK.gesvd!('O', 'S', copy(A));
-
-julia> results = svd(A);
-```
-
-== Example: Triangular Lattice Generation
-
-Here's how to create a triangular lattice using two different approaches:
-
-```julia
-b1 = [1, 0]
-b2 = [0.5, sqrt(3)/2]
-n = 5
-
-# List comprehension approach
-mesh1 = [i * b1 + j * b2 for i in 1:n, j in 1:n]
-
-# Broadcasting approach
-mesh2 = (1:n) .* Ref(b1) .+ (1:n)' .* Ref(b2)
-
-using CairoMakie
-scatter(vec(getindex.(mesh2, 1)), vec(getindex.(mesh2, 2)))  # scatter(x, y)
-```
-Here, we use the `scatter` function from the #link("https://github.com/MakieOrg/Makie.jl")[`CairoMakie`] package to visualize the triangular lattice, which takes two vectors representing the $x$ and $y$ coordinates of the points as input.
-The `CairoMakie` package is the default data visualization method in the rest of the book.
-#figure(image("images/triangle.svg", width: 60%))
-
-= CUDA programming with Julia
-
-CUDA programming is a parallel computing platform and programming model developed by NVIDIA for performing general-purpose computations on its GPUs (Graphics Processing Units). CUDA stands for Compute Unified Device Architecture.
-
-== Step by step guide
-1. Make sure you have a NVIDIA GPU device and its driver is properly installed.
-  ```bash
-  nvidia-smi
-  ```
-2. Install the #link("https://github.com/JuliaGPU/CUDA.jl")[CUDA.jl] package, and disable scalar indexing of CUDA arrays.
-CUDA.jl @Besard2019 provides wrappers for several CUDA libraries that are part of the CUDA toolkit:
-
-- Driver library: manage the device, launch kernels, etc.
-- CUBLAS: linear algebra
-- CURAND: random number generation
-- CUFFT: fast fourier transform
-- CUSPARSE: sparse arrays
-- CUSOLVER: decompositions & linear systems
-
-There's also support for a couple of libraries that aren't part of the CUDA toolkit, but are commonly used:
-
-- CUDNN: deep neural networks
-- CUTENSOR: linear algebra with tensors
+*Step 3: Check your setup*
 
 ```julia
 CUDA.versioninfo()
 ```
 
-3. Choose a device (if multiple devices are available).
+This displays:
+- CUDA toolkit version
+- Available GPU devices
+- Driver compatibility
+- Supported features
+
+== Your First GPU Computation
+
+Let's start with the simplest possible example:
 
 ```julia
-devices()
-dev = CuDevice(0)
+using CUDA
+
+# Create a vector on the CPU
+cpu_vector = ones(10)
+
+# Move it to the GPU
+gpu_vector = CuArray(cpu_vector)
+
+# Do computation on GPU
+result = gpu_vector .+ 1  # Still on GPU!
+
+# Bring result back to CPU
+cpu_result = Array(result)
 ```
 
-grid > block > thread
+*What just happened?*
+1. `CuArray()` *uploaded* data from CPU RAM to GPU memory
+2. `.+` operation executed on the GPU (all 10 additions in parallel!)
+3. `Array()` *downloaded* result back to CPU
+
+*🎯 Think About It:* What if we need to do 100 operations? Should we transfer data after each one?
+
+*Answer:* No! Keep data on GPU, do all operations there, then transfer once at the end.
+
+= Array Programming: The High-Level Approach
+
+== Creating GPU Arrays
+
+#box(fill: rgb("f0f8ff"), inset: 1em, radius: 5pt, width: 100%)[
+  *🎯 The High-Level Strategy*
+  
+  For most tasks, you don't need to write CUDA kernels! Julia's array operations and broadcasting automatically compile to efficient GPU code.
+]
 
 ```julia
-attribute(dev, CUDA.DEVICE_ATTRIBUTE_MAX_THREADS_PER_BLOCK)
-attribute(dev, CUDA.CU_DEVICE_ATTRIBUTE_MAX_BLOCK_DIM_X)
-attribute(dev, CUDA.CU_DEVICE_ATTRIBUTE_MAX_GRID_DIM_X)
+using CUDA
+
+# Create arrays directly on GPU
+a = CUDA.zeros(100)           # 100 zeros
+b = CUDA.ones(10, 10)         # 10×10 matrix of ones
+c = CUDA.randn(1000)          # 1000 random numbers
+d = CUDA.fill(3.14, 50)       # 50 elements, all π
+
+# Upload from CPU
+cpu_data = randn(1000)
+gpu_data = CuArray(cpu_data)
+
+# Download to CPU
+result = Array(gpu_data)
 ```
 
-4. Create a CUDA Array
+*Memory Tip:* Creating arrays directly on GPU (e.g., `CUDA.randn()`) is faster than creating on CPU and uploading!
+
+== The Scalar Indexing Trap
+
+#box(fill: rgb("ffe4e1"), inset: 1em, radius: 5pt, width: 100%)[
+  *🚨 Critical Warning: Scalar Indexing*
+  
+  This is the #1 performance killer for beginners!
+]
 
 ```julia
-CUDA.zeros(10)
-cuarray1 = CUDA.randn(10)
-@test_throws ErrorException cuarray1[3]
-CUDA.@allowscalar cuarray1[3] += 10
-CuArray(randn(10))   # Upload a CPU Array to GPU
+x = CUDA.randn(1000)
+
+# ❌ This is DISABLED by default (throws error)
+# value = x[1]
+
+# ✓ Enable if you really need it (but avoid in performance code!)
+CUDA.@allowscalar x[1]
+
+# ✓ Better: Work with entire arrays
+sum(x)        # ✓ Fast, runs on GPU
+x .+ 1        # ✓ Fast, runs on GPU  
+maximum(x)    # ✓ Fast, runs on GPU
+x[1] = 5      # ❌ Slow, requires synchronization
 ```
 
-5. Compute
+*Why is scalar indexing so slow?*
 
-Computing a function on GPU Arrays
-1. Launch a CUDA job - a few micro seconds
-2. Launch more CUDA jobs...
-3. Synchronize threads - a few micro seconds
+Each scalar access requires:
+1. CPU stops and waits
+2. GPU finishes ALL pending operations (synchronization)
+3. Transfer single value over PCIe bus (~16 GB/s vs ~1 TB/s GPU memory)
+4. Resume GPU operations
 
-Computing matrix multiplication.
+This can be *1000× slower* than processing the entire array!
+
+*🎯 Rule of Thumb:* If you're accessing individual array elements in a loop, you're doing it wrong!
+
+== Broadcasting: Your Secret Weapon
+
+Broadcasting is how you write fast GPU code without writing kernels:
 
 ```julia
-@elapsed rand(2000,2000) * rand(2000,2000)
-@elapsed CUDA.@sync CUDA.rand(2000,2000) * CUDA.rand(2000,2000)
+x = CUDA.randn(10000)
+
+# Simple operations - automatically parallel!
+y = x .^ 2                    # Square every element
+z = sin.(x) .+ cos.(x)        # Sine plus cosine
+w = @. sqrt(abs(x)) + exp(-x^2)  # Complex expression
+
+# Custom functions work too!
+function my_function(x)
+    if x > 0
+        return sqrt(x)
+    else
+        return 0.0
+    end
+end
+
+result = my_function.(x)  # Julia compiles this for GPU!
 ```
 
-*Example: Broadcasting a native Julia function*
+*The Magic:* Julia analyzes your function, compiles it to GPU assembly (PTX), and launches it on thousands of threads - automatically!
 
-Julia -> LLVM (optimized for CUDA) -> CUDA
+*Compilation Pipeline:*
+```
+Julia code → LLVM IR → PTX assembly → GPU execution
+```
+
+== 🧪 Hands-on Example: CPU vs GPU Performance
+
+Let's measure the actual speedup:
 
 ```julia
-factorial(n) = n == 1 ? 1 : factorial(n-1)*n
+using CUDA
+using BenchmarkTools
+using LinearAlgebra
+
+n = 2000
+
+# Prepare CPU data
+a_cpu = randn(n, n)
+b_cpu = randn(n, n)
+c_cpu = zeros(n, n)
+
+# Prepare GPU data
+a_gpu = CuArray(a_cpu)
+b_gpu = CuArray(b_gpu)
+c_gpu = CUDA.zeros(n, n)
+
+# CPU matrix multiplication
+@time mul!(c_cpu, a_cpu, b_cpu)
+
+# GPU matrix multiplication (with synchronization!)
+@time CUDA.@sync mul!(c_gpu, a_gpu, b_gpu)
+
+# Verify correctness
+@assert c_cpu ≈ Array(c_gpu)
+```
+
+*Important:* Always use `CUDA.@sync` for timing! GPU operations are asynchronous - without sync, you'll measure kernel launch time, not execution time.
+
+*🎯 Experiment:* Try different matrix sizes: 100×100, 1000×1000, 5000×5000. At what size does GPU become faster?
+
+*Typical Results:*
+- 100×100: CPU faster (overhead dominates)
+- 1000×1000: GPU ~2-5× faster
+- 5000×5000: GPU ~20-50× faster
+
+== Example: Broadcasting Custom Functions
+
+One of Julia's killer features - broadcast ANY function to GPU:
+
+```julia
+using CUDA, BenchmarkTools
+
+# Define pure Julia function
+factorial(n) = n == 1 ? 1 : factorial(n-1) * n
 
 function poor_besselj(ν::Int, z::T; atol=eps(T)) where T
     k = 0
     s = (z/2)^ν / factorial(ν)
-    out = s::T
+    out = s
     while abs(s) > atol
         k += 1
-        s *= -(k+ν) * (z/2)^2 / k
+        s *= (-1) / k / (k+ν) * (z/2)^2
         out += s
     end
     out
 end
-x = CUDA.CuArray(0.0:0.01:10)
-poor_besselj.(1, x)
+
+# Create test data
+x_cpu = randn(10000)
+x_gpu = CuArray(x_cpu)
+
+# CPU version
+@benchmark poor_besselj.(1, $x_cpu)
+
+# GPU version - SAME CODE!
+@benchmark CUDA.@sync poor_besselj.(1, $x_gpu)
+
+# Verify correctness
+@assert poor_besselj.(1, x_cpu) ≈ Array(poor_besselj.(1, x_gpu))
 ```
 
-6. manage your GPU devices
+*🎯 What's happening?*
+1. Julia's compiler sees you're broadcasting over a CuArray
+2. It compiles `poor_besselj` to GPU code
+3. Launches it on thousands of GPU threads
+4. Each thread computes one element
+
+No manual CUDA kernel writing needed!
+
+= Writing CUDA Kernels: Taking Full Control
+
+#box(fill: rgb("fff5ee"), inset: 1em, radius: 5pt, width: 100%)[
+  *When to Write Kernels* 🤔
+  
+  Broadcasting handles 80% of use cases. Write custom kernels when:
+  - You need fine-grained control over threads and blocks
+  - You want to use shared memory for communication
+  - You need atomic operations for reductions
+  - You're implementing novel parallel algorithms
+]
+
+== Understanding GPU Thread Hierarchy
+
+GPUs organize computation in a three-level hierarchy @Nickolls2008:
+
+```
+Grid (entire computation)
+  ├─ Block 1 (threads that can communicate)
+  │   ├─ Thread 1
+  │   ├─ Thread 2
+  │   └─ ...
+  ├─ Block 2
+  │   ├─ Thread 1
+  │   └─ ...
+  └─ ...
+```
+
+*Key Concepts:*
+- *Thread*: Single execution unit.
+- *Warp*: A group of 32 threads executed simultaneously (SIMT).
+- *Block*: Group of threads (up to 1024) that can share memory.
+- *Grid*: All blocks in a kernel launch.
+
+#box(fill: rgb("fff5ee"), inset: 1em, radius: 5pt, width: 100%)[
+  *How GPUs Work: The SIMT Model* 🧠
+  
+  GPUs use *Single Instruction, Multiple Threads (SIMT)*. Threads are grouped into "warps" (typically 32 threads) that execute the *same instruction* at the same time.
+  
+  *The Trap:* If threads in a warp diverge (e.g., half go into an `if` block, half go into `else`), the hardware serializes the execution! Both paths are executed for all threads in the warp, with threads masked off when not active.
+  
+  *Performance Tip:* Avoid branching (if-else) that depends on thread ID or data within a warp!
+]
+
+*Why blocks?* Threads in a block can:
+- Share fast memory (shared memory)
+- Synchronize with each other
+- Cooperate on sub-problems
+
+== Your First CUDA Kernel
+
+Let's write a kernel that prints thread IDs:
 
 ```julia
-nvml_dev = NVML.Device(parent_uuid(device()))
+using CUDA
 
-NVML.power_usage(nvml_dev)
+function print_kernel()
+    # Compute unique thread ID
+    i = (blockIdx().x - 1) * blockDim().x + threadIdx().x
+    
+    # Print from GPU (debugging only!)
+    @cuprintf "Thread %ld in block %ld (global ID: %ld)\n" 
+              Int(threadIdx().x) Int(blockIdx().x) Int(i)
+    
+    # MUST return nothing
+    return
+end
 
-NVML.utilization_rates(nvml_dev)
-
-NVML.compute_processes(nvml_dev)
+# Launch kernel: 2 blocks × 4 threads = 8 total threads
+CUDA.@sync @cuda threads=4 blocks=2 print_kernel()
 ```
 
-== Further reading
-1. #link("https://github.com/JuliaComputing/Training")[JuliaComputing/Training]
-2. #link("https://github.com/JuliaGPU/CUDA.jl")[JuliaGPU/CUDA.jl]
+*Thread ID Formula (Julia 1-based indexing):*
+```
+global_id = (block_id - 1) × threads_per_block + local_thread_id
+```
+*Note:* Julia uses 1-based indexing, so we subtract 1 from `blockIdx`. In C/C++, you would use 0-based indexing: `blockIdx.x * blockDim.x + threadIdx.x`.
+
+*🎯 Interactive Question:* With 3 blocks of 8 threads each, what is the global ID of thread 5 in block 2?
+
+*Answer:* $(2-1) times 8 + 5 = 13$
+
+== Example: Fill Array with Indices
+
+A practical kernel that actually does something useful:
+
+```julia
+function one2n_kernel(A)
+    # Compute global thread index
+    i = (blockIdx().x - 1) * blockDim().x + threadIdx().x
+    
+    # Critical: Check bounds!
+    @inbounds if i <= length(A)
+        A[i] = i
+    end
+    
+    return nothing  # Kernels must return nothing
+end
+
+# Create array and launch kernel
+A = CUDA.zeros(Int, 2000)
+@cuda blocks=2 threads=1024 one2n_kernel(A)
+
+# Check result
+println(Array(A))  # [1, 2, 3, ..., 2000]
+```
+
+*Key Points:*
+1. *Always check bounds* - total threads may exceed array size
+2. Use `@inbounds` for performance (but only when safe!)
+3. Return `nothing` from kernels
+
+== Choosing Block and Thread Counts
+
+#box(fill: rgb("fffacd"), inset: 1em, radius: 5pt, width: 100%)[
+  *🎯 Configuration Strategy*
+  
+  Choosing the right block/thread configuration affects performance!
+]
+
+*Rules of Thumb:*
+- Threads per block: 128-1024 (typically 256 or 512)
+- Must be multiple of 32 (warp size)
+- Total threads ≥ array size (extra threads do nothing)
+
+*Why multiples of 32?* GPUs execute threads in groups of 32 called "warps". All threads in a warp execute simultaneously.
+
+```julia
+function launch_config(n::Int; threads_per_block=256)
+    threads = threads_per_block
+    blocks = cld(n, threads)  # Ceiling division: ⌈n/threads⌉
+    return (threads=threads, blocks=blocks)
+end
+
+# Example: Array of 10,000 elements
+config = launch_config(10000)  # (threads=256, blocks=40)
+@cuda threads=config.threads blocks=config.blocks my_kernel(data)
+```
+
+*🎯 Think About It:* Why not always use the maximum 1024 threads per block?
+
+*Answer:* 
+1. *Occupancy:* Each block uses registers and shared memory. If a block uses too many resources, fewer blocks can run simultaneously on a Streaming Multiprocessor (SM).
+2. *Granularity:* Smaller blocks can sometimes schedule better across the GPU.
+3. *Standard practice:* 256 or 512 threads is a good starting point.
+
+== Kernel Restrictions: What You Can't Do
+
+#box(fill: rgb("ffe4e1"), inset: 1em, radius: 5pt, width: 100%)[
+  *🚫 GPU Kernel Limitations*
+  
+  GPU kernels are restricted environments - not all Julia features work!
+]
+
+*❌ Not Allowed:*
+- Dynamic memory allocation (`push!`, `append!`, creating arrays)
+- I/O operations (printing except `@cuprintf`)
+- Most standard library functions
+- Recursion (very limited support)
+- Calling non-GPU-compatible functions
+
+*✓ Allowed:*
+- Basic arithmetic (`+`, `-`, `*`, `/`)
+- Math functions (`sin`, `cos`, `exp`, `sqrt`, etc.)
+- Control flow (`if`, `while`, `for`)
+- Array indexing (fixed-size arrays)
+- Thread/block indexing functions
+
+== Debugging: Finding What Went Wrong
+
+```julia
+function buggy_kernel(A)
+    i = (blockIdx().x - 1) * blockDim().x + threadIdx().x
+    
+    @inbounds if i <= length(A)
+        # ERROR: Dynamic allocation not allowed on GPU!
+        A[i:i+1] = randn(2)
+    end
+    
+    return nothing
+end
+
+# Debug with type analysis
+@device_code_warntype @cuda blocks=2 threads=1024 buggy_kernel(A)
+```
+
+*Debugging Tools:*
+- `@device_code_warntype`: Check for type instabilities and errors
+- `@device_code_llvm`: Inspect LLVM intermediate representation
+- `@device_code_ptx`: See actual GPU assembly code
+- `@device_code_sass`: See machine code (most detailed)
+
+*🎯 Debugging Strategy:*
+1. Start with `@device_code_warntype` - catches most issues
+2. Test kernel with small data first (easy to verify)
+3. Use `@cuprintf` sparingly (very slow!)
+4. Verify against CPU version
+
+= High-Performance GPU Libraries
+
+#box(fill: rgb("f0fff0"), inset: 1em, radius: 5pt, width: 100%)[
+  *The Big Idea* 💡
+  
+  Don't reinvent the wheel! NVIDIA provides highly optimized libraries for common operations. These are often 10-100× faster than naive implementations.
+]
+
+== CUBLAS: Linear Algebra Powerhouse
+
+CUBLAS provides GPU-accelerated BLAS (Basic Linear Algebra Subroutines) operations, achieving near-peak performance for dense linear algebra @NVIDIA2023:
+
+```julia
+using CUDA
+using LinearAlgebra
+
+n = 2000
+A = CUDA.randn(n, n)
+B = CUDA.randn(n, n)
+C = CUDA.zeros(n, n)
+
+# Matrix multiplication (uses CUBLAS automatically)
+mul!(C, A, B)  # Calls optimized CUBLAS routine
+C = A * B      # Same thing
+
+# Vector operations
+v = CUDA.randn(n)
+norm(v)           # Vector norm
+dot(v, v)         # Dot product  
+A * v             # Matrix-vector multiplication
+
+# Matrix operations
+A \ v             # Solve linear system (uses CUSOLVER)
+```
+
+*Performance:* CUBLAS matrix multiplication achieves near-peak GPU performance (~90% of theoretical maximum).
+
+== CUSOLVER: Matrix Decompositions
+
+Solve linear systems and compute decompositions on GPU:
+
+```julia
+using CUDA
+using LinearAlgebra
+
+A = CUDA.randn(100, 100)
+b = CUDA.randn(100)
+
+# Solve Ax = b (uses CUSOLVER)
+x = A \ b
+
+# Verify solution
+@assert A * x ≈ b
+
+# Other decompositions
+Q, R = qr(A)      # QR decomposition
+U, S, V = svd(A)  # Singular Value Decomposition
+```
+
+*When to use:* Linear systems, least squares, eigenvalue problems, matrix factorizations.
+
+== CUSPARSE: Sparse Matrix Operations
+
+For matrices with mostly zeros (common in scientific computing):
+
+```julia
+using CUDA
+using SparseArrays
+using LinearAlgebra
+
+# Create sparse matrix on CPU
+A_cpu = sprand(1000, 1000, 0.01)  # 1% density (99% zeros)
+println("Number of nonzeros: ", nnz(A_cpu))
+
+# Upload to GPU
+A_gpu = CUSPARSE.CuSparseMatrixCSC(A_cpu)
+
+# Sparse operations
+v = CUDA.randn(1000)
+result = A_gpu * v  # Sparse matrix-vector multiplication
+
+# Sparse-sparse multiplication
+B_gpu = A_gpu * A_gpu
+
+# Sparse linear systems  
+A_sparse = A_gpu + CUDA.I(1000) * 10  # Add diagonal to sparse matrix
+x = A_sparse \ v
+```
+
+*When to use sparse matrices:*
+- Density < 5-10% (rule of thumb)
+- Graph algorithms (adjacency matrices)
+- Partial differential equations (finite element/difference methods)
+- Optimization problems with sparse Jacobians/Hessians
+
+*Trade-off:* Sparse operations save memory but have more complex code. Only worth it for large, sparse matrices.
+
+== CUFFT: Fast Fourier Transform
+
+GPU-accelerated FFT for signal processing and scientific computing:
+
+```julia
+using CUDA
+using FFTW  # For CPU comparison
+
+# 1D FFT
+x = CUDA.randn(10000)
+X = CUFFT.fft(x)
+x_reconstructed = CUFFT.ifft(X)
+@assert x ≈ x_reconstructed
+
+# 2D FFT (images, PDEs)
+img = CUDA.randn(1024, 1024)
+img_freq = CUFFT.fft(img)
+
+# Power spectrum
+power = abs2.(img_freq)
+
+# Filtering in frequency domain
+# (Zero out high frequencies)
+img_freq[512:end, :] .= 0
+img_filtered = CUFFT.ifft(img_freq)
+```
+
+*Performance:* 10-50× faster than CPU FFT for large arrays.
+
+*Common Applications:*
+- Signal processing (filtering, convolution)
+- Image processing
+- Solving PDEs (spectral methods)
+- Correlation analysis
+
+== 📊 Library Performance Comparison
+
+#figure(
+  table(
+    columns: 5,
+    align: center,
+    [*Operation*], [*Library*], [*Array Size*], [*Speedup*], [*Use Case*],
+    [Matrix Multiply], [CUBLAS], [2000×2000], [20-50×], [Deep learning, simulation],
+    [Linear Solve], [CUSOLVER], [1000×1000], [10-30×], [PDEs, optimization],
+    [Sparse MatVec], [CUSPARSE], [10⁶, 1% dense], [5-20×], [Graphs, FEM],
+    [FFT], [CUFFT], [10⁶ points], [10-50×], [Signal processing],
+  ),
+  caption: [Typical GPU speedups vs CPU (depends on hardware)]
+)
+
+= Performance Optimization
+
+== Understanding the Memory Bottleneck
+
+#box(fill: rgb("ffe4e1"), inset: 1em, radius: 5pt, width: 100%)[
+  *⚠️ The #1 Performance Killer*
+  
+  CPU-GPU data transfer is ~100× slower than GPU computation!
+]
+
+Memory bandwidth is often the limiting factor in GPU performance @Kirk2016. Understanding the memory hierarchy is crucial for optimization.
+
+*Bandwidth Comparison:*
+- GPU memory bandwidth: ~1000-2000 GB/s (HBM2/GDDR6X)
+- CPU-GPU transfer (PCIe 3.0/4.0/5.0): ~16-64 GB/s
+- CPU memory bandwidth: ~50-100 GB/s
+
+*🎯 Golden Rule:* Minimize CPU-GPU transfers! Keep data on GPU as long as possible.
+
+```julia
+# ❌ BAD: Transfer after every operation
+x_cpu = randn(10000)
+for i in 1:100
+    x_gpu = CuArray(x_cpu)    # Upload (slow!)
+    x_gpu .+= 1
+    x_cpu = Array(x_gpu)       # Download (slow!)
+end
+
+# ✓ GOOD: Keep data on GPU
+x_gpu = CuArray(randn(10000))  # Upload once
+for i in 1:100
+    x_gpu .+= 1                # All on GPU
+end
+result = Array(x_gpu)          # Download once
+```
+
+*🎯 Performance Impact:* Good version is ~100× faster!
+
+== Kernel Fusion
+
+Broadcasting automatically fuses operations into single kernels:
+
+```julia
+x = CUDA.randn(10000)
+
+# ❌ Multiple kernels (slow)
+y = x .^ 2          # Kernel 1: square
+z = sin.(y)         # Kernel 2: sine
+w = z .+ 1          # Kernel 3: add
+
+# ✓ Single fused kernel (fast)
+w = @. sin(x^2) + 1  # One kernel does all three!
+```
+
+*Why is fusion faster?*
+1. Fewer kernel launches (each launch has overhead)
+2. Less memory traffic (intermediate results stay in registers)
+3. Better instruction-level parallelism
+
+*Speedup:* 2-10× for chains of operations.
+
+== Memory Access Patterns
+
+#box(fill: rgb("fff5ee"), inset: 1em, radius: 5pt, width: 100%)[
+  *🎯 Coalesced Memory Access*
+  
+  GPUs are fastest when adjacent threads access adjacent memory locations @Sanders2010.
+]
+
+```julia
+# ✓ GOOD: Sequential access (coalesced)
+function good_kernel(A, B)
+    i = (blockIdx().x - 1) * blockDim().x + threadIdx().x
+    @inbounds if i <= length(A)
+        B[i] = A[i] * 2  # Thread i accesses element i
+    end
+    return nothing
+end
+
+# ❌ BAD: Strided access (non-coalesced)
+function bad_kernel(A, B, stride)
+    i = (blockIdx().x - 1) * blockDim().x + threadIdx().x
+    @inbounds if i <= length(A)
+        B[i] = A[i * stride]  # Threads access non-adjacent elements
+    end
+    return nothing
+end
+```
+
+*Performance impact:* Coalesced access is 5-10× faster!
+
+== 🛠️ Profiling GPU Code
+
+```julia
+using CUDA
+using BenchmarkTools
+
+# Basic timing (with synchronization!)
+@time CUDA.@sync operation()
+
+# Detailed benchmarking
+@benchmark CUDA.@sync $operation()
+
+# GPU profiler (detailed breakdown)
+CUDA.@profile operation()
+```
+
+*What to monitor:*
+1. *Kernel execution time* - actual GPU computation
+2. *Memory transfers* - CPU ↔ GPU data movement
+3. *GPU utilization* - is your GPU fully busy?
+4. *Memory bandwidth* - are you memory-bound?
+
+= Resource Management and Monitoring
+
+== Monitoring GPU Usage
+
+```julia
+using CUDA
+
+# Memory status
+CUDA.memory_status()
+
+# Device information
+dev = device()
+println("Device: ", CUDA.name(dev))
+println("Total memory: ", CUDA.totalmem(dev) ÷ (1024^3), " GB")
+
+# Using NVML for detailed monitoring
+nvml_dev = NVML.Device(parent_uuid(device()))
+
+# Power consumption
+power = NVML.power_usage(nvml_dev)  # milliwatts
+println("Power: ", power / 1000, " W")
+
+# Utilization
+util = NVML.utilization_rates(nvml_dev)
+println("GPU: ", util.compute, "%")
+println("Memory: ", util.memory, "%")
+
+# Active processes
+procs = NVML.compute_processes(nvml_dev)
+for proc in procs
+    println("PID: ", proc.pid, " Memory: ", proc.used_gpu_memory ÷ (1024^2), " MB")
+end
+```
+
+*🎯 Optimization Tip:* If GPU utilization < 50%, you may have:
+- Too small workload (increase array sizes)
+- Too many CPU-GPU transfers
+- Inefficient kernel configuration
+
+== Memory Management
+
+```julia
+# Check memory usage
+CUDA.memory_status()
+
+# Manual memory management
+a = CUDA.rand(1000, 1000)
+CUDA.unsafe_free!(a)  # Free immediately (dangerous!)
+
+# Automatic garbage collection
+a = CUDA.rand(1000, 1000)
+a = nothing
+GC.gc()  # Trigger cleanup
+
+# Clear all GPU memory
+CUDA.reclaim()  # Force cleanup of all freed memory
+```
+
+*🎯 Out of Memory?*
+1. Process data in batches
+2. Use `CUDA.reclaim()` periodically
+3. Reduce array sizes
+4. Check for memory leaks (unreleased references)
+
+= Advanced Topics
+
+== Multiple GPUs
+
+If you have multiple GPUs, you can use them all:
+
+```julia
+# List all devices
+devices = CUDA.devices()
+println("Found ", length(devices), " GPUs")
+
+# Select device
+CUDA.device!(0)  # Use first GPU
+CUDA.device!(1)  # Switch to second GPU
+
+# Use specific device for a block of code
+device(0) do
+    # This code runs on GPU 0
+    x = CUDA.randn(1000)
+    y = x .+ 1
+end
+
+device(1) do
+    # This code runs on GPU 1
+    x = CUDA.randn(1000)
+    y = x .+ 1
+end
+```
+
+*Common Pattern:* Split large arrays across GPUs and compute in parallel.
+
+== Atomic Operations
+
+For parallel reductions and synchronization:
+
+```julia
+function atomic_sum_kernel(A, result)
+    i = (blockIdx().x - 1) * blockDim().x + threadIdx().x
+    
+    @inbounds if i <= length(A)
+        # Atomic add: thread-safe accumulation
+        CUDA.@atomic result[1] += A[i]
+    end
+    
+    return nothing
+end
+
+# Usage
+A = CUDA.randn(10000)
+result = CUDA.zeros(1)
+@cuda threads=256 blocks=cld(10000, 256) atomic_sum_kernel(A, result)
+println("Sum: ", Array(result)[1])
+```
+
+*When to use:* Histograms, reductions, counters, parallel accumulation.
+
+== Shared Memory
+
+Fast memory shared within a block for thread cooperation:
+
+```julia
+function shared_memory_example(A, B)
+    # Allocate shared memory (must be static size)
+    tid = threadIdx().x
+    bid = blockIdx().x
+    i = (bid - 1) * blockDim().x + tid
+    
+    # Each block has its own shared memory
+    shared = @cuStaticSharedMem(Float64, 256)
+    
+    # Load data to shared memory
+    @inbounds if i <= length(A)
+        shared[tid] = A[i]
+    end
+    
+    # Wait for all threads in block
+    sync_threads()
+    
+    # Use shared memory (much faster than global memory!)
+    @inbounds if i <= length(A)
+        B[i] = shared[tid] * 2
+    end
+    
+    return nothing
+end
+```
+
+*Benefits:* Shared memory is ~100× faster than global memory!
+
+= 🚨 Common Pitfalls and Solutions
+
+#box(fill: rgb("ffe4e1"), inset: 1em, radius: 5pt, width: 100%)[
+  *Troubleshooting Guide*
+]
+
+#figure(
+  table(
+    columns: (auto, auto, auto),
+    align: left,
+    [*Problem*], [*Symptom*], [*Solution*],
+    
+    [Scalar indexing], [ErrorException or very slow], [Use array operations or `@allowscalar`],
+    [Out of memory], [CUDA_ERROR_OUT_OF_MEMORY], [Process in batches, use `CUDA.reclaim()`],
+    [Wrong results], [Assertion fails], [Check bounds, verify synchronization],
+    [Slow performance], [No speedup vs CPU], [Profile, minimize transfers, check size],
+    [Kernel errors], [Launch failures], [Use `@device_code_warntype`],
+    [Type instability], [Slow compilation], [Add type annotations],
+    [Not using GPU], [Task CPU still shows 100%], [Forgot `CUDA.@sync`?],
+  ),
+  caption: [Common GPU programming issues and fixes]
+)
+
+*🎯 Debugging Checklist:*
+1. ✓ Using `CUDA.@sync` for proper timing?
+2. ✓ Avoiding scalar indexing?
+3. ✓ Array size large enough (> 1000 elements)?
+4. ✓ Minimizing CPU-GPU transfers?
+5. ✓ Using library functions when available?
+
+= 📊 Method Selection Guide
+
+#box(fill: rgb("f5f5dc"), inset: 1em, radius: 5pt, width: 100%)[
+  *🎯 Which Approach Should You Use?*
+]
+
+#figure(
+  table(
+    columns: (auto, auto, auto, auto),
+    align: left,
+    [*Approach*], [*When to Use*], [*Pros*], [*Cons*],
+    
+    [Broadcasting], [Element-wise ops], [Easy, automatic fusion], [Less control],
+    [Custom kernels], [Complex algorithms], [Full control, shared memory], [More complex],
+    [CUBLAS], [Matrix operations], [Highly optimized], [Fixed operations],
+    [CUSPARSE], [Sparse matrices], [Memory efficient], [Overhead for small matrices],
+    [CUFFT], [Fourier transforms], [Very fast], [Specific use case],
+  ),
+  caption: [Decision guide for different GPU programming approaches]
+)
+
+*🌳 Decision Tree:*
+
+1. *Can you use broadcasting?* → Start there (80% of cases)
+2. *Is it a standard operation?* → Use library (CUBLAS/CUSPARSE/CUFFT)
+3. *Need shared memory or atomics?* → Write custom kernel
+4. *Still too slow?* → Profile and optimize
+
+= 🎓 Lecture Summary
+
+#box(fill: rgb("e6f3ff"), inset: 1.2em, radius: 8pt, width: 100%)[
+  *🌟 Key Takeaways*
+  
+  1. *GPUs excel at data parallelism* - same operation on many elements
+  2. *Minimize CPU-GPU transfers* - keep data on GPU as long as possible
+  3. *Avoid scalar indexing* - work with entire arrays
+  4. *Start high-level* - broadcasting works for most tasks
+  5. *Use libraries when possible* - CUBLAS, CUSPARSE, CUFFT are highly optimized
+  6. *Profile before optimizing* - measure first, optimize second
+  7. *Memory is often the bottleneck* - not computation!
+]
+
+*Performance Hierarchy (fastest to slowest):*
+1. 🚀 Library functions (CUBLAS, CUFFT) - use when possible
+2. 🏃 Optimized custom kernels with shared memory
+3. 🚶 Broadcasting and array operations
+4. 🐌 Scalar indexing and CPU-GPU transfers
+
+= 🏋️‍♂️ Exercises & Hands-On Practice
+
+#box(fill: rgb("fffacd"), inset: 1em, radius: 5pt, width: 100%)[
+  *💻 Programming Exercises*
+  
+  1. *Benchmarking Study:*
+     - Compare CPU vs GPU for vector addition with sizes: 10, 100, 1K, 10K, 100K, 1M
+     - Plot speedup vs array size
+     - Find the "break-even" point where GPU becomes faster
+  
+  2. *Custom Function Broadcasting:*
+     - Implement the logistic function: $f(x) = 1/(1 + e^(-x))$
+     - Broadcast it over a GPU array of 1M elements
+     - Compare performance with CPU
+  
+  3. *Kernel Programming:*
+     - Write a kernel for SAXPY: $y = a x + y$
+     - Compare your kernel with broadcasting: `@. y = a * x + y`
+     - Which is faster? Why?
+  
+  4. *Library Usage:*
+     - Solve a linear system $A x = b$ where $A$ is 1000×1000
+     - Do it on both CPU and GPU
+     - Measure and compare performance
+  
+  5. *Real-World Application:*
+     - Implement parallel Monte Carlo π estimation
+     - Generate N random points in unit square
+     - Count how many fall inside unit circle
+     - Estimate π = 4 × (points in circle / total points)
+]
+
+#box(fill: rgb("f0fff0"), inset: 1em, radius: 5pt, width: 100%)[
+  *🤔 Conceptual Questions*
+  
+  1. Why is the GPU "memory-bound" rather than "compute-bound" for most applications?
+  2. Explain why scalar indexing is so slow on GPUs.
+  3. When would you choose BFGS (CPU) over gradient descent (GPU) for optimization?
+  4. Why do we need blocks in addition to threads?
+  5. What is the trade-off between using more threads vs more blocks?
+]
+
+= 🔍 Further Resources and Next Steps
+
+*Official Documentation:*
+1. CUDA.jl Documentation @CUDAjl - Comprehensive guide and API reference
+2. JuliaGPU Organization @JuliaGPU - Community hub for GPU computing in Julia
+3. JuliaComputing GPU Training @JuliaTraining - Advanced tutorials and examples
+
+*Books and Textbooks:*
+- Kirk & Hwu @Kirk2016: "Programming Massively Parallel Processors" - Excellent textbook on GPU programming fundamentals
+- Sanders & Kandrot @Sanders2010: "CUDA by Example" - Practical introduction to CUDA programming
+- NVIDIA CUDA C Programming Guide @NVIDIACUDA - Comprehensive reference for CUDA
+
+*Research Papers:*
+- Besard et al. @Besard2019: "Effective Extensible Programming: Unleashing Julia on GPUs" - Technical details of CUDA.jl
+- Besard et al. @Besard2018: "Rapid software prototyping for heterogeneous and distributed platforms" - Julia's approach to GPU computing
+- Nickolls & Dally @Nickolls2010: "The GPU Computing Era" - Overview of GPU architecture evolution
+
+*Julia GPU Ecosystem:*
+- `CUDA.jl` @Besard2019 - NVIDIA GPU support with native Julia integration
+- `AMDGPU.jl` - AMD GPU support
+- `KernelAbstractions.jl` @KernelAbstractions - Write portable GPU code
+- `Flux.jl` @Innes2018 - Machine learning with automatic GPU support
+
+*Online Resources:*
+- NVIDIA Developer Blog - Latest GPU programming techniques and optimizations
+- Julia Discourse GPU section - Community Q&A and discussions
+- JuliaCon GPU talks - Annual conference presentations on GPU computing
+
+*Next Steps:*
+1. Complete the hands-on exercises
+2. Try porting your own code to GPU
+3. Explore GPU-accelerated machine learning with Flux.jl
+4. Learn about distributed computing across multiple GPUs
+5. Contribute to the JuliaGPU ecosystem
+
+*🎯 Final Challenge:* Take a computational problem from your research and accelerate it with GPUs. Aim for at least 10× speedup!
+
+= References
 
 #bibliography("refs.bib")

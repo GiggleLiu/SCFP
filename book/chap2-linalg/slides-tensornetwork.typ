@@ -1,6 +1,7 @@
-#import "@preview/touying:0.4.2": *
-#import "@preview/touying-simpl-hkustgz:0.1.0" as hkustgz-theme
-#import "@preview/cetz:0.2.2": *
+#import "@preview/touying:0.6.1": *
+#import "@preview/touying-simpl-hkustgz:0.1.2": *
+#import "@preview/cetz:0.4.1": *
+#import "@preview/cetz-plot:0.1.2": plot
 #import "@preview/algorithmic:0.1.0"
 #import "@preview/ouset:0.2.0": ouset
 #import algorithmic: algorithm
@@ -26,29 +27,19 @@
   }
 }
 
-#let m = hkustgz-theme.register()
-
 #show raw.where(block: true): it=>{
   block(radius:4pt, fill:gray.transparentize(90%), inset:1em, width:99%, text(it))
 }
 
-// Global information configuration
-#let m = (m.methods.info)(
-  self: m,
-  title: [Tensor Networks],
-  subtitle: [Applications in Machine Learning],
-  author: [Jin-Guo Liu],
-  date: datetime.today(),
-  institution: [HKUST(GZ) - FUNH - Advanced Materials Thrust],
+#show: hkustgz-theme.with(
+  config-info(
+    title: [Tensor Networks],
+    subtitle: [Applications in Machine Learning],
+    author: [Jin-Guo Liu],
+    date: datetime.today(),
+    institution: [HKUST(GZ) - FUNH - Advanced Materials Thrust],
+  ),
 )
-
-// Extract methods
-#let (init, slides) = utils.methods(m)
-#show: init
-
-// Extract slide functions
-#let (slide, empty-slide, title-slide, outline-slide, new-section-slide, ending-slide) = utils.slides(m)
-#show: slides.with()
 
 #let tensor(location, name, label) = {
   import draw: *
@@ -66,10 +57,23 @@
   labelnode("line.mid", label, name: name)
 }
 
+#title-slide()
 #outline-slide()
+
+== Hands-on: Preparation
+
+Goto the `ScientificComputingDemos` repository and pull the latest changes:
+```bash
+git pull
+```
+Then initialize the environment:
+```bash
+dir=TensorRenormalizationGroup make init
+```
 
 = Tensor network representation
 
+== Definition
 _Tensor network_ is a diagrammatic representation of multilinear maps.
 - A tensor is represented as a node
 - An index is represented as a hyperedge (a hyperedge can connect to any number of nodes)
@@ -100,7 +104,7 @@ $
 
 Diagrammatic representation:
 - The tensors associated with the same variable are connected by the same hyperedge.
-- If a variable appears in the output tensor, the hyperedge is left _open_.
+- If a variable appears in the output tensor, the hyperedge is left _open_. Otherwise, it is _closed_ by connecting the two tensors.
 
 #align(center, text(10pt, canvas({
   import draw: *
@@ -114,6 +118,7 @@ Diagrammatic representation:
 `einsum` (Einstein summation convention) notation: `ij,jk->ik`
 - The intputs and outputs are separated by `->`.
 - The indices of different input tensors are separated by commas: `ij,jk`.
+- The indices not appearing in the output are summed over.
 
 == Example 2: Proving trace permutation rule
 Prove the trace permutation rule: $tr(A B C) = tr(C A B) = tr(B C A)$.
@@ -191,30 +196,7 @@ In this example, we use the `OMEinsum` package to compute some simple tensor net
 })))
 
 
-== Mathematical notation
-
-A tensor network can be represented by a triple of $(Lambda, cal(T), V_0)$@Liu2022@Roa2024, where:
-- $Lambda$ is the set of variables present in the network.
-- $cal(T) = { T_(V_k) }_(k=1)^K$ is the set of input tensors, where each tensor $T_(V_k)$ is associated with the labels $V_k$.
-- $V_0$ specifies the labels of the output tensor.
-
-Specifically, each tensor $T_(V_k) in cal(T)$ is labeled by a set of variables $V_k subset.eq Lambda$, where the cardinality $|V_k|$ equals the rank of $T_(V_k)$.
-
-== Tensor contraction
-The multilinear map, or the *contraction*, applied to this triple is defined as
-$
-T_(V_0) = "contract"(Lambda, cal(T), V_0) ouset(=, "def") sum_(m in cal(D)_(Lambda without V_0)) product_(T_V in cal(T)) T_(V|M=m),
-$
-where $M = Lambda without V_0$. $T_(V|M=m)$ denotes a slicing of the tensor $T_V$ with the variables $M$ fixed to the values $m$. The summation runs over all possible configurations of the variables in $M$.
-
-== Example: Matrix multiplication
-Matrix multiplication can be described as the contraction of a tensor network given by
-$
-C_(i k) = "contract"({i,j,k}, {A_(i j), B_(j k)}, {i, k}),
-$
-where the input matrices $A$ and $B$ are indexed by the variable sets ${i, j}, {j, k}$, respectively, which are subsets of $Lambda = {i, j, k}$. As a remark of notation, when an set is used as subscripts, we omit the comma and the braces. The output tensor is indexed by variables ${i, k}$ and the summation runs over variables $Lambda without {i, k} = {j}$. 
-
-= Tensor network contraction orders
+== Tensor network contraction orders
 
 - The contraction complexity is determined by the chosen contraction order represented by a binary tree.
 - Finding the optimal contraction order, i.e., the contraction order with minimal complexity, is NP-complete@Markov2008.
@@ -264,8 +246,8 @@ $
 
 
 == Trade-off between contraction order optimization and contraction
+
 #figure(canvas(length:0.9cm, {
-  import plot
   import draw: *
   let s(it) = text(11pt, it)
   plot.plot(size: (10,7),
@@ -299,121 +281,8 @@ $
   content((rel: (3.0, 0), to: "plot.bipartition"), s[Min cut (`KaHyParBipartite`)])
   content((rel: (0, -0.8), to: "plot.tw"), box(fill: white, inset: 1pt, s[Exact tree-width (`ExactTreewidth`)\ State compression]))
   content((rel: (-1.0, -0.4), to: "plot.tamaki"), box(fill: white, s[Positive instance driven], inset: 1pt))
-}),
-caption: [The time to optimize the contraction order for different methods. The x-axis is the time to optimize the contraction order, and the y-axis is the time to contract the tensor network. For details, please check #link("https://arrogantgao.github.io/blogs/contractionorder/")[this blog].]
-)
+}))
 
-
-== Local search method
-
-- The local search method@Kalachev2021 is a heuristic method based on the idea of simulated annealing.
-#let triangle(loc, radius) = {
-  import draw: *
-  let (x, y) = loc
-  let r1 = (x, y)
-  let r2 = (x + 0.5 * radius, y - radius)
-  let r3 = (x - 0.5 * radius, y - radius)
-  line(r1, r2, r3, close:true, fill:white, stroke:black)
-}
-#figure(canvas(length:0.6cm, {
-  import draw: *
-  // petersen graph
-  let rootroot = (0, 0)
-  let root = (-0.8, -1)
-  let left = (-1.6, -2)
-  let right = (0.0, -2)
-  let leftleft = (-2.4, -3)
-  let leftright = (-0.8, -3)
-  let rightleft = (-0.8, -3)
-  let rightright = (0.8, -3)
-  
-  line(rootroot, root, stroke: (dash: "dashed"))
-
-  for (a, b) in ((root, left), (root, right), (left, leftleft), (left, leftright)){
-    line(a, b)
-  }
-
-  for (l, i) in ((right, "C"), (leftleft, "A"), (leftright, "B")){
-    // manual-square(l, radius:0.4)
-    triangle(l, 1.0)
-    content((l.at(0), l.at(1) - 0.6), text(11pt, i))
-  }
-
-  content((1.2, 0), text(16pt)[$arrow$])
-  content((1.2, -3), text(16pt)[$arrow$])
-
-  set-origin((5, 2))
-  line(rootroot, root, stroke: (dash: "dashed"))
-  for (a, b) in ((root, left), (root, right), (left, leftleft), (left, leftright)){
-    line(a, b)
-  }
-  for (l, i) in ((leftleft, "C"), (leftright, "B"), (right, "A")){
-    // manual-square(l, radius:0.4)
-    triangle(l, 1.0)
-    content((l.at(0), l.at(1) - 0.6), text(11pt, i))
-  }
-
-  set-origin((0, -4))
-  line(rootroot, root, stroke: (dash: "dashed"))
-  for (a, b) in ((root, left), (root, right), (left, leftleft), (left, leftright)){
-    line(a, b)
-  }
-  for (l, i) in ((leftleft, "A"), (leftright, "C"), (right, "B")){
-    // manual-square(l, radius:0.4)
-    triangle(l, 1.0)
-    content((l.at(0), l.at(1) - 0.6), text(11pt, i))
-  }
-
-  set-origin((4, 2))
-  line(rootroot, root, stroke: (dash: "dashed"))
-  for (a, b) in ((root, left), (root, right), (right, rightright), (right, rightleft)){
-    line(a, b)
-  }
-  for (l, i) in ((left, "A"), (rightleft, "B"), (rightright, "C")){
-    // manual-square(l, radius:0.4)
-    triangle(l, 1.0)
-    content((l.at(0), l.at(1) - 0.6), text(11pt, i))
-  }
-
-  content((2, 0), text(16pt)[$arrow$])
-  content((2, -3), text(16pt)[$arrow$])
-
-  set-origin((5, 2))
-  line(rootroot, root, stroke: (dash: "dashed"))
-  for (a, b) in ((root, left), (root, right), (right, rightright), (right, rightleft)){
-    line(a, b)
-  }
-  for (l, i) in ((left, "C"), (rightleft, "B"), (rightright, "A")){
-    // manual-square(l, radius:0.4)
-    triangle(l, 1.0)
-    content((l.at(0), l.at(1) - 0.6), text(11pt, i))
-  }
-
-  set-origin((0, -4))
-  line(rootroot, root, stroke: (dash: "dashed"))
-  for (a, b) in ((root, left), (root, right), (right, rightright), (right, rightleft)){
-    line(a, b)
-  }
-  for (l, i) in ((left, "B"), (rightleft, "A"), (rightright, "C")){
-    // manual-square(l, radius:0.4)
-    triangle(l, 1.0)
-    content((l.at(0), l.at(1) - 0.6), text(11pt, i))
-  }
-}),
-)
-
-$
-  (A * B) * C = (A * C) * B = (C * B) * A, \
-  A * (B * C) = B * (A * C) = C * (B * A),
-$
-
-== Simulated annealing
-- Ergodicity: such transformations do not change the result of the contraction.
-- Detailed balance: the transformation is accepted with a probability given by the Metropolis criterion, which is
-$
-  p_("accept") = min(1, e^(-beta Delta cal(L))),
-$
-where $beta$ is the inverse temperature, and $Delta cal(L)$ is the difference of the cost of the new and old contraction trees.
 
 == Slicing tensor networks
 
@@ -535,11 +404,257 @@ The optimal contraction order is closely related to the _tree decomposition_@Mar
 #enum(numbering: "(a)", [A tensor network.], [A line graph for the tensor network. Labels are connected if and only if they appear in the same tensor.], [A tree decomposition (T. D.) of the line graph.])
 
 
-== Live Coding: Contraction order optimization
-https://tensorbfs.github.io/OMEinsumContractionOrders.jl/dev/
+= Compute the partition function of spin glass model
 
+== Partition function of spin glass model
+The partition function of a spin glass model on a graph $G = (V, E)$ is defined as
+$
+Z = sum_(bold(s)) exp(-beta H(bold(s))),
+$
+where $beta$ is the inverse temperature, $bold(s) = {s_i}_(i in V)$ are the spin variables, and the Hamiltonian is given by
+$
+H(bold(s)) = - sum_( (i,j) in E ) J_(i j) s_i s_j - sum_(i in V) h_i s_i,
+$
+where $J_(i j)$ are the coupling constants and $h_i$ are the external fields.
+
+== Partition function to tensor network
+
+$
+  Z = sum_(bold(s)) product_( (i,j) in E ) e^(-beta J_(i j) s_i s_j) product_(i in V) e^(-beta h_i s_i)
+$
+
+It corresponds to the following tensor network:
+$
+  cases(Lambda = {s_i | i in V},
+  cal(T) = {e^(-beta J_(i j) s_i s_j) | (i, j) in E} union {e^(-beta h_i s_i) | i in V},
+  V_0 = emptyset
+  )
+$
+
+== Set notation of tensor networks
+
+A tensor network can be represented by a triple of $(Lambda, cal(T), V_0)$@Liu2022@Roa2024, where:
+- $Lambda$ is the set of variables present in the network.
+- $cal(T) = { T_(V_k) }_(k=1)^K$ is the set of input tensors, where each tensor $T_(V_k)$ is associated with the labels $V_k$.
+- $V_0$ specifies the labels of the output tensor.
+
+Specifically, each tensor $T_(V_k) in cal(T)$ is labeled by a set of variables $V_k subset.eq Lambda$, where the cardinality $|V_k|$ equals the rank of $T_(V_k)$.
+
+== Tensor contraction
+The multilinear map, or the *contraction*, applied to this triple is defined as
+$
+T_(V_0) = "contract"(Lambda, cal(T), V_0) ouset(=, "def") sum_(m in cal(D)_(Lambda without V_0)) product_(T_V in cal(T)) T_(V|M=m),
+$
+where $M = Lambda without V_0$. $T_(V|M=m)$ denotes a slicing of the tensor $T_V$ with the variables $M$ fixed to the values $m$. The summation runs over all possible configurations of the variables in $M$.
+
+== Example: Matrix multiplication
+Matrix multiplication can be described as the contraction of a tensor network given by
+$
+C_(i k) = "contract"({i,j,k}, {A_(i j), B_(j k)}, {i, k}),
+$
+where the input matrices $A$ and $B$ are indexed by the variable sets ${i, j}, {j, k}$, respectively, which are subsets of $Lambda = {i, j, k}$. As a remark of notation, when an set is used as subscripts, we omit the comma and the braces. The output tensor is indexed by variables ${i, k}$ and the summation runs over variables $Lambda without {i, k} = {j}$. 
+
+== Live Coding: AFM spin glass partition function
+
+Graph topology is as follows, each line represents a AFM coupling $J = 1$:
+#canvas({
+  import draw: *
+
+  let d = 1.1
+  let s(it) = text(11pt, it)
+  let locs_labels = ((0, 0), (d, 0), (0, -d), (0, -2 * d), (d, -2 * d), (2 * d, 0), (2 * d, -d), (2 * d, -2 * d))
+  let texts = ("A", "B", "C", "D", "E", "F", "G", "H")
+  for (loc, t) in locs_labels.zip(texts) {
+    circle(loc, radius: 0.2, name: t, fill: black)
+  }
+  for (a, b) in (("A", "B"), ("A", "C"), ("B", "C"), ("C", "D"), ("C", "E"), ("D", "E"), ("E", "G"), ("G", "H"), ("E", "H"), ("F", "G"), ("F", "B"), ("B", "G")) {
+    line(a, b)
+  }
+})
+
+1. The bruteforce enumeration approach.
+2. The tensor network approach.
+
+
+== Hands-on: Tensor renormalization group (TRG)
+
+Goal: Consider a inifitely large spin glass model on a square lattice. Compute the partition function: $ln(Z)$ per site.
+1. Write down its tensor network representation.
+2. Compute the partition function recursively through coarse graining.
+
+== TRG - Part 1: Preparation of tensor network
+
+#figure(canvas({
+  import draw: *
+  let s(it) = text(14pt, it)
+  
+  // Original lattice
+  content((-5.5, 2), s[Step 1: Original lattice\ (Note: extends to infinity)])
+  let d = 1.0
+  for i in range(4) {
+    for j in range(4) {
+      circle((-7 + i*d, 0.5 - j*d), radius: 0.15, name: "t"+str(i)+str(j), fill: black)
+    }
+  }
+  // Draw horizontal connections
+  for j in range(4) {
+    for i in range(3) {
+      line("t"+str(i)+str(j), "t"+str(i+1)+str(j))
+    }
+  }
+  // Draw vertical connections
+  for i in range(4) {
+    for j in range(3) {
+      line("t"+str(i)+str(j), "t"+str(i)+str(j+1))
+    }
+  }
+  
+  set-origin((8, 0))
+  content((-6, 2), s[Step 2: Convert to tensor network\ Q: what are the tensor elements?])
+  let d = 1.0
+  for i in range(4) {
+    for j in range(4) {
+      circle((-7 + i*d, 0.5 - j*d), radius: 0, name: "t"+str(i)+str(j), fill: none)
+    }
+  }
+  // Draw horizontal connections
+  for j in range(4) {
+    for i in range(3) {
+      line("t"+str(i)+str(j), "t"+str(i+1)+str(j), name: "line"+str(i)+str(j))
+      circle("line"+str(i)+str(j)+".mid", fill: white, radius: 0.2)
+    }
+  }
+  // Draw vertical connections
+  for i in range(4) {
+    for j in range(3) {
+      line("t"+str(i)+str(j), "t"+str(i)+str(j+1), name: "line"+str(i)+str(j))
+      circle("line"+str(i)+str(j)+".mid", fill: white, radius: 0.2)
+    }
+  }
+  circle((-6, -1.5), radius: 0.8, stroke: (dash: "dashed"))
+ 
+  // Original lattice
+  set-origin((8, 0))
+  content((-5.5, 2), s[Step 3: Star contraction\ Q: what is the einsum notation\ for this star contraction?])
+  let d = 1.0
+  for i in range(4) {
+    for j in range(4) {
+      circle((-7 + i*d, 0.5 - j*d), radius: 0.2, name: "t"+str(i)+str(j), fill: white)
+    }
+  }
+  // Draw horizontal connections
+  for j in range(4) {
+    for i in range(3) {
+      line("t"+str(i)+str(j), "t"+str(i+1)+str(j))
+    }
+  }
+  // Draw vertical connections
+  for i in range(4) {
+    for j in range(3) {
+      line("t"+str(i)+str(j), "t"+str(i)+str(j+1))
+    }
+  }
+}))
+ 
+== TRG - Part 2: Coarse graining via SVD
+Let us focus on a $2 times 2$ block:
+#figure(canvas({
+  import draw: *
+  let s(it) = text(14pt, it)
+  // Step 1: SVD decomposition
+  content((3, 3), s[Step 1: Eigen decomposition on each tensor: $A = U S U^dagger$, then insert blue tensors as $U sqrt(S)$])
+  let locs = ((1, -1), (1, 1), (-1, 1), (-1, -1))
+  for (k, loc) in locs.enumerate() {
+    circle(loc, radius: 0.3, name: "T" + str(k), fill: white)
+    line("T" + str(k), (rel: (loc.at(0) * 0.8, 0)))
+    line("T" + str(k), (rel: (0, loc.at(1) * 0.8)))
+  }
+  line("T0", "T1")
+  line("T1", "T2")
+  line("T2", "T3")
+  line("T3", "T0")
+  
+  set-origin((6, 0))
+  let locs = ((1, -1), (1, 1), (-1, 1), (-1, -1))
+  for (k, loc) in locs.enumerate() {
+    circle(loc.map(x => x * 0.7), radius: 0.3, name: "A" + str(k), fill: blue)
+    circle(loc.map(x => x / 0.7), radius: 0.3, name: "B" + str(k), fill: blue)
+    line("A" + str(k), "B" + str(k))
+    line("B" + str(k), (rel: (loc.at(0) * 0.8, 0)))
+    line("B" + str(k), (rel: (0, loc.at(1) * 0.8)))
+  }
+  line("A0", "A1")
+  line("A1", "A2")
+  line("A2", "A3")
+  line("A3", "A0")
+  circle((1.08, 1.08), radius: 1, stroke: (dash: "dashed"))
+ 
+  set-origin((-10, -6.0))
+
+  content((2, 3), s[Step 2: Contract and form new tensors])
+  
+  for (k, loc) in locs.enumerate() {
+    circle(loc.map(x => x * 0.7), radius: 0.3, name: "A" + str(k), fill: blue)
+    line("A" + str(k), (rel: (loc.at(0) * 0.5, loc.at(1) * 0.5)))
+  }
+  line("A0", "A1")
+  line("A1", "A2")
+  line("A2", "A3")
+  line("A3", "A0")
+  circle((0, 0), radius: 1.4, stroke: (dash: "dashed"))
+  content((3, 0), [$arrow.r$])
+  circle((5, 0), radius: 0.3, name: "A", fill: green)
+  line("A", (rel: (0.8, 0.8)))
+  line("A", (rel: (-0.8, 0.8)))
+  line("A", (rel: (0.8, -0.8)))
+  line("A", (rel: (-0.8, -0.8)))
+ 
+  set-origin((12, 0))
+  content((0, 2.5), s[Step 3: We got a new lattice\ Q: what is its size?])
+  for (k, loc) in ((1, 0), (0, 1), (-1, 0), (0, -1)).enumerate() {
+    circle(loc, radius: 0.3, fill: green, name: "T" + str(k))
+    line("T" + str(k), (rel: (0.7, 0.7)))
+    line("T" + str(k), (rel: (-0.7, 0.7)))
+    line("T" + str(k), (rel: (0.7, -0.7)))
+    line("T" + str(k), (rel: (-0.7, -0.7)))
+  }
+  line("T0", "T1")
+  line("T1", "T2")
+  line("T2", "T3")
+  line("T3", "T0")
+}))
+
+== Question for you
+
+- Can we use a more direct approach?
+#figure(canvas({
+  import draw: *
+  let s(it) = text(14pt, it)
+  // Step 1: SVD decomposition
+  let locs = ((1, -1), (1, 1), (-1, 1), (-1, -1))
+  for (k, loc) in locs.enumerate() {
+    circle(loc, radius: 0.3, name: "T" + str(k), fill: white)
+    line("T" + str(k), (rel: (loc.at(0) * 0.8, 0)))
+    line("T" + str(k), (rel: (0, loc.at(1) * 0.8)))
+  }
+  line("T0", "T1")
+  line("T1", "T2")
+  line("T2", "T3")
+  line("T3", "T0")
+  content((4, 0), [$arrow.r$])
+  
+  set-origin((7, 0))
+  circle((0, 0), radius: 0.4, fill: red, name: "A")
+  line("A", (rel: (-1, 0)))
+  line("A", (rel: (0, -1)))
+  line("A", (rel: (1, 0)))
+  line("A", (rel: (0, 1)))
+}))
+
+- We need to truncate the bond dimension after each SVD/Eigen decomposition. Is that optimal way to truncated the bond dimension?
+ 
 = Data compression
-=== References:
+== References:
 - Era of big data processing: a new approach via tensor networks and tensor decompositions @Cichocki2014
 
 == Singular value decomposition - revisited
@@ -895,8 +1010,8 @@ $
 
 - Run the example code in folder `HiddenMarkovModel` of our demo repository.
   ```bash
-  make init-HiddenMarkovModel
-  make example-HiddenMarkovModel
+  dir=HiddenMarkovModel make init
+  dir=HiddenMarkovModel make example
   ```
 
 - Tasks:

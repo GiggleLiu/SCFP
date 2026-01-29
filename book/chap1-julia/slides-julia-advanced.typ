@@ -1,12 +1,14 @@
-#import "@preview/touying:0.4.2": *
-#import "@preview/touying-simpl-hkustgz:0.1.0" as hkustgz-theme
-#import "@preview/cetz:0.2.2": *
+#import "@preview/touying:0.6.1": *
+#import "@preview/touying-simpl-hkustgz:0.1.2": *
+#import "@preview/cetz:0.4.1": canvas, draw
+#import "@preview/algorithmic:0.1.0"
+#import algorithmic: algorithm
 #import "../shared/characters.typ": ina, christina, murphy
 
 #let globalvars = state("t", 0)
 #let timecounter(minutes) = [
   #globalvars.update(t => t + minutes)
-  #place(dx: 100%, dy: 0%, align(right, text(16pt, red)[#context globalvars.get()min]))
+  #place(dx: 100%, dy: -5%, align(right, text(16pt, red)[#context globalvars.get()min]))
 ]
 #let clip(image, top: 0pt, bottom: 0pt, left: 0pt, right: 0pt) = {
   box(clip: true, image, inset: (top: -top, right: -right, left: -left, bottom: -bottom))
@@ -23,65 +25,22 @@
   }
 }
 
-#let m = hkustgz-theme.register()
-
 #show raw.where(block: true): it=>{
   block(radius:4pt, fill:gray.transparentize(90%), inset:1em, width:99%, text(it))
 }
 
-// Global information configuration
-#let m = (m.methods.info)(
-  self: m,
-  title: [Julia: Correctness and Reproducibility],
-  subtitle: [],
-  author: [Jin-Guo Liu],
-  date: datetime.today(),
-  institution: [HKUST(GZ) - FUNH - Advanced Materials Thrust],
+#show: hkustgz-theme.with(
+  config-info(
+    title: [Julia: Advanced topics],
+    subtitle: [],
+    author: [Jin-Guo Liu],
+    date: datetime.today(),
+    institution: [HKUST(GZ) - FUNH - Advanced Materials Thrust],
+  ),
 )
 
-// Extract methods
-#let (init, slides) = utils.methods(m)
-#show: init
-
-// Extract slide functions
-#let (slide, empty-slide, title-slide, outline-slide, new-section-slide, ending-slide) = utils.slides(m)
-#show: slides.with()
-
+#title-slide()
 #outline-slide()
-
-== Review
-
-- Terminal: where you can run the commands and control the system.
-  - Git: version control system.
-  - Vim: text editor.
-  - SSH: connect to the remote server.
-- VSCode: a code editor.
-- Julia: a high-level, high-performance programming language for technical computing.
-  - Benchmarking and profiling (`@btime`, `@profile`, `@code_warntype`)
-  - Type system and just-in-time compilation (JIT)
-  - Multiple dispatch
-
-== Revisit: The Min-Plus Tropical semiring
-
-1. Replace `*` with `+`
-#box(text(16pt)[```julia
-julia> TropicalMinPlus(3.0) * TropicalMinPlus(4.0)
-7.0ₛ
-
-julia> one(TropicalMinPlus{Float64})   # the multiplicative identity
-0.0ₛ
-```
-])
-2. Replace `+` with `min`
-#box(text(16pt)[```julia
-julia> TropicalMinPlus(3) + TropicalMinPlus(4)
-3ₛ
-
-julia> zero(TropicalMinPlus{Float64})   # the additive identity
-Infₛ
-```
-])
-
 
 == Tower of software quality
 
@@ -98,31 +57,32 @@ Infₛ
   content((6, -1), s[Extensibility, easy to use et al.])
 }))
 
+== No script
+
+#align(center, text(36pt, strike[Script]))
+
 == This lecture
 
-We focus on:
-- What is *unit test*, how to setup unit tests and package dependencies
-- How to setup CI/CD to automate the testing and deployment
-
-Meanwhile, you will learn:
-- How to represent a *graph* and how to solve the *shortest path problem* with the tropical matrix multiplication
-- The *big-$O$ notation* for measuring the complexity of algorithms
+We focus on correctness:
+- Reproducibable environment: package *versioning* and local environment
+- Metric of correctness: *unit test* and test coverage
+- Consistency: setup *CI/CD* to automate the testing and deployment
 
 = Unit test and CI/CD
 
-== Julia software ecosystem
-#timecounter(2)
-=== General-purpose ecosystem
-- #link("https://github.com/jump-dev/JuMP.jl", "JuMP.jl") (2.3k) - #highlight[Mathematical optimization, e.g. LP, SDP, MIP etc.]
-- #link("https://github.com/SciML/DifferentialEquations.jl", "DifferentialEquations.jl") (2.9k) - #highlight[Solving differential equations]
-- #link("https://github.com/MakieOrg/Makie.jl", "Makie.jl") (2.5k) - Data visualization
-- #link("https://github.com/Jutho/KrylovKit.jl", "KrylovKit.jl") (333) - Large-scale sparse linear algebra
-- #link("https://github.com/JuliaNLSolvers/Optim.jl", "Optim.jl") (1.1k) - Optimization, i.e. finding the minimum of a function
+// == Julia software ecosystem
+// #timecounter(2)
+// === General-purpose ecosystem
+// - #link("https://github.com/jump-dev/JuMP.jl", "JuMP.jl") (2.3k) - #highlight[Mathematical optimization, e.g. LP, SDP, MIP etc.]
+// - #link("https://github.com/SciML/DifferentialEquations.jl", "DifferentialEquations.jl") (2.9k) - #highlight[Solving differential equations]
+// - #link("https://github.com/MakieOrg/Makie.jl", "Makie.jl") (2.5k) - Data visualization
+// - #link("https://github.com/Jutho/KrylovKit.jl", "KrylovKit.jl") (333) - Large-scale sparse linear algebra
+// - #link("https://github.com/JuliaNLSolvers/Optim.jl", "Optim.jl") (1.1k) - Optimization, i.e. finding the minimum of a function
 
-=== Domain-specific ecosystem
-- #link("https://github.com/ITensor/ITensors.jl", "ITensors.jl") (570) - Tensor networks
-- #link("https://github.com/QuantumBFS/Yao.jl", "Yao.jl") (1k) - Quantum computing
-- #link("https://github.com/JuliaMolSim/DFTK.jl", "DFTK.jl") (460) - Density functional theory
+// === Domain-specific ecosystem
+// - #link("https://github.com/ITensor/ITensors.jl", "ITensors.jl") (570) - Tensor networks
+// - #link("https://github.com/QuantumBFS/Yao.jl", "Yao.jl") (1k) - Quantum computing
+// - #link("https://github.com/JuliaMolSim/DFTK.jl", "DFTK.jl") (460) - Density functional theory
 
 
 == Correctness, correctness and correctness!
@@ -185,7 +145,7 @@ Julia                          245           4777           6108          18198
   #box(text(16pt)[```julia
 (@v1.11) pkg> activate --temp  # create a temporary environment
 
-(@v1.11) pkg> dev TropicalNumbers  # develop the package
+(jl_shdToL) pkg> dev TropicalNumbers  # develop the package
 ```
   ])
 
@@ -240,7 +200,7 @@ ERROR: Some tests did not pass: 1 passed, 1 failed, 0 errored, 0 broken.
 ==
 #timecounter(1)
 
-#image("images/tropicalpackage.png", width: 80%)
+#image("images/tropicalpackage.png", width: 80%, alt: "TropicalNumbers.jl")
 
 - The CI of #link("https://github.com/TensorBFS/TropicalNumbers.jl", "TropicalNumbers.jl") pass, meaning all tests pass. CI resolves the issue that a developer may not have a fresh machine to run the tests.
 - The code coverage of TropicalNumbers is 86%, meaning 86% of the code is covered by tests.
@@ -248,7 +208,7 @@ ERROR: Some tests did not pass: 1 passed, 1 failed, 0 errored, 0 broken.
 == Live demo: GitHub Actions
 #timecounter(2)
 
-#image("images/github-actions.png")
+#image("images/github-actions.png", alt: "GitHub Actions")
 
 Let's check the details of tests runs: https://github.com/TensorBFS/TropicalNumbers.jl/actions
 
@@ -357,7 +317,7 @@ Note: it is not recommended to install all packages in the global environment. I
   content((rel:(2.4, 0), to: "download.mid"), s[3. Download])
   content((rel: (0.0, -1), to: "User"), [`] instantiate` or `]update`])
   rect((-3, -1), (3, 6.5), stroke: (dash: "dashed"))
-  content((0, 7.5), image("images/github.png", width: 2em))
+  content((0, 7.5), image("images/github.png", width: 2em, alt: "GitHub"))
   bezier("User.east", "User.north", (rel: (1.0, 1.0)), (rel: (-1.0, 1.0)), mark: (end: "straight"))
   content((rel: (4.0, 1.5), to: "User"), s[2. Resolve versions])
 }))
@@ -527,157 +487,178 @@ test = ["Test"]
 == Hands on: Develop the package
 #timecounter(15)
 
+https://scfp.jinguo-group.science/chap1-julia/julia-release.html
 
 1. Create a new package named `MyFirstPackage.jl` in your local machine.
-2. Implement the shortest path algorithm with TropicalNumbers.
+2. Implement the Lorenz simulation.
 3. Write tests for the package.
+4. Answer the following questions:
+  - Estimate the number of FLOPs.
+  - Benchmark and profile the performance, and share the results with the class.
 
-== Theory: Graph
-#timecounter(2)
+== Homework
 
-Graph $G = (V, E)$, where $V$ is the set of vertices and $E$ is the set of edges.
-#align(center, canvas(length:0.9cm, {
-  import draw: *
-  let vrotate(v, theta) = {
-    let (x, y) = v
-    return (x * calc.cos(theta) - y * calc.sin(theta), x * calc.sin(theta) + y * calc.cos(theta))
-  }
+https://github.com/CodingThrust/AMAT5315-2025Spring-Homeworks/tree/main/hw3
 
-  // petersen graph
-  let vertices1 = range(5).map(i=>vrotate((0, 2), i*72/180*calc.pi))
-  let vertices2 = range(5).map(i=>vrotate((0, 1), i*72/180*calc.pi))
-  let edges = ((0, 1), (1, 2), (2, 3), (3, 4), (4, 0), (0, 5), (1, 6), (2, 7), (3, 8), (4, 9), (5, 7), (6, 8), (7, 9), (8, 5), (9, 6))
-  show-graph((vertices1 + vertices2).map(v=>(v.at(0) + 4, v.at(1)+4)), edges, radius:0.2)
-}))
-
-#box(text(16pt)[```julia
-julia> using Graphs   # Graphs.jl is a package for graph theory
-
-julia> g = smallgraph(:petersen)  # a famous graph for testing
-{10, 15} undirected simple Int64 graph
-```
-])
-
-==
-#timecounter(1)
-
-#box(text(16pt)[```julia
-julia> vertices(g)
-Base.OneTo(10)
-
-julia> [edges(g)...]   # `...` is the splat operator, it expands the edges into a vector
-15-element Vector{Graphs.SimpleGraphs.SimpleEdge{Int64}}:
- Edge 1 => 2
- Edge 1 => 5
- Edge 1 => 6
- Edge 2 => 3
- ⋮
- Edge 6 => 9
- Edge 7 => 9
- Edge 7 => 10
- Edge 8 => 10
-```
-])
-
-Note: `edges(g)` returns an iterator, its elements are `SimpleEdge` objects.
-
-== Adjacency matrix
+== Get help from communities
 #timecounter(3)
 
-The adjacency matrix $A in bb(Z)_2^(|V| times |V|)$ is defined as
-$
-A_(i j) = cases(1\, quad (i,j) in E, 0\, quad "otherwise")  
-$
+#grid(columns: 2,  gutter: 50pt, [https://julialang.org/community/
 
-#box(text(14pt)[```julia
-julia> adjacency_matrix(g)
-10×10 SparseArrays.SparseMatrixCSC{Int64, Int64} with 30 stored entries:
- ⋅  1  ⋅  ⋅  1  1  ⋅  ⋅  ⋅  ⋅
- 1  ⋅  1  ⋅  ⋅  ⋅  1  ⋅  ⋅  ⋅
- ⋅  1  ⋅  1  ⋅  ⋅  ⋅  1  ⋅  ⋅
- ⋅  ⋅  1  ⋅  1  ⋅  ⋅  ⋅  1  ⋅
- 1  ⋅  ⋅  1  ⋅  ⋅  ⋅  ⋅  ⋅  1
- 1  ⋅  ⋅  ⋅  ⋅  ⋅  ⋅  1  1  ⋅
- ⋅  1  ⋅  ⋅  ⋅  ⋅  ⋅  ⋅  1  1
- ⋅  ⋅  1  ⋅  ⋅  1  ⋅  ⋅  ⋅  1
- ⋅  ⋅  ⋅  1  ⋅  1  1  ⋅  ⋅  ⋅
- ⋅  ⋅  ⋅  ⋅  1  ⋅  1  1  ⋅  ⋅
-```
+- Discourse (for questions): https://discourse.julialang.org/
+- Zulip (for discussions): https://julialang.zulipchat.com/
+- Slack (for discussions): https://julialang.org/slack/
+], [
+  #image("images/juliazulip.png", width: 150pt, alt: "Julia Zulip")
 ])
 
-== Shortest path
-#timecounter(2)
 
-The shortest path problem is to find the shortest path between two vertices in a graph. The tropical matrix multiplication approach is one of the most efficient ways to solve the shortest path problem.
+// == Theory: Graph
+// #timecounter(2)
 
-Hint: Use Tropical matrix multiplication!
+// Graph $G = (V, E)$, where $V$ is the set of vertices and $E$ is the set of edges.
+// #align(center, canvas(length:0.9cm, {
+//   import draw: *
+//   let vrotate(v, theta) = {
+//     let (x, y) = v
+//     return (x * calc.cos(theta) - y * calc.sin(theta), x * calc.sin(theta) + y * calc.cos(theta))
+//   }
 
-$ (A B)_(i k) = min_j (A_(i j) + B_(j k)). $
+//   // petersen graph
+//   let vertices1 = range(5).map(i=>vrotate((0, 2), i*72/180*calc.pi))
+//   let vertices2 = range(5).map(i=>vrotate((0, 1), i*72/180*calc.pi))
+//   let edges = ((0, 1), (1, 2), (2, 3), (3, 4), (4, 0), (0, 5), (1, 6), (2, 7), (3, 8), (4, 9), (5, 7), (6, 8), (7, 9), (8, 5), (9, 6))
+//   show-graph((vertices1 + vertices2).map(v=>(v.at(0) + 4, v.at(1)+4)), edges, radius:0.2)
+// }))
 
-By powering the adjacency matrix $A$ for $|V|$ times with Min-Plus Tropical algebra, we can get the shortest paths length between any two vertices.
-$
-  (A^(|V|))_(i j) = min_(k_1, k_2, dots, k_(|V|-1)) (A_(i k_1) + A_(k_1 k_2) + dots + A_(k_(|V|-1) j))
-$
+// #box(text(16pt)[```julia
+// julia> using Graphs   # Graphs.jl is a package for graph theory
 
-== Big $O$ notation
-#timecounter(2)
+// julia> g = smallgraph(:petersen)  # a famous graph for testing
+// {10, 15} undirected simple Int64 graph
+// ```
+// ])
 
-- Let $n$ be the number of vertices.
-- The computational complexity of the shortest path problem is $O(n^3 log n)$.
-- The complexity of (tropical) matrix multiplication is $O(n^3)$.
-  #box(text(16pt)[```julia
-for i in 1:n
-  for j in 1:n
-    for k in 1:n
-      A[i, j] = max(A[i, j], A[i, k] + A[k, j])  # number of operations: n^3
-    end
-  end
-end
-```
-])
+// ==
+// #timecounter(1)
 
-Note: Big $O$ notation characterizes the *scaling* of the computational time with respect to the size of the input.
+// #box(text(16pt)[```julia
+// julia> vertices(g)
+// Base.OneTo(10)
 
-Quiz: Why the complexity of our shortest path algorithm is not $O(n^4)$?
+// julia> [edges(g)...]   # `...` is the splat operator, it expands the edges into a vector
+// 15-element Vector{Graphs.SimpleGraphs.SimpleEdge{Int64}}:
+//  Edge 1 => 2
+//  Edge 1 => 5
+//  Edge 1 => 6
+//  Edge 2 => 3
+//  ⋮
+//  Edge 6 => 9
+//  Edge 7 => 9
+//  Edge 7 => 10
+//  Edge 8 => 10
+// ```
+// ])
 
-== Run the tests
-#timecounter(1)
+// Note: `edges(g)` returns an iterator, its elements are `SimpleEdge` objects.
 
-To run the tests, you can use the following command in the package environment:
-```julia-repl
-(MyFirstPackage) pkg> test
-  ... 
-  [8e850b90] libblastrampoline_jll v5.8.0+1
-Precompiling project...
-  1 dependency successfully precompiled in 1 seconds. 21 already precompiled.
-     Testing Running tests...
-Test Summary: | Pass  Total  Time
-shortest-path |    2      2  0.1s
-     Testing MyFirstPackage tests passed
-```
+// == Adjacency matrix
+// #timecounter(3)
 
-Cheers! All tests passed.
+// The adjacency matrix $A in bb(Z)_2^(|V| times |V|)$ is defined as
+// $
+// A_(i j) = cases(1\, quad (i,j) in E, 0\, quad "otherwise")  
+// $
 
-== Volunteer
-#timecounter(10)
+// #box(text(14pt)[```julia
+// julia> adjacency_matrix(g)
+// 10×10 SparseArrays.SparseMatrixCSC{Int64, Int64} with 30 stored entries:
+//  ⋅  1  ⋅  ⋅  1  1  ⋅  ⋅  ⋅  ⋅
+//  1  ⋅  1  ⋅  ⋅  ⋅  1  ⋅  ⋅  ⋅
+//  ⋅  1  ⋅  1  ⋅  ⋅  ⋅  1  ⋅  ⋅
+//  ⋅  ⋅  1  ⋅  1  ⋅  ⋅  ⋅  1  ⋅
+//  1  ⋅  ⋅  1  ⋅  ⋅  ⋅  ⋅  ⋅  1
+//  1  ⋅  ⋅  ⋅  ⋅  ⋅  ⋅  1  1  ⋅
+//  ⋅  1  ⋅  ⋅  ⋅  ⋅  ⋅  ⋅  1  1
+//  ⋅  ⋅  1  ⋅  ⋅  1  ⋅  ⋅  ⋅  1
+//  ⋅  ⋅  ⋅  1  ⋅  1  1  ⋅  ⋅  ⋅
+//  ⋅  ⋅  ⋅  ⋅  1  ⋅  1  1  ⋅  ⋅
+// ```
+// ])
 
-Show-case your test cases.
+// == Shortest path
+// #timecounter(2)
 
-== Onliner's implementation
-#timecounter(2)
+// The shortest path problem is to find the shortest path between two vertices in a graph. The tropical matrix multiplication approach is one of the most efficient ways to solve the shortest path problem.
 
-#box(text(16pt)[```julia
-using TropicalNumbers, LinearAlgebra, Graphs
-tmat = (map(x->iszero(x) ? zero(TropicalMinPlus{Float64}) : TropicalMinPlus(1.0), adjacency_matrix(smallgraph(:petersen))) + Diagonal(fill(TropicalMinPlus(0.0), 10)))^10
-```
-])
-- "`map`": apply a function to each element of the input array.
-- "`Diagonal`": create a diagonal matrix from a vector.
-- "`x -> ...`": a anonymous function that takes an argument `x` and returns a value.
-- "`expression ? branch 1 : branch 2`": a ternary operator that returns `branch 1` if `expression` is true, otherwise returns `branch 2`.
-- "`fill(x, n)`": create a vector of length `n` with all elements being `x`.
+// Hint: Use Tropical matrix multiplication!
 
-Note: `zero(TropicalMinPlus{Float64})` is `Inf`.
+// $ (A B)_(i k) = min_j (A_(i j) + B_(j k)). $
+
+// By powering the adjacency matrix $A$ for $|V|$ times with Min-Plus Tropical algebra, we can get the shortest paths length between any two vertices.
+// $
+//   (A^(|V|))_(i j) = min_(k_1, k_2, dots, k_(|V|-1)) (A_(i k_1) + A_(k_1 k_2) + dots + A_(k_(|V|-1) j))
+// $
+
+// == Big $O$ notation
+// #timecounter(2)
+
+// - Let $n$ be the number of vertices.
+// - The computational complexity of the shortest path problem is $O(n^3 log n)$.
+// - The complexity of (tropical) matrix multiplication is $O(n^3)$.
+//   #box(text(16pt)[```julia
+// for i in 1:n
+//   for j in 1:n
+//     for k in 1:n
+//       A[i, j] = max(A[i, j], A[i, k] + A[k, j])  # number of operations: n^3
+//     end
+//   end
+// end
+// ```
+// ])
+
+// Note: Big $O$ notation characterizes the *scaling* of the computational time with respect to the size of the input.
+
+// Quiz: Why the complexity of our shortest path algorithm is not $O(n^4)$?
+
+// == Run the tests
+// #timecounter(1)
+
+// To run the tests, you can use the following command in the package environment:
+// ```julia-repl
+// (MyFirstPackage) pkg> test
+//   ... 
+//   [8e850b90] libblastrampoline_jll v5.8.0+1
+// Precompiling project...
+//   1 dependency successfully precompiled in 1 seconds. 21 already precompiled.
+//      Testing Running tests...
+// Test Summary: | Pass  Total  Time
+// shortest-path |    2      2  0.1s
+//      Testing MyFirstPackage tests passed
+// ```
+
+// Cheers! All tests passed.
+
+// == Volunteer
+// #timecounter(10)
+
+// Show-case your test cases.
+
+// == Onliner's implementation
+// #timecounter(2)
+
+// #box(text(16pt)[```julia
+// using TropicalNumbers, LinearAlgebra, Graphs
+// tmat = (map(x->iszero(x) ? zero(TropicalMinPlus{Float64}) : TropicalMinPlus(1.0), adjacency_matrix(smallgraph(:petersen))) + Diagonal(fill(TropicalMinPlus(0.0), 10)))^10
+// ```
+// ])
+// - "`map`": apply a function to each element of the input array.
+// - "`Diagonal`": create a diagonal matrix from a vector.
+// - "`x -> ...`": a anonymous function that takes an argument `x` and returns a value.
+// - "`expression ? branch 1 : branch 2`": a ternary operator that returns `branch 1` if `expression` is true, otherwise returns `branch 2`.
+// - "`fill(x, n)`": create a vector of length `n` with all elements being `x`.
+
+// Note: `zero(TropicalMinPlus{Float64})` is `Inf`.
 
 // == Next steps (left as homework)
 // #timecounter(2)
@@ -734,19 +715,221 @@ Note: `zero(TropicalMinPlus{Float64})` is `Inf`.
 // - A typical CPU clock cycle is: 0.3 ns.
 // - A typical memory access latency is: 50 ns, i.e. $~100$ times slower!
 
-== Homework
+// == Example: Triangular Lattice
+// #timecounter(2)
 
-https://github.com/CodingThrust/AMAT5315-2025Spring-Homeworks/tree/main/hw3
+// Generate a triangular lattice using broadcasting:
 
-== Get help from communities
-#timecounter(3)
+// ```julia
+// # Basis vectors
+// b1 = [1, 0]
+// b2 = [0.5, sqrt(3)/2]
+// n = 5
 
-#grid(columns: 2,  gutter: 50pt, [https://julialang.org/community/
+// # Two equivalent approaches
+// mesh1 = [i * b1 + j * b2 for i in 1:n, j in 1:n]  # List comprehension
+// mesh2 = (1:n) .* Ref(b1) .+ (1:n)' .* Ref(b2)     # Broadcasting
 
-- Discourse (for questions): https://discourse.julialang.org/
-- Zulip (for discussions): https://julialang.zulipchat.com/
-- Slack (for discussions): https://julialang.org/slack/
-], [
-  #image("images/juliazulip.png", width: 150pt)
-])
+// # Visualization with CairoMakie
+// using CairoMakie
+// scatter(vec(getindex.(mesh2, 1)), vec(getindex.(mesh2, 2)))
+// ```
 
+// This demonstrates Julia's concise syntax for mathematical operations.
+
+// == Hands-on: Rigid body simulation
+// #timecounter(20)
+
+// 1. Check the case study: Hamiltonian dynamics at the bottom of this page: https://scfp.jinguo-group.science/chap1-julia/julia-basic.html . Create a local project folder, copy-paste the program into a local file: `nbody.jl`. Open the project with VSCode.
+// 2. Use `@benchmark` to benchmark the performance of the program, and `Profile` to profile the program. Save the benchmark and profile results to a markdown file.
+// 3. Remove the type annotation of the field `m` of the `Body` type, and compare the performance of the original and the modified versions.
+//   ```julia
+// struct Body{T <: Real}
+//     x::NTuple{3, T}
+//     v::NTuple{3, T}
+//     m   # remove the type annotation
+// end
+// ```
+
+// == Walk through the code
+// #timecounter(5)
+
+// Defining a type with `struct`:
+
+// ```julia
+// struct Body{T <: Real}
+//     x::NTuple{3,T}
+//     v::NTuple{3,T}
+//     m::T
+// end
+// ```
+
+// - `::`: type declaration
+// - `<:`: subtype
+// - `NTuple{3,T}`: a tuple of 3 elements of type `T`, tuples are immutable and faster.
+// - `T`: the type parameter name
+
+// == Function and loops
+// #timecounter(2)
+
+// #box(text(16pt)[```julia
+// function simulate!(bodies::Vector{Body{T}}, n::Int, dt::T) where T
+//     # Advance velocities by half a timestep
+//     step_velocity!(bodies, dt/2)
+//     # Advance positions and velocities by one timestep
+//     for _ = 1:n
+//         step_position!(bodies, dt)
+//         step_velocity!(bodies, dt)
+//     end
+//     # Advance velocities backwards by half a timestep
+//     step_velocity!(bodies, -dt/2)
+// end
+// ```
+// ])
+
+// - `!` is part of function name, it is a convention for _in-place operations_.
+// - `Vector{Body{T}}`: a vector of `Body{T}` type, vectors are _mutable_.
+// - `where T`: infer the type parameter `T` from the argument.
+
+// == The Hamiltonian Dynamics
+// #timecounter(2)
+// In the Hamiltonian dynamics simulation, we have the following equation of motion:
+// $ m (partial^2 bold(x))/(partial t^2) = bold(f)(bold(x)). $
+
+// Equivalently, by denoting $bold(v) = (partial bold(x))/(partial t)$, we have the first-order differential equations:
+// $
+// cases(m (partial bold(v))/(partial t) &= bold(f)(bold(x)),
+// (partial bold(x))/(partial t) &= bold(v))
+// $
+
+// == The Verlet Algorithm
+// #timecounter(3)
+// It is a typical Hamiltonian dynamics, which can be solved numerically by the Verlet algorithm @Verlet1967. The algorithm is as follows:
+
+// #algorithm({
+//   import algorithmic: *
+//   Function("Verlet", args: ([$bold(x)$], [$bold(v)$], [$bold(f)$], [$m$], [$d t$], [$n$]), {
+//     Assign([$bold(v)$], [$bold(v) + (bold(f)(bold(x)))/m d t \/ 2$ #h(2em)#Ic([update velocity at time $d t \/ 2$])])
+//     For(cond: [$i = 1 dots n$], {
+//       Cmt[time step $t = i d t$]
+//       Assign([$bold(x)$], [$bold(x) + bold(v) d t$ #h(2em)#Ic([update position at time $t$])])
+//       Assign([$bold(v)$], [$bold(v) + (bold(f)(bold(x)))/m d t$ #h(2em)#Ic([update velocity at time $t + d t\/2$])])
+//     })
+//     Assign([$bold(v)$], [$bold(v) - (bold(f)(bold(x)))/m d t \/ 2$ #h(2em)#Ic([velocity at time $n d t$])])
+//     Return[$bold(x)$, $bold(v)$]
+//   })
+// })
+
+// The Verlet algorithm is a simple yet robust algorithm for solving the differential equation of motion. It is the most widely used algorithm in molecular dynamics simulation.
+
+// == Broadcasting
+// #timecounter(2)
+
+// #box(text(16pt)[```julia
+// function step_velocity!(bodies::Vector{Body{T}}, dt::T) where T
+//     # Calculate the force on each body due to the other bodies in the system.
+//     @inbounds for i in 1:lastindex(bodies)-1, j in i+1:lastindex(bodies)
+//         Δx = bodies[i].x .- bodies[j].x 
+//         distance = sum(abs2, Δx)
+//         mag = dt * inv(sqrt(distance))^3   # `^` is power operator
+//         bodies[i] = Body(bodies[i].x, bodies[i].v .- Δx .* (mag * bodies[j].m), bodies[i].m)
+//         bodies[j] = Body(bodies[j].x, bodies[j].v .+ Δx .* (mag * bodies[i].m), bodies[j].m)
+//     end
+// end
+// ```
+// ])
+
+// - `bodies[i].x`: access the `x` field of the `i`-th element of `bodies`.
+// - "`.`": broadcast operator, apply the operation element-wise.
+// - `sum(abs2, Δx)`: apply `abs2` to each element of `Δx`, and then sum the results.
+// - `@inbounds`: a macro, skip the bounds check for the loop.
+
+// == Step position
+// #timecounter(1)
+
+// #box(text(16pt)[```julia
+// function step_position!(bodies::Vector{Body{T}}, dt::T) where T
+//     @inbounds for i in eachindex(bodies)
+//         bi = bodies[i]
+//         bodies[i] = Body(bi.x .+ bi.v .* dt, bi.v, bi.m)
+//     end
+// end
+// ```
+// ])
+
+// == Total energy of the system
+// #timecounter(2)
+
+// #box(text(16pt)[```julia
+// function energy(bodies::Vector{Body{T}}) where T
+//     e = zero(T)
+//     # Kinetic energy of bodies
+//     @inbounds for b in bodies
+//         e += T(0.5) * b.m * sum(abs2, b.v)
+//     end
+    
+//     # Potential energy between body i and body j
+//     @inbounds for i in 1:lastindex(bodies)-1, j in i+1:lastindex(bodies)
+//         Δx = bodies[i].x .- bodies[j].x
+//         e -= bodies[i].m * bodies[j].m / sqrt(sum(abs2, Δx))
+//     end
+//     return e
+// end
+// ```
+// ])
+// - `zero(T)`: return a zero value of type `T`.
+// - `T(0.5)`: convert the value `0.5` to type `T`.
+
+// == Main simulation - avoid using global variables!
+// #timecounter(2)
+
+// #box(text(12pt)[```julia
+// function solar_system()
+//     SOLAR_MASS = 4 * π^2
+//     DAYS_PER_YEAR = 365.24
+//     jupiter = Body((4.841e+0, -1.160e+0, -1.036e-1),
+//         ( 1.660e-3, 7.699e-3, -6.905e-5) .* DAYS_PER_YEAR,
+//         9.547e-4 * SOLAR_MASS)
+//     saturn = Body((8.343e+0, 4.125e+0, -4.035e-1),
+//         (-2.767e-3, 4.998e-3, 2.304e-5) .* DAYS_PER_YEAR,
+//         2.858e-4 * SOLAR_MASS)
+//     uranus = Body((1.289e+1, -1.511e+1, -2.23e-1),
+//         ( 2.96e-3, 2.378e-3, -2.96e-5) .* DAYS_PER_YEAR,
+//         4.36e-5 * SOLAR_MASS)
+//     neptune = Body((1.537e+1, -2.591e+1, 1.792e-1),
+//         ( 2.680e-3, 1.628e-3, -9.515e-5) .* DAYS_PER_YEAR,
+//         5.151e-5 * SOLAR_MASS)
+//     sun = Body((0.0, 0.0, 0.0),
+//         (-1.061e-6, -8.966e-6, 6.553e-8) .* DAYS_PER_YEAR,
+//         SOLAR_MASS)
+//     return [jupiter, saturn, uranus, neptune, sun]
+// end
+// ```
+// ])
+// Because global variables are not type stable, since they can be changed at any time.
+
+// == Main simulation
+// #timecounter(1)
+// ```julia
+// bodies = solar_system()
+// @info "Initial energy: $(energy(bodies))"
+// @time simulate!(bodies, 50000000, 0.01);
+// @info "Final energy: $(energy(bodies))"
+// ```
+// - `@info`: print the message and the value of the variable. similar functions/macros are `print`, `println`, `display`, `show`, `@warn`, `@error`, `@debug`, `@show`, etc.
+// - `$`: interpolate the value of the variable.
+// - `@time`: time the execution of the code.
+
+// == Type stability
+// #timecounter(1)
+
+// ```julia
+// julia> @code_warntype step_velocity!(bodies, 0.01)
+// ```
+
+== Video Watching
+
+- High Performance in Dynamic Languages (Steven Johnson):
+ https://www.youtube.com/watch?v=6JcMuFgnA6U&ab_channel=MITOpenCourseWare
+
+// #bibliography("refs.bib")

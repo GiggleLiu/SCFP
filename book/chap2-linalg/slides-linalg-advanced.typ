@@ -1,6 +1,6 @@
-#import "@preview/touying:0.4.2": *
-#import "@preview/touying-simpl-hkustgz:0.1.0" as hkustgz-theme
-#import "@preview/cetz:0.2.2": *
+#import "@preview/touying:0.6.1": *
+#import "@preview/touying-simpl-hkustgz:0.1.2": *
+#import "@preview/cetz:0.4.1": *
 #import "@preview/algorithmic:0.1.0"
 #import algorithmic: algorithm
 
@@ -24,30 +24,21 @@
   }
 }
 
-#let m = hkustgz-theme.register()
-
 #show raw.where(block: true): it=>{
   block(radius:4pt, fill:gray.transparentize(90%), inset:1em, width:99%, text(it))
 }
 
-// Global information configuration
-#let m = (m.methods.info)(
-  self: m,
-  title: [Matrix computation: Advanced topics],
-  subtitle: [],
-  author: [Jin-Guo Liu],
-  date: datetime.today(),
-  institution: [HKUST(GZ) - FUNH - Advanced Materials Thrust],
+#show: hkustgz-theme.with(
+  config-info(
+    title: [Matrix computation: Advanced topics],
+    subtitle: [],
+    author: [Jin-Guo Liu],
+    date: datetime.today(),
+    institution: [HKUST(GZ) - FUNH - Advanced Materials Thrust],
+  ),
 )
 
-// Extract methods
-#let (init, slides) = utils.methods(m)
-#show: init
-
-// Extract slide functions
-#let (slide, empty-slide, title-slide, outline-slide, new-section-slide, ending-slide) = utils.slides(m)
-#show: slides.with()
-
+#title-slide()
 #outline-slide()
 
 
@@ -184,20 +175,6 @@ Here, $u$ represents frequency in the _frequency domain_, while $x$ represents p
 
 == Discrete Fourier Transform
 #timecounter(1)
-#figure(canvas({
-  import draw: *
-  let s(it) = text(12pt)[#it]
-  let r = 1.5
-  circle((0, 0), radius: r, name: "circle")
-  let n = 8
-  for i in range(n){
-    let (x, y) = (calc.cos(i * 2 * calc.pi/n), calc.sin(i * 2 * calc.pi/n))
-    line((x*r, y*r), (1.1*x*r, 1.1*y*r), name: "line" + str(i))
-  }
-  content((0, r + 0.4), s[$0 = 2 pi$])
-  content((0, 0), s[$omega = e^(-2pi i\/n)$])
-}),
-)
 When working with discrete data over a finite domain, we use the discrete Fourier transform (DFT). For a vector $bold(x) = (x_0, x_1, dots, x_(n-1))$ of length $n$, the DFT is defined as:
 $ y_k = sum_(j=0)^(n-1) x_j e^(-2pi i k j\/n) = sum_(j=0)^(n-1) x_j omega^(k j) = F_n bold(x) $ 
 

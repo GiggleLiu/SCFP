@@ -1,5 +1,6 @@
 #import "../book.typ": book-page
-#import "@preview/cetz:0.2.2": *
+#import "@preview/cetz:0.4.1": *
+#import "@preview/cetz-plot:0.1.2": plot
 
 #show: book-page.with(title: "Matrix Computation")
 #let exampleblock(it) = block(fill: rgb("#ffffff"), inset: 1em, radius: 4pt, stroke: black, it)
@@ -173,7 +174,6 @@ The objective of the data fitting problem is to find a *smooth* curve that fits 
 ))
 
 #figure(canvas(length:0.9cm, {
-  import plot
   import draw: *
   let t = (0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5)
   let y = (2.9, 2.7, 4.8, 5.3, 7.1, 7.6, 7.7, 7.6, 9.4, 9.0)
@@ -428,39 +428,32 @@ julia> u(1.0)  # atom locations offsets at t=1.0
   0.01755397796957868
 ```
 
-#figure(image("images/springs-demo.gif", width: 300pt), caption: [One of the eigenmodes of a spring chain. The simulation result is obtained by solving the differential equation with the Verlet algorithm. Exact result is given by the eigen-decomposition of the stiffness matrix.])
+#figure(image("images/springs-demo.gif", width: 300pt, alt: "Spring chain"), caption: [One of the eigenmodes of a spring chain. The simulation result is obtained by solving the differential equation with the Verlet algorithm. Exact result is given by the eigen-decomposition of the stiffness matrix.])
 
 
 Any initial condition can be expressed as a linear combination of these eigenmodes. For implementation details, see the #link("https://github.com/GiggleLiu/ScientificComputingDemos/tree/main/SpringSystem")[source code].
 
 == Fast Fourier Transform
 
-The Fourier transform is a *linear transformation* widely used in signal processing, image processing and physics.
-It transforms a function in the time/space domain into a representation in the _frequency domain_. For a complex-valued function $f(x)$, the Fourier transform and its inverse transform are defined as:
+The Fourier transform is a fundamental *linear transformation* that decomposes a signal into its constituent frequencies. It is indispensable in signal processing, image processing, quantum mechanics, and many other fields. The key insight is that many signals that appear complex in the time or space domain have simple, sparse representations in the frequency domain.
 
-$ g(u) = cal(F)(f(x)) = integral_(-infinity)^infinity e^(-2 pi i u x) f(x) dif x\
-f(x) = cal(F)^(-1)(g(u)) = 1/(2pi) integral_(-infinity)^infinity e^(2 pi i u x) g(u) dif u
-$
-Here, $u$ represents frequency in the _frequency domain_, while $x$ represents position/time in the _physical domain_.
+=== Continuous Fourier Transform
 
-#figure(canvas({
-  import draw: *
-  let s(it) = text(12pt)[#it]
-  let r = 1.5
-  circle((0, 0), radius: r, name: "circle")
-  let n = 8
-  for i in range(n){
-    let (x, y) = (calc.cos(i * 2 * calc.pi/n), calc.sin(i * 2 * calc.pi/n))
-    line((x*r, y*r), (1.1*x*r, 1.1*y*r), name: "line" + str(i))
-  }
-  content((0, r + 0.4), s[$0 = 2 pi$])
-  content((0, 0), s[$omega = e^(-2pi i\/n)$])
-}),
-)
-When working with discrete data over a finite domain, we use the discrete Fourier transform (DFT). For a vector $bold(x) = (x_0, x_1, dots, x_(n-1))$ of length $n$, the DFT is defined as:
-$ y_k = sum_(j=0)^(n-1) x_j e^(-2pi i k j\/n) = sum_(j=0)^(n-1) x_j omega^(k j) = F_n bold(x) $ 
+For a continuous complex-valued function $f(x)$, the Fourier transform and its inverse are defined as:
 
-where $omega = e^(-2pi i\/n)$ is the primitive $n$th root of unity. $F_n$ is the _DFT matrix_:
+$ hat(f)(u) = cal(F)(f(x)) = integral_(-infinity)^infinity e^(-2 pi i u x) f(x) dif x $
+$ f(x) = cal(F)^(-1)(hat(f)(u)) = integral_(-infinity)^infinity e^(2 pi i u x) hat(f)(u) dif u $
+
+Here, $u$ represents frequency in the _frequency domain_, while $x$ represents position/time in the _physical domain_. The exponential $e^(-2pi i u x) = cos(2pi u x) - i sin(2pi u x)$ acts as a basis function that oscillates at frequency $u$.
+
+=== Discrete Fourier Transform (DFT)
+
+In practice, we work with discrete, finite-length signals. For a vector $bold(x) = (x_0, x_1, dots, x_(n-1))$ of length $n$, the DFT transforms it into frequency domain $bold(y) = (y_0, y_1, dots, y_(n-1))$:
+
+$ y_k = sum_(j=0)^(n-1) x_j e^(-2pi i k j\/n) = sum_(j=0)^(n-1) x_j omega^(k j) $ <eq:dft>
+
+where $omega = e^(-2pi i\/n)$ is the primitive $n$-th root of unity. This is a matrix-vector multiplication $bold(y) = F_n bold(x)$, where $F_n$ is the _DFT matrix_:
+
 $
 F_n = mat(
 1 , 1 , 1 , dots , 1;
@@ -469,10 +462,35 @@ F_n = mat(
 dots.v , dots.v , dots.v , dots.down , dots.v;
 1 , omega^(n-1) , omega^(2n-2) , dots , omega^((n-1)^2)
 ).
-$
+$ <eq:dft-matrix>
 
-The inverse transformation is given by $F_n^dagger x\/n$. The DFT matrix is unitary up to a scale factor: $F_n F_n^dagger = n I$.
-The Julia package `FFTW.jl` contains an extremely efficient implementation of FFT.
+*Properties:*
+- The DFT is a linear transformation with $O(n^2)$ complexity for direct computation
+- The inverse DFT is given by $bold(x) = F_n^dagger bold(y)\/n$
+- The DFT matrix is unitary up to scaling: $F_n F_n^dagger = n I$
+
+=== The Cooley-Tukey Fast Fourier Transform
+
+Direct computation of the DFT via matrix multiplication requires $O(n^2)$ operations, which becomes prohibitive for large $n$. The Fast Fourier Transform (FFT) algorithm, developed by Cooley and Tukey in 1965 (though earlier versions existed), reduces this to $O(n log n)$ through a divide-and-conquer strategy.
+
+The key observation is that the DFT of size $n$ can be decomposed into two DFTs of size $n\/2$. By separating the input into odd and even indices:
+
+$ F_n bold(x) = mat(
+  I_(n/2), D_(n/2);
+  I_(n/2), -D_(n/2)
+) mat(
+  F_(n/2), 0;
+  0, F_(n/2)
+) mat(bold(x)_("even"); bold(x)_("odd")) $
+
+where:
+- $bold(x)_("even") = (x_0, x_2, x_4, dots)$ and $bold(x)_("odd") = (x_1, x_3, x_5, dots)$ are the even and odd indexed elements
+- $D_(n/2) = "diag"(1, omega, omega^2, ..., omega^(n/2-1))$ is a diagonal _twiddle factor_ matrix
+- $omega = e^(-2pi i\/n)$ is the primitive $n$-th root of unity
+
+This decomposition leads to the recurrence relation $T(n) = 2T(n/2) + O(n)$, which by the Master theorem solves to $T(n) = O(n log n)$.
+
+The Julia package `FFTW.jl` provides a highly optimized implementation of FFT that is used throughout scientific computing:
 
 ```julia
 julia> using FFTW
@@ -573,9 +591,99 @@ end
 @test p * q ≈ fast_polymul(p, q)
 ```
 
-
-
 == Application 2: Image compression
-(TBD)
+
+Images often contain redundant information that can be efficiently represented in the frequency domain. The 2D Fourier transform allows us to decompose an image into its frequency components, where most of the energy is typically concentrated in the low-frequency components. This property enables effective image compression.
+
+For a 2D signal (image) $f(x,y)$, the 2D Discrete Fourier Transform is defined as:
+$ F(u,v) = sum_(x=0)^(m-1) sum_(y=0)^(n-1) f(x,y) e^(-2pi i(u x\/m + v y\/n)) $
+
+The inverse transform recovers the original image:
+$ f(x,y) = 1/(m n) sum_(u=0)^(m-1) sum_(v=0)^(n-1) F(u,v) e^(2pi i(u x\/m + v y\/n)) $
+
+#exampleblock[
+*Image Compression with FFT*
+
+Consider compressing a grayscale image using the Fast Fourier Transform:
+
+```julia
+using FFTW, Images
+
+# Load and convert image to grayscale
+# You can also use `load("myimage.png")` to load the image from your local file system.
+img = load(download("https://i.imgur.com/VGPeJ6s.jpg"))
+gray_img = Gray.(img)
+```
+
+You will see the famous corgi in Julia image processing community named Philip.
+#figure(image("images/philip-gray.png", width: 40%), caption: [The original image of Philip.])
+
+```julia
+# Apply 2D FFT
+img_data = Float64.(gray_img)  # Convert to Float64
+img_fft = fftshift(fft(img_data))
+
+# Visualize frequency spectrum (log scale for better visibility)
+spectrum = log.(1 .+ abs.(img_fft))
+Gray.(spectrum ./ maximum(spectrum))
+```
+You will see the frequency spectrum of the image, which is mostly black, meaning having very small amplitude.
+#figure(image("images/philip-k.png", width: 40%), caption: [The frequency spectrum of Philip.])
+
+The frequency spectrum shows that most energy concentrates in the center (low frequencies). We can compress by setting small coefficients to zero:
+
+```julia
+# Set threshold - discard coefficients below tolerance
+tolerance = 100  # Adjust based on desired compression
+img_fft_compressed = copy(img_fft)
+img_fft_compressed[abs.(img_fft_compressed) .< tolerance] .= 0
+
+# Convert to sparse matrix for efficient storage
+using SparseArrays
+sparse_fft = sparse(img_fft_compressed)
+
+# Compression ratio
+compression_ratio = nnz(sparse_fft) / length(img_fft)
+println("Compression ratio: $(compression_ratio * 100)%")
+```
+With this tolerance, the compression ratio is about $22.1%$, which means about we keep only about 1/5 of the original image data. However, the reconstructed image turns out not very different from the original one.
+
+```julia
+# Reconstruct image using inverse FFT
+img_recovered = ifft(ifftshift(Matrix(sparse_fft)))
+recovered_img = Gray.(abs.(img_recovered))
+```
+
+#figure(image("images/philip-reconstructed.png", width: 40%), caption: [The reconstructed image with the tolerance set to 100.])
+
+The compression quality depends on the tolerance parameter:
+- *Low tolerance*: More coefficients retained, better quality, less compression
+- *High tolerance*: Fewer coefficients retained, lower quality, more compression
+
+This technique forms the basis of JPEG compression, which uses the related Discrete Cosine Transform (DCT) instead of FFT.
+]
+
+*Comparison with DCT*
+
+The Discrete Cosine Transform (DCT) is closely related to FFT but produces only real coefficients for real inputs, making it more efficient for image compression:
+
+```julia
+using FFTW
+
+# DCT compression
+img_dct = dct(img_data)
+img_dct_compressed = copy(img_dct)
+tolerance = sort(vec(img_dct_compressed))[round(Int, length(img_dct_compressed) * 0.78)]
+img_dct_compressed[abs.(img_dct_compressed) .< tolerance] .= 0
+
+# Reconstruct
+img_recovered_dct = idct(img_dct_compressed)
+recovered_img_dct = Gray.(abs.(img_recovered_dct))
+```
+
+The DCT is preferred in practice (e.g., JPEG standard) because:
+1. It produces real-valued coefficients for real images
+2. Better energy compaction for typical images
+3. Eliminates boundary discontinuities that FFT introduces
 
 #bibliography("refs.bib")

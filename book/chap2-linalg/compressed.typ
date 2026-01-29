@@ -1,6 +1,6 @@
-#import "../book.typ": book-page, cross-link, heading-reference
-#show: book-page.with(title: "Compressed Sensing")
-#import "@preview/cetz:0.1.2"
+//#import "../book.typ": book-page, cross-link, heading-reference
+//#show: book-page.with(title: "Compressed Sensing")
+#import "@preview/cetz:0.4.1"
 
 #align(center, [= Compressed Sensing and Restricted Boltzmann Machines\
 _Jin-Guo Liu_])
@@ -43,7 +43,7 @@ In computer science and information theory, a Huffman code is a particular type 
 
 Mondrian - Trafalgar Square, 1939-43 - a picture having little information from various perspective.
 
-#image("images/trafalgar-square.jpg", width: 300pt)
+#image("images/trafalgar-square.jpg", width: 300pt, alt: "Trafalgar Square")
 
 === The naive approach
 - R: 000
@@ -271,7 +271,7 @@ norm(FFTW.dct(interp_linear.(t)), 1)
 
 == Example 2: Recovering an image
 
-#image("images/compressed-sensing.png")
+#image("images/compressed-sensing.png", alt: "Compressed sensing")
 
 == Creating a Julia Package
 1. Go to the folder for package development,

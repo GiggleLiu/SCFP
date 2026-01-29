@@ -1,44 +1,35 @@
-#import "@preview/touying:0.4.2": *
-#import "@preview/algorithmic:0.1.0"
-#import algorithmic: algorithm
-#import "@preview/touying-simpl-hkustgz:0.1.0" as hkustgz-theme
-#import "@preview/cetz:0.2.2": *
+#import "@preview/touying:0.6.1": *
+#import "@preview/touying-simpl-hkustgz:0.1.2": *
+#import "@preview/cetz:0.4.1": *
 #import "../shared/characters.typ": ina, christina, murphy
+
+#show par: set text(20pt)
 
 #let globalvars = state("t", 0)
 #let timecounter(minutes) = [
   #globalvars.update(t => t + minutes)
-  #place(dx: 100%, dy: 0%, align(right, text(16pt, red)[#context globalvars.get()min]))
+  #place(dx: 100%, dy: -5%, align(right, text(16pt, red)[#context globalvars.get()min]))
 ]
 #let clip(image, top: 0pt, bottom: 0pt, left: 0pt, right: 0pt) = {
   box(clip: true, image, inset: (top: -top, right: -right, left: -left, bottom: -bottom))
 }
 #set cite(style: "apa")
 
-#let m = hkustgz-theme.register()
-
 #show raw.where(block: true): it=>{
-  block(radius:4pt, fill:gray.transparentize(90%), inset:1em, width:99%, text(it))
+  block(radius:4pt, fill:gray.transparentize(90%), inset:1em, width:99%, text(it, 10pt))
 }
 
-// Global information configuration
-#let m = (m.methods.info)(
-  self: m,
-  title: [Julia: A Modern and Efficient Programming Language],
-  subtitle: [],
-  author: [Jin-Guo Liu],
-  date: datetime.today(),
-  institution: [HKUST(GZ) - FUNH - Advanced Materials Thrust],
+#show: hkustgz-theme.with(
+  config-info(
+    title: [Julia: A Modern and Efficient Programming Language],
+    subtitle: [],
+    author: [Jin-Guo Liu],
+    date: datetime.today(),
+    institution: [HKUST(GZ) - FUNH - Advanced Materials Thrust],
+  ),
 )
 
-// Extract methods
-#let (init, slides) = utils.methods(m)
-#show: init
-
-// Extract slide functions
-#let (slide, empty-slide, title-slide, outline-slide, new-section-slide, ending-slide) = utils.slides(m)
-#show: slides.with()
-
+#title-slide()
 #outline-slide()
 
 = Introduction
@@ -70,16 +61,52 @@ Many prominent scientists and engineers have switched to Julia:
 Julia is a just-in-time (JIT) compiled language. It means that the code is compiled to machine code at runtime.
 It is as concise (concise $!=$ simple) as Python, but runs much faster!
 #figure(
-  image("images/benchmark.png", width: 400pt),
+  image("images/benchmark.png", width: 350pt, alt: "Benchmark"),
 )
 
-== Benchmarking and Profiling
-#timecounter(5)
+== Understanding performance
 
-#link("https://benchmarksgame-team.pages.debian.net/benchmarksgame/fastest/julia-ifx.html")[The Computer Language Benchmarks Game]
+- Floating point operations (FLOP): number of floating point operations ($+$, $-$, $*$ and $\/$)
+- Floating point operations per second (FLOPS)
+- Big-O notation: the scaling behavior of a program, e.g. for a problem of size $n$, $O(1)$ is constant, $O(n)$ is linear, $O(n^gamma)$ is polynomial, $O(2^n)$ is exponential.
+
+== Example
+
+Matrix multiplication: $C = A B$, where $A in CC^(n times n)$, $B in CC^(n times n)$, $C in CC^(n times n)$. The algorithm is
+```julia
+for i in 1:n
+  for j in 1:n
+    for k in 1:n
+      C[i, j] += A[i, k] * B[k, j]
+    end
+  end
+end
+```
+
+== Solution
+- Floating point operations: $2 n^3$ - measure implementation
+- Floating point operations per second: $2 n^3 \/ t$ - measure device
+- Time complexity: $O(n^3)$ - measure algorithm
+
+== Benchmarking
+#timecounter(3)
 
 - How to measure the performance of your code? `BenchmarkTools`
   - Run the function for multiple times to get the minimum time.
+
+```julia
+julia> using BenchmarkTools
+
+julia> a, b = randn(1000, 1000), randn(1000, 1000);
+
+julia> @btime a * b;
+  1.234 ms (0 allocations: 0 bytes)
+```
+
+== Profiling the bottleneck
+#timecounter(2)
+
+#link("https://benchmarksgame-team.pages.debian.net/benchmarksgame/fastest/julia-ifx.html")[The Computer Language Benchmarks Game]
 
 - How to find the bottleneck of your code? `Profile`
   - _Event based profiler_, e.g. triggered by the function call event.
@@ -104,6 +131,15 @@ pkg> add BenchmarkTools
 ```
 
 Type `Backspace` to return to the normal mode. Type `Ctrl-C` to cancel the current command. Type `Ctrl-D` to exit the REPL.
+
+== Hands-on: Benchmarking and profiling the binary tree program
+#timecounter(1)
+
+Set up the environment:
+
+1. Download the code.
+2. Open the code in VSCode/Cursor.
+3. Press `Shift+Enter` to run the code.
 
 == Benchmarking
 #timecounter(1)
@@ -137,197 +173,6 @@ julia> Profile.print(; mincount=10)  # Print the profile results
 julia> Profile.clear()   # Clear the profile results
 ```
 
-== Hands-on: Benchmarking and Profiling
-#timecounter(20)
-
-1. Check the case study: Hamiltonian dynamics at the bottom of this page: https://scfp.jinguo-group.science/chap1-julia/julia-basic.html . Create a local project folder, copy-paste the program into a local file: `nbody.jl`. Open the project with VSCode.
-2. Use `@benchmark` to benchmark the performance of the program, and `Profile` to profile the program. Save the benchmark and profile results to a markdown file.
-3. Remove the type annotation of the field `m` of the `Body` type, and compare the performance of the original and the modified versions.
-  ```julia
-struct Body{T <: Real}
-    x::NTuple{3, T}
-    v::NTuple{3, T}
-    m   # remove the type annotation
-end
-```
-
-== Walk through the code
-#timecounter(5)
-
-Defining a type with `struct`:
-
-```julia
-struct Body{T <: Real}
-    x::NTuple{3,T}
-    v::NTuple{3,T}
-    m::T
-end
-```
-
-- `::`: type declaration
-- `<:`: subtype
-- `NTuple{3,T}`: a tuple of 3 elements of type `T`, tuples are immutable and faster.
-- `T`: the type parameter name
-
-== Function and loops
-#timecounter(2)
-
-#box(text(16pt)[```julia
-function simulate!(bodies::Vector{Body{T}}, n::Int, dt::T) where T
-    # Advance velocities by half a timestep
-    step_velocity!(bodies, dt/2)
-    # Advance positions and velocities by one timestep
-    for _ = 1:n
-        step_position!(bodies, dt)
-        step_velocity!(bodies, dt)
-    end
-    # Advance velocities backwards by half a timestep
-    step_velocity!(bodies, -dt/2)
-end
-```
-])
-
-- `!` is part of function name, it is a convention for _in-place operations_.
-- `Vector{Body{T}}`: a vector of `Body{T}` type, vectors are _mutable_.
-- `where T`: infer the type parameter `T` from the argument.
-
-== The Hamiltonian Dynamics
-#timecounter(2)
-In the Hamiltonian dynamics simulation, we have the following equation of motion:
-$ m (partial^2 bold(x))/(partial t^2) = bold(f)(bold(x)). $
-
-Equivalently, by denoting $bold(v) = (partial bold(x))/(partial t)$, we have the first-order differential equations:
-$
-cases(m (partial bold(v))/(partial t) &= bold(f)(bold(x)),
-(partial bold(x))/(partial t) &= bold(v))
-$
-
-== The Verlet Algorithm
-#timecounter(3)
-It is a typical Hamiltonian dynamics, which can be solved numerically by the Verlet algorithm @Verlet1967. The algorithm is as follows:
-
-#algorithm({
-  import algorithmic: *
-  Function("Verlet", args: ([$bold(x)$], [$bold(v)$], [$bold(f)$], [$m$], [$d t$], [$n$]), {
-    Assign([$bold(v)$], [$bold(v) + (bold(f)(bold(x)))/m d t \/ 2$ #h(2em)#Ic([update velocity at time $d t \/ 2$])])
-    For(cond: [$i = 1 dots n$], {
-      Cmt[time step $t = i d t$]
-      Assign([$bold(x)$], [$bold(x) + bold(v) d t$ #h(2em)#Ic([update position at time $t$])])
-      Assign([$bold(v)$], [$bold(v) + (bold(f)(bold(x)))/m d t$ #h(2em)#Ic([update velocity at time $t + d t\/2$])])
-    })
-    Assign([$bold(v)$], [$bold(v) - (bold(f)(bold(x)))/m d t \/ 2$ #h(2em)#Ic([velocity at time $n d t$])])
-    Return[$bold(x)$, $bold(v)$]
-  })
-})
-
-The Verlet algorithm is a simple yet robust algorithm for solving the differential equation of motion. It is the most widely used algorithm in molecular dynamics simulation.
-
-== Broadcasting
-#timecounter(2)
-
-#box(text(16pt)[```julia
-function step_velocity!(bodies::Vector{Body{T}}, dt::T) where T
-    # Calculate the force on each body due to the other bodies in the system.
-    @inbounds for i in 1:lastindex(bodies)-1, j in i+1:lastindex(bodies)
-        Δx = bodies[i].x .- bodies[j].x 
-        distance = sum(abs2, Δx)
-        mag = dt * inv(sqrt(distance))^3   # `^` is power operator
-        bodies[i] = Body(bodies[i].x, bodies[i].v .- Δx .* (mag * bodies[j].m), bodies[i].m)
-        bodies[j] = Body(bodies[j].x, bodies[j].v .+ Δx .* (mag * bodies[i].m), bodies[j].m)
-    end
-end
-```
-])
-
-- `bodies[i].x`: access the `x` field of the `i`-th element of `bodies`.
-- "`.`": broadcast operator, apply the operation element-wise.
-- `sum(abs2, Δx)`: apply `abs2` to each element of `Δx`, and then sum the results.
-- `@inbounds`: a macro, skip the bounds check for the loop.
-
-== Step position
-#timecounter(1)
-
-#box(text(16pt)[```julia
-function step_position!(bodies::Vector{Body{T}}, dt::T) where T
-    @inbounds for i in eachindex(bodies)
-        bi = bodies[i]
-        bodies[i] = Body(bi.x .+ bi.v .* dt, bi.v, bi.m)
-    end
-end
-```
-])
-
-== Total energy of the system
-#timecounter(2)
-
-#box(text(16pt)[```julia
-function energy(bodies::Vector{Body{T}}) where T
-    e = zero(T)
-    # Kinetic energy of bodies
-    @inbounds for b in bodies
-        e += T(0.5) * b.m * sum(abs2, b.v)
-    end
-    
-    # Potential energy between body i and body j
-    @inbounds for i in 1:lastindex(bodies)-1, j in i+1:lastindex(bodies)
-        Δx = bodies[i].x .- bodies[j].x
-        e -= bodies[i].m * bodies[j].m / sqrt(sum(abs2, Δx))
-    end
-    return e
-end
-```
-])
-- `zero(T)`: return a zero value of type `T`.
-- `T(0.5)`: convert the value `0.5` to type `T`.
-
-== Main simulation - avoid using global variables!
-#timecounter(2)
-
-#box(text(12pt)[```julia
-function solar_system()
-    SOLAR_MASS = 4 * π^2
-    DAYS_PER_YEAR = 365.24
-    jupiter = Body((4.841e+0, -1.160e+0, -1.036e-1),
-        ( 1.660e-3, 7.699e-3, -6.905e-5) .* DAYS_PER_YEAR,
-        9.547e-4 * SOLAR_MASS)
-    saturn = Body((8.343e+0, 4.125e+0, -4.035e-1),
-        (-2.767e-3, 4.998e-3, 2.304e-5) .* DAYS_PER_YEAR,
-        2.858e-4 * SOLAR_MASS)
-    uranus = Body((1.289e+1, -1.511e+1, -2.23e-1),
-        ( 2.96e-3, 2.378e-3, -2.96e-5) .* DAYS_PER_YEAR,
-        4.36e-5 * SOLAR_MASS)
-    neptune = Body((1.537e+1, -2.591e+1, 1.792e-1),
-        ( 2.680e-3, 1.628e-3, -9.515e-5) .* DAYS_PER_YEAR,
-        5.151e-5 * SOLAR_MASS)
-    sun = Body((0.0, 0.0, 0.0),
-        (-1.061e-6, -8.966e-6, 6.553e-8) .* DAYS_PER_YEAR,
-        SOLAR_MASS)
-    return [jupiter, saturn, uranus, neptune, sun]
-end
-```
-])
-Because global variables are not type stable, since they can be changed at any time.
-
-== Main simulation
-#timecounter(1)
-```julia
-bodies = solar_system()
-@info "Initial energy: $(energy(bodies))"
-@time simulate!(bodies, 50000000, 0.01);
-@info "Final energy: $(energy(bodies))"
-```
-- `@info`: print the message and the value of the variable. similar functions/macros are `print`, `println`, `display`, `show`, `@warn`, `@error`, `@debug`, `@show`, etc.
-- `$`: interpolate the value of the variable.
-- `@time`: time the execution of the code.
-
-== Type stability
-#timecounter(1)
-
-```julia
-julia> @code_warntype step_velocity!(bodies, 0.01)
-```
-
-
 == Just-In-Time (JIT) Compilation
 #timecounter(1)
 
@@ -354,8 +199,21 @@ The more you tell the compiler, the more efficient code it can generate.
 )
 
 ```julia
-julia> @code_native step_velocity!($bodies, 0.01)
+julia> @code_native make(5)
 ```
+
+== Example: Complex number
+#timecounter(1)
+
+```julia
+struct CNumber
+    a::Float64
+    b::Float64
+end
+Base.:(+)(a::CNumber, b::CNumber) = CNumber(a.a + b.a, a.b + b.b)
+@btime x + y setup=(x=CNumber(1.0, 2.0); y=CNumber(3.0, 4.0))
+```
+Why is it so fast?
 
 = Julia Type System
 
@@ -556,7 +414,42 @@ typeof(y)
 })))
 )
 
+== Example: define a rigid body
+```julia
+struct GenericBody
+    x   # coordinate
+    v   # velocity
+    m   # mass
+end
 
+mass(body::GenericBody) = body.m
+body = GenericBody((1.0, 2.0, 3.0), (2.0, 3.0, 4.0), 3.0)
+mass(body)
+body.m = 3.0   # how to fix this?
+```
+
+== V2: with concrete types
+```julia
+struct ConcreteBody
+    x::NTuple{3, Float64}
+    v::NTuple{3, Float64}
+    m::Float64
+end
+body = ConcreteBody((1.0, 2.0, 3.0), (2.0, 3.0, 4.0), 3.0)
+body = ConcreteBody((1.0, 2.0), (2.0, 3.0), 3.0)  # how to fix?
+```
+
+== V3: with type parameters
+
+```julia
+struct ParameterizedBody{D, T <: Real}
+    x::NTuple{D, T}
+    v::NTuple{D, T}
+    m::T
+end
+body = ParameterizedBody((1.0, 2.0), (2.0, 3.0), 3.0)
+body = ParameterizedBody((1.0, 2.0), (2.0, 3.0), 3)  # how to fix this?
+```
 
 // == Primitive types and composite types
 // - _primitive types_: those directly supported by the instruction set architecture.
@@ -858,6 +751,134 @@ julia> fight(Human(170), Human(180))
 "loss"
 ```
 
+== Hands-on
+
+1. Clone the repo: https://github.com/TensorBFS/TropicalNumbers.jl to your local machine.
+2. Run the tests in your VSCode/Cursor.
+3. Answer the questions:
+  - What is the supertype of `TropicalAndOr`?
+  - How many subtypes does `AbstractSemiring` have?
+  - Can we subtype `Tropical`?
+  - Is `Tropical(2.0)` an instance of `TropicalTypes`?
+  - What are the type parameters of `CountingTropical`?
+  - If we add `TropicalAndOr` and `TropicalMinPlus`, what will happen?
+
+// == Tutorial: Tropical Numbers
+// #timecounter(4)
+// In the following, we show how to customize a special number system, called _semirings_ (rings without "`-`" operation).
+
+// https://github.com/TensorBFS/TropicalNumbers.jl
+
+// A Topical algebra can be described as a tuple $(R, plus.circle, times.circle, bb(0), bb(1))$, where $R$ is the set, $plus.circle$ and $times.circle$ are the operations and $bb(0)$ and $bb(1)$ are their identity element, respectively. In this package, the following tropical algebras are implemented:
+// - `TropicalAndOr`: $({T, F}, or, and, F, T)$;
+// - `Tropical` (`TropicalMaxPlus`): $(bb(R), max, +, -infinity, 0)$;
+// - `TropicalMinPlus`: $(bb(R), min, +, infinity, 0)$;
+// - `TropicalMaxMul`: $(bb(R^+), max, *, 0, 1)$.
+
+
+// == Example: Tropical Numbers
+// #timecounter(3)
+// #align(left, text(14pt)[```julia
+// abstract type AbstractSemiring <: Number end
+
+// struct Tropical{T <: Real} <: AbstractSemiring
+//     n::T
+//     Tropical{T}(x) where T = new{T}(T(x))
+//     function Tropical(x::T) where T <: Real
+//         new{T}(x)  # constructor
+//     end
+//     function Tropical{T}(x::Tropical{T}) where T <: Real
+//         x
+//     end
+//     function Tropical{T1}(x::Tropical{T2}) where {T1 <: Real, T2 <: Real}
+//         new{T1}(T2(x.n))
+//     end
+// end
+// ```])
+
+// == Overloading arithemetics operations
+// #timecounter(2)
+// `Base` is the module of the built-in functions. e.g. `Base.:*` is the multiplication operator.
+// `Base.zero` is the zero element of the type.
+
+// ```julia
+// # we use ":" to avoid ambiguity
+// Base.:*(a::Tropical, b::Tropical) = Tropical(a.n + b.n)
+// Base.:+(a::Tropical, b::Tropical) = Tropical(max(a.n, b.n))
+
+// # `Type{Tropical{T}}` is the type of the Tropical{T} type.
+// Base.zero(::Type{Tropical{T}}) where T = typemin(Tropical{T})
+// Base.zero(::Tropical{T}) where T = zero(Tropical{T})
+
+// Base.one(::Type{Tropical{T}}) where T = Tropical(zero(T))
+// Base.one(::Tropical{T}) where T = one(Tropical{T})
+// ```
+
+
+// == Experiment: Comparing with C and Python
+
+// === Comparing with C
+// First, let's write a C implementation:
+// #align(left, text(14pt)[```c
+// // demo.c
+// #include <stddef.h>
+// int c_factorial(size_t n) {
+//     int s = 1;
+//     for (size_t i=1; i<=n; i++) {
+//         s *= i;
+//     }
+//     return s;
+// }
+// ```
+// ])
+
+// ==
+// Compile the C code to a shared library:
+// #box(text(14pt)[```bash
+// gcc demo.c -fPIC -O3 -shared -o demo.so
+// ```
+// ])
+
+// Now we can call this C function from Julia using the `@ccall` macro:
+
+// #box(text(14pt)[```julia
+// julia> using Libdl
+
+// julia> c_factorial(x) = Libdl.@ccall "./demo.so".c_factorial(x::Csize_t)::Int
+
+// julia> @benchmark c_factorial(5)
+// BenchmarkTools.Trial: 10000 samples with 1000 evaluations.
+//  Range (min … max):  7.333 ns … 47.375 ns  ┊ GC (min … max): 0.00% … 0.00%
+//  Time  (median):     7.458 ns              ┊ GC (median):    0.00%
+//  Time  (mean ± σ):   7.764 ns ±  1.620 ns  ┊ GC (mean ± σ):  0.00% ± 0.00%
+// ```
+// ])
+
+// The C implementation takes about 7.3 nanoseconds—remarkably close to Julia's performance.
+
+// == Comparing with Python
+// Let's examine how Python performs on the same task:
+
+// ```python
+// def factorial(n):
+//     x = 1
+//     for i in range(1, n+1):
+//         x = x * i
+//     return x
+// ```
+
+// Using IPython's timing utilities:
+// ```ipython
+// In [7]: timeit factorial(5)
+// 144 ns ± 0.379 ns per loop (mean ± std. dev. of 7 runs, 10,000,000 loops each)
+// ```
+
+// At 144 nanoseconds, Python is:
+// - 20 times slower than the C implementation
+// - 70 times slower than the Julia implementation
+
+// As a remark, when Julia compiler fails to infer the types, it will fall back to the dynamic dispatch mode. Then it also suffers from the problem of cache misses.
+
 == Why object oriented programming is bad?
 #timecounter(1)
 
@@ -899,127 +920,147 @@ Q: how many methods can you write in Julia/Python?
 
 Comment: Julia provides exponentially large method space, while for OOP languages, its linear. This explains why overloading "+" is so hard in OOP languages.
 
-== Hands-on
+= Array operations
 
-1. Clone the repo: https://github.com/TensorBFS/TropicalNumbers.jl to your local machine.
-2. Run the tests in your VSCode/Cursor.
-3. After that, you can try to complete the second homework.
-
-== Tutorial: Tropical Numbers
-#timecounter(4)
-In the following, we show how to customize a special number system, called _semirings_ (rings without "`-`" operation).
-
-https://github.com/TensorBFS/TropicalNumbers.jl
-
-A Topical algebra can be described as a tuple $(R, plus.circle, times.circle, bb(0), bb(1))$, where $R$ is the set, $plus.circle$ and $times.circle$ are the operations and $bb(0)$ and $bb(1)$ are their identity element, respectively. In this package, the following tropical algebras are implemented:
-- `TropicalAndOr`: $({T, F}, or, and, F, T)$;
-- `Tropical` (`TropicalMaxPlus`): $(bb(R), max, +, -infinity, 0)$;
-- `TropicalMinPlus`: $(bb(R), min, +, infinity, 0)$;
-- `TropicalMaxMul`: $(bb(R^+), max, *, 0, 1)$.
-
-
-== Example: Tropical Numbers
-#timecounter(3)
-#align(left, text(14pt)[```julia
-abstract type AbstractSemiring <: Number end
-
-struct Tropical{T <: Real} <: AbstractSemiring
-    n::T
-    Tropical{T}(x) where T = new{T}(T(x))
-    function Tropical(x::T) where T <: Real
-        new{T}(x)  # constructor
-    end
-    function Tropical{T}(x::Tropical{T}) where T <: Real
-        x
-    end
-    function Tropical{T1}(x::Tropical{T2}) where {T1 <: Real, T2 <: Real}
-        new{T1}(T2(x.n))
-    end
-end
-```])
-
-== Overloading arithemetics operations
+== Initialize an Array
 #timecounter(2)
-`Base` is the module of the built-in functions. e.g. `Base.:*` is the multiplication operator.
-`Base.zero` is the zero element of the type.
+
+Array type `Array{T, N}` has two type parameters: `T` is the element type, and `N` is the number of dimensions.
 
 ```julia
-# we use ":" to avoid ambiguity
-Base.:*(a::Tropical, b::Tropical) = Tropical(a.n + b.n)
-Base.:+(a::Tropical, b::Tropical) = Tropical(max(a.n, b.n))
+# Basic array creation
+A = [1, 2, 3]                         # vector
+B = [1 2 3; 4 5 6; 7 8 9]             # matrix
 
-# `Type{Tropical{T}}` is the type of the Tropical{T} type.
-Base.zero(::Type{Tropical{T}}) where T = typemin(Tropical{T})
-Base.zero(::Tropical{T}) where T = zero(Tropical{T})
-
-Base.one(::Type{Tropical{T}}) where T = Tropical(zero(T))
-Base.one(::Tropical{T}) where T = one(Tropical{T})
+# Specialized constructors
+uninitialized_vector = Vector{Int}(undef, 3)  # uninitialized (fast)
+zero_vector = zeros(3)                # zero vector
+rand_vector = randn(Float32, 3, 3)    # random normal distribution
+const_matrix = fill(2.0, 3, 3)        # constant matrix
+step_vector = collect(1:3)            # collect from range
 ```
 
+Unlike C, Python, and R, Julia array indexing starts from 1.
 
-== Experiment: Comparing with C and Python
+== Array Indexing and Views
+#timecounter(2)
 
-=== Comparing with C
-First, let's write a C implementation:
-#align(left, text(14pt)[```c
-// demo.c
-#include <stddef.h>
-int c_factorial(size_t n) {
-    int s = 1;
-    for (size_t i=1; i<=n; i++) {
-        s *= i;
-    }
-    return s;
-}
-```
-])
+```julia
+A = [1, 2, 3]
+A[1]      # first element
+A[end]    # last element
+A[1:2]    # first two elements
+A[2:-1:1] # reverse order
 
-==
-Compile the C code to a shared library:
-#box(text(14pt)[```bash
-gcc demo.c -fPIC -O3 -shared -o demo.so
-```
-])
+B = [1 2 3; 4 5 6; 7 8 9]
+B[1:2]            # first two elements (column-major)
+B[1:2, 1:2]       # 2×2 submatrix (copies data)
 
-Now we can call this C function from Julia using the `@ccall` macro:
-
-#box(text(14pt)[```julia
-julia> using Libdl
-
-julia> c_factorial(x) = Libdl.@ccall "./demo.so".c_factorial(x::Csize_t)::Int
-
-julia> @benchmark c_factorial(5)
-BenchmarkTools.Trial: 10000 samples with 1000 evaluations.
- Range (min … max):  7.333 ns … 47.375 ns  ┊ GC (min … max): 0.00% … 0.00%
- Time  (median):     7.458 ns              ┊ GC (median):    0.00%
- Time  (mean ± σ):   7.764 ns ±  1.620 ns  ┊ GC (mean ± σ):  0.00% ± 0.00%
-```
-])
-
-The C implementation takes about 7.3 nanoseconds—remarkably close to Julia's performance.
-
-== Comparing with Python
-Let's examine how Python performs on the same task:
-
-```python
-def factorial(n):
-    x = 1
-    for i in range(1, n+1):
-        x = x * i
-    return x
+view(B, 1:2, 1:2) # view of the submatrix (no copy)
 ```
 
-Using IPython's timing utilities:
-```ipython
-In [7]: timeit factorial(5)
-144 ns ± 0.379 ns per loop (mean ± std. dev. of 7 runs, 10,000,000 loops each)
+*Important*: `view()` returns a reference without copying data, while indexing creates a copy.
+
+== Broadcasting and Map-Reduce
+#timecounter(3)
+
+*Broadcasting* applies functions element-wise with loop fusion:
+
+```julia
+x = 0:0.1π:2π
+y = sin.(x) .+ cos.(3 .* x)        # Broadcasting (preferred)
+y = map(a -> sin(a) + cos(3a), x)  # Mapping version
+
+# Protect from broadcasting
+Ref([3,2,1,0]) .* (1:3)  # [[3,2,1,0], [6,4,2,0], [9,6,3,0]]
 ```
 
-At 144 nanoseconds, Python is:
-- 20 times slower than the C implementation
-- 70 times slower than the Julia implementation
+*Reduction* operations:
+```julia
+sum(1:10)                    # 55
+foldl(+, 1:10)              # left fold
+foldr(+, 1:10)              # right fold
+reduce(+, 1:10)             # unspecified order (parallelizable)
+mapreduce(abs2, +, 1:10)    # map then reduce (no intermediate arrays)
+```
 
-As a remark, when Julia compiler fails to infer the types, it will fall back to the dynamic dispatch mode. Then it also suffers from the problem of cache misses.
+== Filtering and Searching
+#timecounter(2)
 
-==
-#bibliography("refs.bib")
+```julia
+# Filtering
+filter(iseven, 1:10)        # [2, 4, 6, 8, 10]
+
+# Searching
+findfirst(iseven, 1:10)     # 2 (first index)
+findlast(iseven, 1:10)      # 10 (last index)
+findall(iseven, 1:10)       # [2, 4, 6, 8, 10] (all indices)
+```
+
+== Memory Layout and Performance
+#timecounter(3)
+
+Julia uses *column-major* order (like Fortran/MATLAB), unlike C/Python's row-major order.
+
+#figure(canvas(length: 1.2cm, {
+  import draw: *
+  content((0, 0), text(14pt)[$ mat(a_(1 1), a_(1 2), a_(1 3); a_(2 1), a_(2 2), a_(2 3); a_(3 1), a_(3 2), a_(3 3)) $])
+  line((-1, 0.6), (-1, -0.6), (0, 0.6), (0, -0.6), (1, 0.6), (1, -0.6), mark: (end: "straight"))
+  content((0, -1.2), text(12pt)[Column-major (Julia)])
+  
+  set-origin((4, 0))
+  content((0, 0), text(14pt)[$ mat(a_(1 1), a_(1 2), a_(1 3); a_(2 1), a_(2 2), a_(2 3); a_(3 1), a_(3 2), a_(3 3)) $])
+  line((-1, 0.6), (1, 0.6), (-1, 0), (1, 0), (-1, -0.6), (1, -0.6), mark: (end: "straight"))
+  content((0, -1.2), text(12pt)[Row-major (C/Python)])
+}))
+
+```julia
+A = randn(3000, 3000)
+
+# Slow - row-major traversal
+@btime sum(A[i,j]^2 for i=1:size(A,1), j=1:size(A,2))
+
+# Fast - column-major traversal  
+@btime sum(A[i,j]^2 for j=1:size(A,2), i=1:size(A,1))
+```
+
+== Strides and Linear Indexing
+#timecounter(2)
+
+*Strides* describe memory layout:
+```julia
+A = randn(3, 4, 5)
+strides(A)  # (1, 3, 12) - distance between elements in each dimension
+
+# Convert between linear and cartesian indices
+linear_inds = LinearIndices(A)
+linear_inds[2,3,2]  # returns 20
+
+cart_inds = CartesianIndices(A) 
+cart_inds[20]       # returns CartesianIndex(2, 3, 2)
+```
+
+Understanding memory layout is crucial for performance optimization.
+
+== BLAS and LAPACK
+#timecounter(2)
+
+Julia uses optimized libraries for linear algebra:
+- *BLAS*: Basic Linear Algebra Subprograms (vector/matrix operations)
+- *LAPACK*: Linear Algebra PACKage (advanced operations)
+
+```julia
+using LinearAlgebra
+
+# Check BLAS configuration
+BLAS.get_config()
+BLAS.get_num_threads()
+
+# Matrix multiplication benchmark
+A = randn(1000, 1000)
+@btime A * A  # Should achieve high GFLOPS
+
+# Performance = 2n³ / time_in_seconds FLOPS
+```
+
+Modern CPUs can achieve hundreds of GFLOPS with optimized BLAS.

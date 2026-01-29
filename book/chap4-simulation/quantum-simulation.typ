@@ -1,6 +1,6 @@
 #import "../book.typ": book-page
 #import "@preview/physica:0.9.1": *
-#import "@preview/cetz:0.2.2": canvas, draw, tree
+#import "@preview/cetz:0.4.1": canvas, draw, tree
 
 #let tensor(location, name, label) = {
   import draw: *

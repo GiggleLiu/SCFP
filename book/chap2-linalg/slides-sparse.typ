@@ -1,6 +1,6 @@
-#import "@preview/touying:0.4.2": *
-#import "@preview/touying-simpl-hkustgz:0.1.0" as hkustgz-theme
-#import "@preview/cetz:0.2.2": *
+#import "@preview/touying:0.6.1": *
+#import "@preview/touying-simpl-hkustgz:0.1.2": *
+#import "@preview/cetz:0.4.1": *
 #import "@preview/algorithmic:0.1.0"
 #import algorithmic: algorithm
 #set math.mat(row-gap: 0.1em, column-gap: 0.7em)
@@ -25,30 +25,21 @@
   }
 }
 
-#let m = hkustgz-theme.register()
-
 #show raw.where(block: true): it=>{
   block(radius:4pt, fill:gray.transparentize(90%), inset:1em, width:99%, text(it))
 }
 
-// Global information configuration
-#let m = (m.methods.info)(
-  self: m,
-  title: [Sparse Matrices and Dominant Eigenvalues],
-  subtitle: [],
-  author: [Jin-Guo Liu],
-  date: datetime.today(),
-  institution: [HKUST(GZ) - FUNH - Advanced Materials Thrust],
+#show: hkustgz-theme.with(
+  config-info(
+    title: [Sparse Matrices and Dominant Eigenvalues],
+    subtitle: [],
+    author: [Jin-Guo Liu],
+    date: datetime.today(),
+    institution: [HKUST(GZ) - FUNH - Advanced Materials Thrust],
+  ),
 )
 
-// Extract methods
-#let (init, slides) = utils.methods(m)
-#show: init
-
-// Extract slide functions
-#let (slide, empty-slide, title-slide, outline-slide, new-section-slide, ending-slide) = utils.slides(m)
-#show: slides.with()
-
+#title-slide()
 #outline-slide()
 
 
@@ -61,6 +52,14 @@
     line(str(k), str(l))
   }
 }
+
+= Hands-on preparation
+== Hands-on: Implement and improve a simple Lanczos algorithm
+1. Run the demo code in folder: `SimpleKrylov/examples` with:
+   ```bash
+   $ dir=SimpleKrylov make init
+   $ dir=SimpleKrylov make example
+   ```
 
 = Sparse Matrices
 
@@ -604,7 +603,9 @@ $ T = mat(
 where $Q = (q_1 | q_2 | dots | q_k)$, and $op("span")({q_1, q_2, dots, q_k}) = cal(K)(A, q_1, k)$.
 
 == The Lanczos algorithm
+
 The Lanczos algorithm is basically a Gram-Schmidt orthogonalization process applied to the Krylov subspace:
+
 #algorithm({
   import algorithmic: *
   Function("Lanczos", args: ([$A$], [$q_1$], [$T$], [$Q$]), {
@@ -702,17 +703,22 @@ Some special matrices have special properties that can be exploited for efficien
     [*Eigenvalue problem*], [$O(n^2)$@Dhillon2004 @Sandryhaila2013],
 ))
 
-= Hands-on
-== Hands-on: Implement and improve a simple Lanczos algorithm
-1. Run the demo code in folder: `SimpleKrylov/examples` with:
-   ```bash
-   $ make init-SimpleKrylov
-   $ make example-SimpleKrylov
-   ```
-2. Explain the inconsistency between the results of `SimpleKrylov` and the exact results.
-3. Estimate the approximate number of iterations required to reach the machine precision in the Arnoldi iteration example.
-4. Verify the following property for the Laplacian matrix of a graph:
+== Summary
+
+- For large scale linear systems, the most widely used data structure is *`SparseMatrixCSC`*, other format include tensor network et al.
+- For symmetric dominant eigenvalue problem, the *Lanczos algorithm* is the most widely used method. For non-symmetric dominant eigenvalue problem, the *Arnoldi algorithm* is the most widely used method. Other methods include Jacobi-Davidson method et al.
+  - Reorthogonalization is crucial for the stability of the Lanczos and Arnoldi algorithms.
+  - Restarting is used to reduce the memory usage.
+  - Block Lanczos is used to compute degenerate eigenvalues.
+
+== Hands-on tasks
+
+1. Explain the inconsistency between the results of `SimpleKrylov` and the exact results.
+2. Estimate the approximate number of iterations required to reach the machine precision in the Arnoldi iteration example.
+3. Verify the following property for the Laplacian matrix of a graph:
    The number of connected components in the graph is the dimension of the nullspace of the Laplacian and the algebraic multiplicity of the 0 eigenvalue. The Laplacian matrix is defined as $L = D - A$, where $D$ is the diagonal degree matrix and $A$ is the adjacency matrix.
+
+Video watching: https://www.youtube.com/watch?v=DRyZDPDWQkM
 
 ==
 #bibliography("refs.bib")

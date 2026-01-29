@@ -1,7 +1,8 @@
-#import "@preview/touying:0.4.2": *
-#import "@preview/touying-simpl-hkustgz:0.1.0" as hkustgz-theme
-#import "@preview/cetz:0.2.2": canvas, draw, tree, vector, plot, decorations, coordinate
-#import "@preview/algorithmic:0.1.0"
+#import "@preview/touying:0.6.1": *
+#import "@preview/touying-simpl-hkustgz:0.1.2": *
+#import "@preview/cetz:0.4.1": canvas, draw, tree, vector, decorations, coordinate
+#import "@preview/cetz-plot:0.1.2": plot
+#import "@preview/algorithmic:1.0.3"
 #import algorithmic: algorithm
 #set math.mat(row-gap: 0.1em, column-gap: 0.7em)
 
@@ -75,41 +76,22 @@
 #let random_bools(p) = random_numbers.map(x => x < p)
 
 
-#let m = hkustgz-theme.register()
-
 #show raw.where(block: true): it=>{
   block(radius:4pt, fill:gray.transparentize(90%), inset:1em, width:99%, text(it))
 }
 
-// Global information configuration
-#let m = (m.methods.info)(
-  self: m,
-  title: [Simulated Annealing and Spin Dynamics],
-  subtitle: [Physics Inspired Optimization for Spin Glass Ground State Finding],
-  author: [Jin-Guo Liu],
-  date: datetime.today(),
-  institution: [HKUST(GZ) - FUNH - Advanced Materials Thrust],
+#show: hkustgz-theme.with(
+  config-info(
+    title: [Simulated Annealing and Spin Dynamics],
+    subtitle: [Physics Inspired Optimization for Spin Glass Ground State Finding],
+    author: [Jin-Guo Liu],
+    date: datetime.today(),
+    institution: [HKUST(GZ) - FUNH - Advanced Materials Thrust],
+  ),
 )
 
-// Extract methods
-#let (init, slides) = utils.methods(m)
-#show: init
-
-// Extract slide functions
-#let (slide, empty-slide, title-slide, outline-slide, new-section-slide, ending-slide) = utils.slides(m)
-#show: slides.with()
-
+#title-slide()
 #outline-slide()
-
-== Challenge resolved: A PR to KrylovKit.jl
-#timecounter(15)
-
-#box(stroke: black, inset: 0.5em, [
-  Resolve the following issue in KrylovKit.jl: https://github.com/Jutho/KrylovKit.jl/issues/87 . If you can resolve the issue, please submit a pull request to the repository. If your PR is merged, your final grade will be $A+$.
-])
-
-Link: https://github.com/Jutho/KrylovKit.jl/pull/125
-
 
 = Spin glass and computational complexity
 
@@ -123,6 +105,12 @@ Link: https://github.com/Jutho/KrylovKit.jl/pull/125
 Spin glass ground state finding problem is hard, it is NP-complete (hardest problems in NP), which is believed to be impossible to solve in polynomial time.
 
 *NP problems*: _Decision problems_, features the property that given a solution, it is _easy to verify_ whether the solution is correct in polynomial time.
+
+
+== Live coding
+
+1. greedy method to find the ground state of a spin glass.
+2. using real number relaxation.
 
 == Example: Factoring a number
 
@@ -590,7 +578,7 @@ Used in:
 
 == Cooling a system to the ground state
 #timecounter(1)
-#figure(image("../chap4-simulation/images/ising-energy-distribution.svg", width: 70%),
+#figure(image("images/ising-energy-distribution.svg", width: 70%, alt: "Ising energy distribution"),
 caption: [The binned energy distribution of spin configurations generated unbiasly from the ferromagnetic Ising model ($J_(i j) = -1, L = 10$) at different inverse temperatures $beta$. The method to generate the samples is the tensor network based method detailed in @Roa2024]
 ) <fig:ising-energy-distribution>
 
@@ -602,15 +590,15 @@ Simulated annealing is an algorithm for finding the *global optimum* of a given 
 #algorithm(
   {
     import algorithmic: *
-    Function("SimulatedAnnealing", args: ([$bold(s)$], [$T_"init"$], [$alpha$], [$n_"steps"$]),
+    Function("SimulatedAnnealing", ([$bold(s)$], [$T_"init"$], [$alpha$], [$n_"steps"$]),
     {
-    For(cond: [$i = 1 dots n_"steps"$], {
+    For($i = 1 dots n_"steps"$, {
         Assign([$T$], [$alpha^i T_"init"$])
         // Choose a random spin to flip
         Assign([$bold(s)'$], [$bold(s)$ with random spin flipped])
           // Accept with probability $e^{-\Delta E/T}$ if energy increases
-        State([$r ~ cal(U)(0,1) quad$  #Ic[random number]]) 
-        If(cond: [$r < e^(-(H(bold(s)') - H(bold(s)))\/T)$], {
+        Line([$r ~ cal(U)(0,1) quad$  #CommentInline([random number])]) 
+        If($r < e^(-(H(bold(s)') - H(bold(s)))\/T)$, {
           Assign([$bold(s)$], [$bold(s)'$])
         })
       // Decrease temperature according to cooling schedule
@@ -784,7 +772,7 @@ Q: Will this simple algorithm work?
     x-min: 0,
     x-max: t_max,
     x-tick-step: 8,
-    legend: "legend.north",
+    legend: "north",
     y-tick-step: 1,
     
     // Position trajectory
@@ -802,7 +790,7 @@ Q: Will this simple algorithm work?
     x-min: 0,
     x-max: t_max,
     x-tick-step: 8,
-    legend: "legend.north",
+    legend: "north",
     y-tick-step: 1,
     // Momentum trajectory
     plot.add(
@@ -820,7 +808,7 @@ Q: Will this simple algorithm work?
     x-min: -2,
     x-max: 2,
     x-tick-step: 1,
-    legend: "legend.north",
+    legend: "north",
     y-tick-step: 1,
     // Energy trajectory
     plot.add(
@@ -836,7 +824,7 @@ Q: Will this simple algorithm work?
   let margin = 40
   
   // Run simulation
-  let t_max = 20
+  let t_max = 80
   let dt = 0.05
   let (x_traj, p_traj, e_traj) = euler_oscillator(1.0, 0.0, t_max, dt)
   
@@ -853,14 +841,14 @@ The algorithm is as follows:
 
 #algorithm({
   import algorithmic: *
-  Function("Verlet", args: ([$bold(x)$], [$bold(v)$], [$bold(f)$], [$m$], [$d t$], [$n$]), {
-    Assign([$bold(v)$], [$bold(v) + (bold(f)(bold(x)))/m d t \/ 2$ #h(2em)#Ic([update velocity at time $d t \/ 2$])])
-    For(cond: [$i = 1 dots n$], {
-      Cmt[time step $t = i d t$]
-      Assign([$bold(x)$], [$bold(x) + bold(v) d t$ #h(2em)#Ic([update position at time $t$])])
-      Assign([$bold(v)$], [$bold(v) + (bold(f)(bold(x)))/m d t$ #h(2em)#Ic([update velocity at time $t + d t\/2$])])
+  Function("Verlet", ([$bold(x)$], [$bold(v)$], [$bold(f)$], [$m$], [$d t$], [$n$]), {
+    Assign([$bold(v)$], [$bold(v) + (bold(f)(bold(x)))/m d t \/ 2$ #h(2em)#CommentInline([update velocity at time $d t \/ 2$])])
+    For($i = 1 dots n$, {
+      Comment[time step $t = i d t$]
+      Assign([$bold(x)$], [$bold(x) + bold(v) d t$ #h(2em)#CommentInline([update position at time $t$])])
+      Assign([$bold(v)$], [$bold(v) + (bold(f)(bold(x)))/m d t$ #h(2em)#CommentInline([update velocity at time $t + d t\/2$])])
     })
-    Assign([$bold(v)$], [$bold(v) - (bold(f)(bold(x)))/m d t \/ 2$ #h(2em)#Ic([velocity at time $n d t$])])
+    Assign([$bold(v)$], [$bold(v) - (bold(f)(bold(x)))/m d t \/ 2$ #h(2em)#CommentInline([velocity at time $n d t$])])
     Return[$bold(x)$, $bold(v)$]
   })
 })
@@ -933,7 +921,7 @@ The Verlet algorithm is a simple yet robust algorithm for solving the differenti
 
 #figure(canvas({
   import draw: *
-  let t_max = 20
+  let t_max = 80
   let dt = 0.05
   let (x_traj, p_traj, e_traj) = verlet_oscillator(1.0, 0.0, t_max, dt)
   let t_array = range(x_traj.len()).map(i => i * dt)

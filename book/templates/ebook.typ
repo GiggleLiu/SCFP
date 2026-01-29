@@ -1,5 +1,5 @@
-#import "@preview/shiroa:0.1.2": *
-#import "page.typ": project, part-style
+#import "@local/shiroa:0.2.3": *
+#import "/contrib/typst/gh-pages.typ": part-style, project
 
 #let _page-project = project
 
@@ -21,17 +21,17 @@
     heading(title)
   }
 
-  locate(loc => {
-    let inc = _resolve-inclusion-state.final(loc)
+  context {
+    let inc = _resolve-inclusion-state.final()
     external-book(spec: inc(spec))
 
-    let mt = book-meta-state.final(loc)
+    let mt = book-meta-state.final()
     let styles = (inc: inc, part: part-style, chapter: it => it)
 
     if mt != none {
       mt.summary.map(it => visit-summary(it, styles)).sum()
     }
-  })
+  }
 
   content
 }

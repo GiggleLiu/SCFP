@@ -1,13 +1,19 @@
 #import "../book.typ": book-page
-#import "@preview/cetz:0.2.2": *
+#import "@preview/cetz:0.4.1": *
 
 #show: book-page.with(title: "Terminal Environment")
 
 #align(center, [= Terminal Environment\
 _Jin-Guo Liu_])
 
-A terminal provides direct access to your operating system and is essential for efficient programming and system administration.
-In the following, we will introduce how to get a terminal, how to edit files with the terminal (Vim), and how to use the terminal to interact with remote machines (SSH).
+The terminal is a text-based interface that provides direct access to your operating system, making it an essential tool for efficient programming, system administration, and scientific computing. Unlike graphical interfaces, the terminal allows you to execute commands with precision and automate complex tasks through scripting.
+
+This chapter covers three fundamental aspects of terminal usage:
+1. *Getting started with terminals* - Setting up and navigating the command-line environment
+2. *Text editing with Vim* - Mastering the powerful terminal-based editor
+3. *Remote access with SSH* - Connecting to and working with remote machines securely
+
+These skills form the foundation for modern computational work, enabling you to work efficiently on local machines, high-performance clusters, and cloud computing environments.
 
 #align(center, canvas(length: 0.8cm, {
   import draw: *
@@ -21,146 +27,261 @@ In the following, we will introduce how to get a terminal, how to edit files wit
 
 == Linux Operating System
 
-Linux or macOS provides the most straightforward way to get a terminal. Linux is a free, open source operating system widely used world wide.
-It has became a standard for many clusters and supercomputers.
-Even Windows system has a good support to Linux, users can also access a Linux terminal through #link("https://docs.microsoft.com/en-us/windows/wsl/install")[Windows Subsystem for Linux] (WSL), which could be installed with a single command in the PowerShell:
+Linux and macOS provide native terminal access, making them ideal environments for computational work. Linux, being a free and open-source operating system, has become the standard platform for high-performance computing clusters, supercomputers, and scientific computing environments worldwide.
+
+For Windows users, Microsoft provides excellent Linux compatibility through the #link("https://docs.microsoft.com/en-us/windows/wsl/install")[Windows Subsystem for Linux] (WSL). This allows you to run a complete Linux environment directly on Windows, giving you access to all the powerful command-line tools and workflows used in scientific computing.
+
+Installing WSL is straightforward - simply open PowerShell as an administrator and run:
 ```bash
 wsl --install
 ```
 
-== Shell (or Terminal)
+== Shell Environment
 
-The shell interprets keyboard commands and passes them to the operating system. The default shell for most Linux distributions is #link("https://en.wikipedia.org/wiki/Bash_(Unix_shell)")[Bash]. You can also use more powerful shells like #link("https://en.wikipedia.org/wiki/Z_shell")[Zsh] (often combined with #link("https://github.com/ohmyzsh/ohmyzsh")[oh-my-zsh]), which offers features like spelling correction, advanced tab-completion, plugins and themes.
+The *shell* is a command-line interpreter that processes your keyboard input and executes commands on the operating system. It serves as the bridge between you and the system's core functionality. The most common shell is #link("https://en.wikipedia.org/wiki/Bash_(Unix_shell)")[Bash] (Bourne Again Shell), which is the default on most Linux distributions and macOS.
 
-To get started with a terminal, the following shortcuts are essential:
-- `man <command_name>`: Access command documentation
-- `CTRL-C`: Interrupt a running program
-- `CTRL-D`: Exit the shell
-- `Up` and `Down`: Navigate through command history
+For enhanced productivity, many users prefer #link("https://en.wikipedia.org/wiki/Z_shell")[Zsh] (Z Shell), especially when paired with #link("https://github.com/ohmyzsh/ohmyzsh")[oh-my-zsh]. Zsh provides advanced features including:
+- Intelligent tab completion
+- Spell correction
+- Extensive plugin ecosystem
+- Customizable themes and prompts
 
-In a terminal, you can:
-- Navigate and manipulate files and directories:
-  ```bash
-$  ls       # list directory contents
-Makefile      Manifest.toml Project.toml  README.md     book
-$  cd book  # change directory
-$  pwd      # print name of current/working directory
+=== Essential Terminal Controls
+
+Before diving into commands, familiarize yourself with these fundamental keyboard shortcuts:
+
+*Getting Help:*
+- `man <command_name>`: Access detailed command documentation
+- `<command> --help`: Quick help for most commands
+
+*Process Control:*
+- `CTRL-C`: Interrupt/stop a running program
+- `CTRL-D`: Exit the shell or end input
+- `CTRL-Z`: Suspend a running program
+
+*Navigation:*
+- `Up/Down arrows`: Navigate through command history
+- `TAB`: Auto-complete commands and file paths
+- `CTRL-L`: Clear the screen
+
+=== Common Terminal Operations
+
+*File and Directory Navigation:*
+```bash
+$  ls                    # list directory contents
+$  ls -la               # detailed listing with hidden files
+$  cd book              # change to 'book' directory
+$  cd ..                # move up one directory
+$  pwd                  # show current directory path
 /Users/liujinguo/Documents/SCFP/book
-$  ls       # list directory contents
-book.typ            chap2-linalg        chap4-ad            chap6-quantum       ebook.typ           shared
-chap1-julia         chap3-optimization  chap5-tensornetwork dist                home.typ            templates
-$  mkdir chap7-quantum  # make directories
-$  rmdir chap7-quantum  # remove directories
-$  rm -r dist           # remove directories and files recursively
+$  mkdir new_folder     # create a new directory
+$  rmdir empty_folder   # remove empty directory
+$  rm -r folder_name    # remove directory and all contents
 ```
 
-- Read and write text files with the `echo` and `cat` commands.
-  ```bash
-$  echo "Hello, world!" > hello.txt  # write to a file
-$  cat hello.txt                     # display the content of a file
+*Text File Operations:*
+```bash
+$  echo "Hello, world!" > hello.txt    # create/write to a file
+$  cat hello.txt                       # display file content
 Hello, world!
+$  head -5 file.txt                    # show first 5 lines
+$  tail -5 file.txt                    # show last 5 lines
+$  grep "pattern" file.txt             # search for text pattern
 ```
 
-- Create an alias for a command.
-  ```bash
-$  alias ll="ls -l"   # create an alias for the `ls -l` command
-$  ll                 # use the alias
+*Creating Shortcuts (Aliases):*
+```bash
+$  alias ll="ls -la"                   # create alias for detailed listing
+$  alias ..="cd .."                    # quick navigation shortcut
+$  ll                                  # use the alias
 total 312
--rw-r--r--@  1 liujinguo  staff    21K Feb  1 23:02 git.typ
-drwxr-xr-x@ 10 liujinguo  staff   320B Feb 10 08:07 images
--rw-r--r--@  1 liujinguo  staff    25K Feb  4 19:24 julia-basic.typ
--rw-r--r--@  1 liujinguo  staff    12K Jan 19 23:13 julia-release.typ
+-rw-r--r--@  1 user  staff    21K Feb  1 23:02 git.typ
+drwxr-xr-x@ 10 user  staff   320B Feb 10 08:07 images
 ```
 
-- Monitor your system resources with the following commands.
-  ```bash
-$  lscpu   # display information about the CPU architecture
-$  lsmem   # list the ranges of available memory with their online status
-$  top     # display Linux processes
+*System Monitoring:*
+```bash
+$  top                                 # display running processes
+$  htop                                # enhanced process viewer (if installed)
+$  df -h                               # disk usage in human-readable format
+$  free -h                             # memory usage information
+$  lscpu                               # CPU architecture details
 ```
 
-- Access many useful tools in a terminal, which include
-  ```bash
-$  vim <filename>    # Vi IMproved, a programmer's text editor
-$  ssh <username>@<hostname>    # the OpenSSH remote login client
-$  git <arguments>     # the stupid content tracker
-$  tar <arguments>     # an archiving utility
+*Essential Tools:*
+```bash
+$  vim filename.txt                    # powerful text editor
+$  ssh user@remote.com                 # secure remote access
+$  git status                          # version control
+$  tar -xzf archive.tar.gz             # extract compressed files
 ```
 
-= Vim - a terminal text editor
+= Vim - A Powerful Terminal Text Editor
 
-To edit files in the terminal, you can use Vim - the default text editor in most Linux distributions.
-Vim has three primary modes, each tailored for specific tasks:
+Vim (Vi IMproved) is a highly efficient, modal text editor that's ubiquitous in Unix-like systems. While it has a steep learning curve initially, mastering Vim significantly boosts your productivity, especially when working on remote systems where graphical editors aren't available.
 
-- *Normal Mode*: Navigate through the file and perform tasks like deleting lines or copying text. Enter by pressing `ESC`
-- *Insert Mode*: Insert text as in conventional text editors. Enter by typing `i` in normal mode
-- *Command Mode*: Input commands for tasks like saving files or searching. Enter by typing `:` in normal mode
+== Understanding Vim's Modal Design
 
-Here are some essential Vim commands to get started:
+Vim operates in distinct modes, each optimized for specific tasks:
+
+*Normal Mode* (Default):
+- Navigate through text and execute commands
+- Copy, cut, paste, and delete operations
+- Enter by pressing `ESC` from any other mode
+
+*Insert Mode*:
+- Type and edit text like a conventional editor
+- Enter by pressing `i`, `a`, `o`, or `O` from normal mode
+
+*Command Mode*:
+- Execute file operations and advanced commands
+- Search and replace operations
+- Enter by typing `:` from normal mode
+
+== Essential Vim Commands
+
+*Getting Started:*
+```bash
+$  vim filename.txt         # open or create a file
+$  vim +42 filename.txt     # open file at line 42
 ```
-i       # input
-:w      # write
-:q      # quit
-:q!     # force quit without saving
 
-u       # undo
-CTRL-R  # redo
+*Basic Operations* (in Normal Mode):
+```vim
+i           # enter insert mode at cursor
+a           # enter insert mode after cursor
+o           # create new line below and enter insert mode
+ESC         # return to normal mode
+
+:w          # save file
+:q          # quit vim
+:wq         # save and quit
+:q!         # quit without saving
+
+u           # undo last change
+CTRL-R      # redo last undone change
 ```
 
-All commands must be executed in *normal mode* (press `ESC` to enter).
+*Navigation* (in Normal Mode):
+```vim
+h j k l     # move left, down, up, right
+w           # jump to beginning of next word
+b           # jump to beginning of previous word
+G           # go to end of file
+gg          # go to beginning of file
+:42         # go to line 42
+```
 
-= SSH - connect to remote machines
+*Quick Tip:* Start with these basics and gradually learn more commands. Vim's efficiency comes from combining simple commands to perform complex operations.
 
-The Secure Shell (SSH) protocol enables secure remote command execution over unsecured networks. Using cryptography for authentication and encryption, SSH allows you to:
-- Push code to remote git repositories
-- Access and control remote machines
+= SSH - Secure Remote Access
 
-To connect to a remote system like a university cluster, you'll need:
-1. The hostname or IP address
-2. Your username
-3. Authentication credentials
+SSH (Secure Shell) is a network protocol that provides secure, encrypted communication between your local machine and remote servers. It's essential for scientific computing, allowing you to:
+- Access high-performance computing clusters
+- Work on remote servers and cloud instances
+- Securely transfer files between machines
+- Manage remote systems and services
 
-The basic connection syntax is:
+== Basic SSH Connection
+
+To establish an SSH connection, you need:
+1. *Hostname* or IP address of the remote machine
+2. *Username* on the remote system
+3. *Authentication* method (password or SSH key)
+
+*Basic syntax:*
 ```bash
 ssh username@hostname
 ```
 
-For example, to connect to a cluster with the username `user` and hostname `cluster.example.com`, you would use:
+*Examples:*
 ```bash
-ssh user@cluster.example.com
+# Connect to a university cluster
+ssh student@cluster.university.edu
+
+# Connect using IP address
+ssh user@192.168.1.100
+
+# Connect on specific port (if not default port 22)
+ssh -p 2222 user@server.com
+```
+
+*First Connection:*
+When connecting for the first time, you'll see a fingerprint verification message. Type `yes` to continue:
+```bash
+The authenticity of host 'server.com' can't be established.
+Are you sure you want to continue connecting (yes/no)? yes
 ```
 
 
 == Streamlining SSH Access
 
-To avoid repeatedly typing hostnames and usernames, you can configure SSH using the `~/.ssh/config` file. This configuration file allows you to create aliases and set default parameters for your SSH connections.
+=== SSH Configuration File
 
-Here's an example configuration:
-```
-Host amat5315
-  HostName <hostname>
-  User <username>
-```
+Create a `~/.ssh/config` file to simplify connections and set default parameters:
 
-In this example, `amat5315` serves as an alias for the remote host. Once you've configured the `~/.ssh/config` file, you can connect to the remote machine simply by typing:
 ```bash
-ssh amat5315
+# Example SSH config file (~/.ssh/config)
+Host myserver
+    HostName server.university.edu
+    User studentname
+    Port 22
+    
+Host cluster
+    HostName hpc.cluster.edu
+    User research_id
+    ForwardX11 yes          # Enable GUI forwarding
+
+Host github
+    HostName github.com
+    User git
+    IdentityFile ~/.ssh/github_key
 ```
 
-To avoid typing the password everytime you login, you can use the command 
+*Usage:*
 ```bash
-ssh-keygen
+ssh myserver              # Instead of: ssh studentname@server.university.edu
+ssh cluster               # Connect to HPC cluster with GUI support
 ```
-to generate a pair of public and private keys, which will be stored in the `~/.ssh` folder on the local machine.
-After setting up the keys, you can copy the public key to the remote machine by typing
+
+=== Password-Free Authentication
+
+SSH keys provide secure, password-free authentication:
+
+*Step 1: Generate SSH key pair*
 ```bash
-ssh-copy-id amat5315
+ssh-keygen -t rsa -b 4096 -C "your.email@example.com"
+# Press Enter to accept default location (~/.ssh/id_rsa)
+# Optionally set a passphrase for extra security
 ```
-Try connecting to the remote machine again, and you will notice that entering the password is no longer necessary.
 
-== How does an SSH key pair work?
+*Step 2: Copy public key to remote server*
+```bash
+ssh-copy-id myserver      # Using config alias
+# OR
+ssh-copy-id user@hostname # Direct connection
+```
 
-The SSH key pair consists of two asymmetric keys: a public key (or lock) and a private key. In the example above, the public key is uploaded to the remote machine, while the private key remains securely stored on your local machine. The public key can be shared freely, but the private key must remain confidential.
+*Step 3: Test the connection*
+```bash
+ssh myserver              # Should connect without password prompt
+```
+
+*Bonus: Managing multiple keys*
+```bash
+ssh-keygen -t rsa -f ~/.ssh/work_key     # Create specific key for work
+ssh-keygen -t rsa -f ~/.ssh/personal_key # Separate key for personal use
+```
+
+== Understanding SSH Key Cryptography
+
+SSH uses *public-key cryptography* (also called asymmetric cryptography) for secure authentication. This system involves two mathematically related keys:
+
+- *Public Key*: Can be shared freely and is stored on remote servers
+- *Private Key*: Must be kept secure on your local machine
+
+*The Security Principle:*
+Data encrypted with the public key can only be decrypted with the corresponding private key. This allows servers to verify your identity without you having to send your password over the network.
 
 #align(center, canvas(length: 0.8cm, {
   import draw: *
@@ -177,10 +298,29 @@ The SSH key pair consists of two asymmetric keys: a public key (or lock) and a p
   content("third.mid", box(fill: white, inset: 5pt, s[Decrypted\ Message]))
 }))
 
-When connecting to a server, the server needs to verify your identity. It does this by checking if you possess the private key that matches the public key stored on the server. If you have the correct private key, access is granted.
+*How SSH Key Authentication Works:*
 
-The core principle of the SSH key pair is that the *public key can encrypt a message that only the private key can decrypt*. Think of the public key as a lock and the private key as the key to unlock it. This forms the basis of the SSH protocol. The server can send you a message encrypted with your public key, and only you can decrypt it with your private key. This ensures the server knows you have the private key without needing to send it.
+1. *Setup Phase:* Your public key is installed on the remote server (in `~/.ssh/authorized_keys`)
+2. *Connection Phase:* When you attempt to connect, the server challenges you
+3. *Verification Phase:* The server sends an encrypted message using your public key
+4. *Authentication Phase:* Your SSH client decrypts the message with your private key and responds
+5. *Access Granted:* The server verifies the response and grants access
 
-= Resources
+*Security Benefits:*
+- *No password transmission* - Your password never travels over the network
+- *Unique authentication* - Each key pair is mathematically unique
+- *Revocable access* - Remove the public key from the server to revoke access
+- *Multiple key support* - Different keys for different purposes (work, personal, etc.)
 
-- #link("https://missing.csail.mit.edu/")[MIT Open Course: The Missing Semester of Your CS Education]
+*Analogy:* Think of the public key as a special lock that you can copy and install anywhere. Only your private key (which stays with you) can unlock these locks. This way, you can prove your identity to any server that has your public key, without exposing your secret.
+
+= Additional Resources
+
+== Online Tutorials and Courses
+- #link("https://missing.csail.mit.edu/")[MIT: The Missing Semester of Your CS Education] - Comprehensive course covering terminal, vim, git, and more
+- #link("https://www.codecademy.com/learn/learn-the-command-line")[Codecademy: Learn the Command Line] - Interactive command-line tutorial
+- #link("https://linuxjourney.com/")[Linux Journey] - Step-by-step guide to learning Linux
+
+== Quick Reference
+- #link("https://www.cheatography.com/davechild/cheat-sheets/linux-command-line/")[Linux Command Line Cheat Sheet]
+- #link("https://vim.rtorr.com/")[Vim Cheat Sheet]

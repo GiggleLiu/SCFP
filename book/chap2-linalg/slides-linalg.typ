@@ -1,6 +1,7 @@
-#import "@preview/touying:0.4.2": *
-#import "@preview/touying-simpl-hkustgz:0.1.0" as hkustgz-theme
-#import "@preview/cetz:0.2.2": *
+#import "@preview/touying:0.6.1": *
+#import "@preview/touying-simpl-hkustgz:0.1.2": *
+#import "@preview/cetz:0.4.1": *
+#import "@preview/cetz-plot:0.1.2": plot
 #import "@preview/algorithmic:0.1.0"
 #import algorithmic: algorithm
 
@@ -24,30 +25,21 @@
   }
 }
 
-#let m = hkustgz-theme.register()
-
 #show raw.where(block: true): it=>{
   block(radius:4pt, fill:gray.transparentize(90%), inset:1em, width:99%, text(it))
 }
 
-// Global information configuration
-#let m = (m.methods.info)(
-  self: m,
-  title: [Matrix computation: Applications and basics],
-  subtitle: [],
-  author: [Jin-Guo Liu],
-  date: datetime.today(),
-  institution: [HKUST(GZ) - FUNH - Advanced Materials Thrust],
+#show: hkustgz-theme.with(
+  config-info(
+    title: [Matrix computation: Applications and basics],
+    subtitle: [],
+    author: [Jin-Guo Liu],
+    date: datetime.today(),
+    institution: [HKUST(GZ) - FUNH - Advanced Materials Thrust],
+  ),
 )
 
-// Extract methods
-#let (init, slides) = utils.methods(m)
-#show: init
-
-// Extract slide functions
-#let (slide, empty-slide, title-slide, outline-slide, new-section-slide, ending-slide) = utils.slides(m)
-#show: slides.with()
-
+#title-slide()
 #outline-slide()
 
 = Linear Equations
@@ -56,7 +48,7 @@
 #timecounter(1)
 
 Matrix computations @Golub2013. Cited by 85063 papers!
-#figure(image("images/golub.jpg", width: 150pt))
+#figure(image("images/golub.jpg", width: 150pt, alt: "Golub"))
 
 == Notations
 #timecounter(1)
@@ -126,7 +118,6 @@ Objective: Find a *smooth* curve that fits the data the *best*.
 ))
 
 #figure(canvas(length:0.9cm, {
-  import plot
   import draw: *
   let t = (0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5)
   let y = (2.9, 2.7, 4.8, 5.3, 7.1, 7.6, 7.7, 7.6, 9.4, 9.0)
@@ -292,6 +283,24 @@ Q: which one is more accurate? Hint: imagine we perform "$-$" operation on two v
 == Condition number
 #timecounter(2)
 
+For a general function $f: x arrow.r.long y = f(x)$, the *relative condition number* is defined as:
+
+$
+kappa_"rel"(f, x) = lim_(epsilon arrow.r 0) sup_(|delta x| <= epsilon |x|) frac(|f(x + delta x) - f(x)|\/|f(x)|, |delta x|\/|x|)
+$
+
+- _Interpretation_: $kappa_"rel"(f, x)$ measures how much the *relative error* in the output $y$ can be amplified compared to the *relative error* in the input $x$.
+
+- _Alternative definition_: If $f$ is differentiable, then
+$
+kappa_"rel"(f, x) = frac(|f'(x)| |x|, |f(x)|)
+$
+
+- _Remark_: A problem is well-conditioned if $kappa_"rel" approx O(1)$ and ill-conditioned if $kappa_"rel" >> 1$.
+
+== Condition number for linear system
+#timecounter(2)
+
 - _Condition number_ of a matrix $A$ is defined as $kappa(A) = ||A|| ||A^(-1)|| >=1$. If the condition number is close to 1, the matrix is _well-conditioned_, otherwise it is _ill-conditioned_.
 
 - _Remark_: there are two popular norms for matrices: the Frobenius norm and the $p$-norms. Here, we use the $p=2$ norm for simplicity.
@@ -372,7 +381,7 @@ where $Q in bb(C)^(m times min(m, n))$ is an orthogonal matrix (i.e. $Q^dagger Q
 #timecounter(2)
 Let $A = Q R$, the least squares problem $min_x ||A x - b||_2^2$ is equivalent to
 $
-  min_x ||Q R x - b||_2^2 = underbrace(min_y ||R x - Q^dagger b||_2^2, "zero") + ||Q^dagger_bot b||_2^2\
+  min_x ||Q R x - b||_2^2 = underbrace(min_x ||R x - Q^dagger b||_2^2, "zero") + ||Q^dagger_bot b||_2^2\
   arrow.double.r R x = Q^dagger b
 $
 where $Q^dagger_bot$ is the orthogonal complement of $Q^dagger$, i.e. $Q^dagger_bot Q = 0$ and $Q^dagger_bot Q^dagger = I$.
@@ -522,11 +531,39 @@ where $
         C = mat(-c, c, 0, dots, 0, 0; c, -2c, c, dots, 0, 0; dots.v, dots.v, dots.v, dots.down, dots.v, dots.v; 0, 0, 0, dots, 0, c; 0, 0, 0, dots, c, -c)
       $
 
-== Tasks
+== Goal
 Run and play with the simulation: https://github.com/GiggleLiu/ScientificComputingDemos/tree/main/SpringSystem
 
 1. Reproduce the following result:
-#figure(image("images/springs-demo.gif", width: 300pt))
+#figure(image("images/springs-demo.gif", width: 300pt, alt: "Spring chain"))
+
+== Step by step
+
+1. Clone this repository to your local machine:
+  ```bash
+  $ git clone https://github.com/GiggleLiu/ScientificComputingDemos.git
+  ```
+2. Initialize the environment first by running the following command in the terminal:
+  ```bash
+  $ dir=SpringSystem make init
+  ```
+
+==
+3. Run the demos by running the following command in the terminal:
+  ```bash
+  $ dir=SpringSystem make test
+  $ dir=SpringSystem make example
+  ```
+  `make test` is used to run the tests in the `SpringSystem` directory. `make example` is used to run the examples in the `SpringSystem` directory. The `SpringSystem` is the name of the directory where the demos are located. You can replace it with the name of the directory where the demos are located.
+
+
+== Homework task
+
+- Implement dual species spring chain, the mass is 1 on even sites and 2 on odd sites, stiffness constant is $C = 1$. The boundary condition is periodic.
+- Show the density of states at different energy with binned bar plot. The $x$-axis is the energy, the $y$-axis is the population.
+- Compare with the result of the single species spring chain.
+
+Ref: the `hist` function in CairoMakie: https://docs.makie.org/dev/reference/plots/hist
 
 ==
 

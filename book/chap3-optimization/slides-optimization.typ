@@ -1,7 +1,8 @@
-#import "@preview/touying:0.4.2": *
-#import "@preview/touying-simpl-hkustgz:0.1.0" as hkustgz-theme
-#import "@preview/cetz:0.2.2": canvas, draw, tree, vector, plot, decorations, coordinate
-#import "@preview/algorithmic:0.1.0"
+#import "@preview/touying:0.6.1": *
+#import "@preview/touying-simpl-hkustgz:0.1.2": *
+#import "@preview/cetz:0.4.1": canvas, draw, tree, vector, decorations, coordinate
+#import "@preview/cetz-plot:0.1.2": plot
+#import "@preview/algorithmic:1.0.3"
 #import "@preview/ctheorems:1.1.3": *
 #import algorithmic: algorithm
 #set math.mat(row-gap: 0.1em, column-gap: 0.7em)
@@ -21,29 +22,19 @@
 }
 #set cite(style: "apa")
 
-#let m = hkustgz-theme.register()
-
 #show raw.where(block: true): it=>{
   block(radius:4pt, fill:gray.transparentize(90%), inset:1em, width:99%, text(it))
 }
 
-// Global information configuration
-#let m = (m.methods.info)(
-  self: m,
-  title: [Mathematical Optimization],
-  subtitle: [Linear Programming and Integer Programming],
-  author: [Jin-Guo Liu],
-  date: datetime.today(),
-  institution: [HKUST(GZ) - FUNH - Advanced Materials Thrust],
+#show: hkustgz-theme.with(
+  config-info(
+    title: [Mathematical Optimization],
+    subtitle: [Linear Programming and Integer Programming],
+    author: [Jin-Guo Liu],
+    date: datetime.today(),
+    institution: [HKUST(GZ) - FUNH - Advanced Materials Thrust],
+  ),
 )
-
-// Extract methods
-#let (init, slides) = utils.methods(m)
-#show: init
-
-// Extract slide functions
-#let (slide, empty-slide, title-slide, outline-slide, new-section-slide, ending-slide) = utils.slides(m)
-#show: slides.with()
 
 #let bob(loc, rescale: 1, flip: false, label: none, words: none) = {
   import draw: *
@@ -65,6 +56,7 @@
 }
 
 
+#title-slide()
 #outline-slide()
 
 = Introduction to optimization
@@ -84,7 +76,7 @@
       y-label: none,
       x-tick-step: 2,
       y-tick-step: 2,
-      legend: "legend.north",
+      legend: "north",
       {
         plot.add(
           f1,
@@ -120,7 +112,7 @@
       y-label: none,
       x-tick-step: 2,
       y-tick-step: 10,
-      legend: "legend.north",
+      legend: "north",
       {
         plot.add(
           f2,
@@ -185,7 +177,7 @@ Q: Is the following feasible region convex?
 
 == Convex optimization problems are easy to solve
 
-#align(center, table(inset: 9pt,
+#align(center, table(inset: 5pt,
   columns: (auto, auto, auto, auto),
   table.header([*Julia Package*], [*Features*], [*Algorithms*], [*Applications*]),
   table.cell(fill:yellow)[#link("https://github.com/jump-dev/JuMP.jl", "JuMP.jl")\ @Dunning2017], table.cell(fill:yellow)[Mathematical optimization modeling], table.cell(fill:yellow)[Linear programming\ Integer programming\ SDP, etc.], table.cell(fill:yellow)[Combinatorial optimization, planning and scheduling],
@@ -194,6 +186,7 @@ Q: Is the following feasible region convex?
 ))
 
 = Linear Programming (LP)
+== Definition
 _Linear Programming_ deals with the problem of optimizing a
 - *linear objective function*
 - subject to *linear equality and inequality constraints*
@@ -240,7 +233,7 @@ $
 
 
 In Julia programming language, we can solve the integer programming problem by using #link("https://github.com/jump-dev/JuMP.jl", "JuMP") package.
-#figure(image("images/jump.png", width: 2cm))
+#figure(image("images/jump.png", width: 2cm, alt: "JuMP"))
 #figure(canvas(length: 1.8cm, {
   import draw: *
   bob((0, 0), rescale: 1, flip: true, words: box(stroke: black, inset: 10pt)[*Live coding*: the diet problem])
@@ -554,6 +547,7 @@ Please refer to the #link("https://jump.dev/JuMP.jl/stable/installation/#Support
 
 
 = Semidefinite Programming (SDP)
+==
 _Semidefinite programming_ is a generalization of linear programming. It is also a convex optimization problem, hence it is easy to solve.
 
 Recall that a symmetric matrix $A in bb(R)^(n times n)$ is positive semidefinite (PSD) if $x^T A x >= 0$ for all $x in bb(R)^n$. This property is equivalent to:
@@ -791,7 +785,7 @@ make run-example  # run the SrTiO3 example
 
 == SCIP: performance and parameter tuning
 
-#figure(image("images/ipbenchmark.png", width: 80%))
+#figure(image("images/ipbenchmark.png", width: 80%, alt: "IP benchmark"))
 
 The SCIP @Achterberg2009 is open source, licensed under the Apache License 2.0. It provides more freedom for parameter tuning: https://www.scipopt.org/doc/html/PARAMETERS.php
 

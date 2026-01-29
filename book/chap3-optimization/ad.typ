@@ -1,14 +1,13 @@
-#import "@preview/cetz:0.2.2": canvas, draw, tree
+#import "@preview/cetz:0.4.2": canvas, draw, tree
 #import "@preview/ctheorems:1.1.3": *
-#import "@preview/algorithmic:0.1.0"
+#import "@preview/algorithmic:1.0.3"
 #import algorithmic: algorithm
-#import "@preview/cetz:0.2.2": *
-#import "../book.typ": book-page
+//#import "../book.typ": book-page
 #import "images/treeverse.typ": visualize-treeverse
 
 #set math.equation(numbering: "(1)")
 
-#show: book-page.with(title: "Automatic differentiation")
+//#show: book-page.with(title: "Automatic differentiation")
 #show: thmrules
 
 #import "@preview/ouset:0.2.0": ouset
@@ -323,7 +322,7 @@ With these rules, the AD engines can focus on handling the computational graph.
   rect((10, 1), (14, -3), stroke: (dash: "dashed"), name: "ad-engines")
   content((12, 0), box(stroke: black, inset: 10pt, radius: 4pt, s[`Mooncake.jl`]), name: "Mooncake")
   content((12, -1.5), box(stroke: black, inset: 10pt, radius: 4pt, s[`Zygote.jl`]), name: "Zygote")
-  content((12, -2.5), s[`...`], name: "...")
+  content((12, -2.5), s[`...`])
   content((12, -3.3), s[AD Engines])
   line("core", "ad-engines", mark: (end: "straight"))
 }))
@@ -579,33 +578,33 @@ The answer is the binomial function $ eta(tau, delta) = ((tau + delta)!)/(tau!de
 
 #algorithm({
   import algorithmic: *
-  Function("Treeverse", args: ([$S$], [$overline(s_phi.alt)$], [$delta$], [$tau$], [$beta$], [$sigma$], [$phi.alt$]), {
-    If(cond: [$sigma > beta$], {
+  Function("Treeverse", ([$S$], [$overline(s_phi.alt)$], [$delta$], [$tau$], [$beta$], [$sigma$], [$phi.alt$]), {
+    If($sigma > beta$, {
       Assign([$delta$], [$delta - 1$])
-      Assign([$s$], [$S[beta] quad$ #Ic([Load initial state $s_beta$])])
-      For(cond: [$j = beta, beta+1, dots, sigma-1$], {
-        Assign([$s_(j+1)$], [$f_j(s_j) quad$ #Ic([Compute $s_sigma$])])
+      Assign([$s$], [$S[beta] quad$ #CommentInline([Load initial state $s_beta$])])
+      For($j = beta, beta+1, dots, sigma-1$, {
+        Assign([$s_(j+1)$], [$f_j(s_j) quad$ #CommentInline([Compute $s_sigma$])])
       })
       Assign([$S[sigma]$], [$s_sigma$])
     })
-    Cmt[Recursively call Treeverse with optimal split point $kappa$ (binomial distribution)]
-    While(cond: [$tau > 0$ and $kappa = "mid"(delta, tau, sigma, phi.alt) < phi.alt$], {
+    Comment[Recursively call Treeverse with optimal split point $kappa$ (binomial distribution)]
+    While($tau > 0 "and" kappa = "mid"(delta, tau, sigma, phi.alt) < phi.alt$, {
       Assign([$overline(s_kappa)$], [treeverse($S$, $overline(s_phi.alt)$, $delta$, $tau$, $sigma$, $kappa$, $phi.alt$)])
       Assign([$tau$], [$tau - 1$])
       Assign([$phi.alt$], [$kappa$])
     })
-    Assign([$overline(s_sigma)$], [$overline(f_sigma)(overline(s_(sigma+1)), s_sigma) quad$ #Ic([Use existing $s_sigma$ and $overline(s_phi.alt)$ to return gradient])])
+    Assign([$overline(s_sigma)$], [$overline(f_sigma)(overline(s_(sigma+1)), s_sigma) quad$ #CommentInline([Use existing $s_sigma$ and $overline(s_phi.alt)$ to return gradient])])
     
-    If(cond: [$sigma > beta$], {
-      State[remove($S[sigma]$)  $quad$ #Ic([Remove $s_sigma$ from cached state set])]
+    If($sigma > beta$, {
+      Line([remove($S[sigma]$)  $quad$ #CommentInline([Remove $s_sigma$ from cached state set])])
     })
     Return[$overline(s_sigma)$]
   })
 
-  Function("mid", args: ([$delta$], [$tau$], [$sigma$], [$phi.alt$]), {
-    Cmt[Select the binomial distribution split point]
+  Function("mid", ([$delta$], [$tau$], [$sigma$], [$phi.alt$]), {
+    Comment[Select the binomial distribution split point]
     Assign([$kappa$], [$ceil((delta sigma + tau phi.alt)/(tau+delta))$])
-    If(cond: [$kappa >= phi.alt$ and $delta > 0$], {
+    If($kappa >= phi.alt "and" delta > 0$, {
       Assign([$kappa$], [max($sigma+1$, $phi.alt-1$)])
     })
     Return[$kappa$]
@@ -662,16 +661,16 @@ The Adjoint State Method@Plessix2006 @Chen2018 is a specific method for reverse 
 #figure(
 align(left, algorithm({
   import algorithmic: *
-  Function("Adjoint-State-Method", args: ([$s_n$], [$s_0$], [$theta$], [$t_0$], [$t_n$], [$cal(L)$]), {
-    Cmt[Define the augmented dynamics function]
-    Function("aug_dynamics", args: ([$s$], [$a$], [$theta$]), {
+  Function("Adjoint-State-Method", ([$s_n$], [$s_0$], [$theta$], [$t_0$], [$t_n$], [$cal(L)$]), {
+    Comment[Define the augmented dynamics function]
+    Function("aug_dynamics", ([$s$], [$a$], [$theta$]), {
       Assign([$q$], [$f(s, t, theta)$])
       Return[$q$, $-a^T (diff q)/(diff s)$, $-a^T (diff q)/(diff theta)$]
     })
-    Cmt[Compute the initial state for the augmented dynamics function]
+    Comment[Compute the initial state for the augmented dynamics function]
     Assign([$S_n$], [$(s_n, (diff cal(L))/(diff s_n), 0)$])
-    Cmt[Perform reverse integration of the augmented dynamics]
-    Assign([$(s_0, (diff cal(L))/(diff s_0), (diff cal(L))/(diff theta))$], CallI("ODESolve", (smallcaps("aug_dynamics"), [$S_n$], [$theta$], [$t_n$], [$t_0$]).join(", ")))
+    Comment[Perform reverse integration of the augmented dynamics]
+    Assign([$(s_0, (diff cal(L))/(diff s_0), (diff cal(L))/(diff theta))$], CallInline("ODESolve", (smallcaps("aug_dynamics"), [$S_n$], [$theta$], [$t_n$], [$t_0$]).join(", ")))
     Return[$(diff cal(L))/(diff s_0)$, $(diff cal(L))/(diff theta)$]
   })
 })),
@@ -716,14 +715,11 @@ cases(
 $
 where $c$ is the wave propagation speed in the medium. The Perfectly Matched Layer (PML)@Berenger1994@Roden2000@Martin2008 is an accurate and reliable method for simulating wave motion in a medium. To simulate this dynamics in a finite size, the PML method introduces an absorbing layer to prevent boundary reflection effects. By introducing auxiliary fields and discretizing space and time, the above equation can be transformed into the following numerical computation process
 $
-cases(
-  u^(n+1)_(i,j) approx &(Delta t^2)/(1+(zeta_(1i)+zeta_(2j))Delta t/2) (
-    (2-zeta_(1i)zeta_(2j))u_(i,j)^n - (1-(zeta_(1i)+zeta_(2j))Delta t/2)/(Delta t^2)u^(n-1)_(i,j) + c_(i,j)^2(u_(i+1,j)^n-2u_(i,j)^n+u_(i-1,j)^n)/(Delta x^2)\ 
-    &+ c_(i,j)^2(u_(i,j+1)^n-2u_(i,j)^n+u_(i,j-1)^n)/(Delta y^2)
-    + ((phi.alt_x)_(i+1,j)-(phi.alt_x)_(i-1,j))/(2Delta x) + ((phi.alt_y)_(i,j+1)-(phi.alt_y)_(i,j-1))/(2Delta y) ),
-  (phi.alt_x)_(i,j)^(n+1) &= (1-Delta t zeta_(1i))(phi.alt_x)_(i,j)^n + Delta t c_(i,j)^2 (zeta_(1i)-zeta_(2j))(u_(i+1,j)-u_(i-1,j))/(2Delta x),
+u^(n+1)_(i,j) approx &(Delta t^2)/(1+(zeta_(1i)+zeta_(2j))Delta t/2) (
+    (2-zeta_(1i)zeta_(2j))u_(i,j)^n - (1-(zeta_(1i)+zeta_(2j))Delta t/2)/(Delta t^2)u^(n-1)_(i,j)\ &+ c_(i,j)^2(u_(i+1,j)^n-2u_(i,j)^n+u_(i-1,j)^n)/(Delta x^2) + c_(i,j)^2(u_(i,j+1)^n-2u_(i,j)^n+u_(i,j-1)^n)/(Delta y^2)\
+    &+ ((phi.alt_x)_(i+1,j)-(phi.alt_x)_(i-1,j))/(2Delta x) + ((phi.alt_y)_(i,j+1)-(phi.alt_y)_(i,j-1))/(2Delta y) ),\
+  (phi.alt_x)_(i,j)^(n+1) &= (1-Delta t zeta_(1i))(phi.alt_x)_(i,j)^n + Delta t c_(i,j)^2 (zeta_(1i)-zeta_(2j))(u_(i+1,j)-u_(i-1,j))/(2Delta x),\
   (phi.alt_y)_(i,j)^(n+1) &= (1-Delta t zeta_(2j))(phi.alt_y)_(i,j)^n + Delta t c_(i,j)^2 (zeta_(2j)-zeta_(1i))(u_(i,j+1)-u_(i,j-1))/(2Delta y)
-)
 $
 
 The first term here is an approximation because it ignores the contribution of the spatial gradient term of the medium propagation speed $c$ in the original equation. $zeta_1$ and $zeta_2$ are the attenuation coefficients in the $x$ and $y$ directions, respectively, and $phi.alt_x$ and $phi.alt_y$ are the $x$ and $y$ components of the introduced auxiliary fields, respectively. $Delta x$, $Delta y$, and $Delta t$ are the spatial and temporal discretization parameters, respectively. The detailed derivation of this equation can be found in the literature@Grote2010.
@@ -819,8 +815,6 @@ Furthermore, it is straightforward to prove that such $R^r$ is unique.
 
 (2) For QR decomposition with pivoting, we simply assume that the permutation matrix $P$ is a constant matrix.
 
-])
-
 The backward rules for QR decomposition are derived in multiple references, including @Hubig2019 and @Liao2019. To derive the backward rules, we first consider differentiating the QR decomposition
 @Seeger2017, @Liao2019
 
@@ -887,8 +881,8 @@ $
 &A = U S V^dagger,\ &V^dagger V = I,\ &U^dagger U = I,\ &S = "diag"(s_1, ..., s_n),
 $ <eq:svd>
 where the input $A$ is a complex matrix, the outputs $U$ is a unitary matrix, $S$ is a real diagonal matrix and $V$ is a unitary matrix. We also apply an extra constraint that the loss function $cal(L)$ is real and is invariant under the gauge transformation: $U arrow.r U Lambda$, $V arrow.r V Lambda$, where $Lambda$ is defined as $"diag"(e^(i phi_1), ..., e^(i phi_n))$.
-],
-[
+
+
 $
   overline(A) = &U(J + J^dagger) S V^dagger + (I-U U^dagger)overline(U)S^(-1)V^dagger,\
   &+ U S(K + K^dagger)V^dagger + U S^(-1) overline(V)^dagger (I - V V^dagger),\
@@ -896,7 +890,6 @@ $
   &+ 1/2 U (S^(-1) compose(U^dagger overline(U))-h.c.)V^dagger
 $ <eq:svd_loss_diff_full>
 where $J=F compose(U^dagger overline(U))$, $K=F compose(V^dagger overline(V))$ and $F_(i j) = cases( 1/(s_j^2-s_i^2) \, &i!=j, 0\, &i=j)$.
-])
 
 We start with the following two relation
 $

@@ -1,4 +1,5 @@
-#import "@preview/cetz:0.2.2": canvas, draw, tree, plot
+#import "@preview/cetz:0.4.1": canvas, draw, tree
+#import "@preview/cetz-plot:0.1.2": plot
 #import "@preview/ctheorems:1.1.3": *
 #import "@preview/ouset:0.2.0": ouset
 #import "../book.typ": book-page

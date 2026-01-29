@@ -1,7 +1,8 @@
-#import "@preview/touying:0.4.2": *
-#import "@preview/touying-simpl-hkustgz:0.1.0" as hkustgz-theme
-#import "@preview/cetz:0.2.2": canvas, draw, tree, vector, plot, decorations, coordinate
-#import "@preview/algorithmic:0.1.0"
+#import "@preview/touying:0.6.1": *
+#import "@preview/touying-simpl-hkustgz:0.1.2": *
+#import "@preview/cetz:0.4.1": canvas, draw, tree, vector, decorations, coordinate
+#import "@preview/cetz-plot:0.1.2": plot
+#import "@preview/algorithmic:1.0.3"
 #import "@preview/ctheorems:1.1.3": *
 #import "images/treeverse.typ": visualize-treeverse
 #import algorithmic: algorithm
@@ -22,29 +23,19 @@
 }
 #set cite(style: "apa")
 
-#let m = hkustgz-theme.register()
-
 #show raw.where(block: true): it=>{
   block(radius:4pt, fill:gray.transparentize(90%), inset:1em, width:99%, text(it))
 }
 
-// Global information configuration
-#let m = (m.methods.info)(
-  self: m,
-  title: [Automatic differentiation and checkpointing],
-  subtitle: [],
-  author: [Jin-Guo Liu],
-  date: datetime.today(),
-  institution: [HKUST(GZ) - FUNH - Advanced Materials Thrust],
+#show: hkustgz-theme.with(
+  config-info(
+    title: [Gradient-based optimization and automatic differentiation],
+    subtitle: [],
+    author: [Jin-Guo Liu],
+    date: datetime.today(),
+    institution: [HKUST(GZ) - FUNH - Advanced Materials Thrust],
+  ),
 )
-
-// Extract methods
-#let (init, slides) = utils.methods(m)
-#show: init
-
-// Extract slide functions
-#let (slide, empty-slide, title-slide, outline-slide, new-section-slide, ending-slide) = utils.slides(m)
-#show: slides.with()
 
 #let bob(loc, rescale: 1, flip: false, label: none, words: none) = {
   import draw: *
@@ -65,9 +56,13 @@
   }
 }
 
+#title-slide()
 #outline-slide()
 
+= Gradient-based optimization
+
 = Finite difference
+==
 The finite difference is a numerical method to approximate the derivative of a function.
 For a scalar function $f: RR arrow RR$, the second order (central) finite difference is given by:
 $ (partial f)/(partial x) = (f(x+Delta) - f(x-Delta))/(2Delta) + O(Delta^2), $
@@ -186,10 +181,12 @@ Q: How to represent `y = sin(x)^2 + cos(x)^2`?
 - _Forward mode AD_ presumes the scalar input. Given a program with scalar input $t$, we can denote the intermediate variables of the program as $bold(y)_i$, and their _derivatives_ as $dot(bold(y)_i) = (partial bold(y)_i)/(partial t)$.
 The _forward rule_ defines the transition between $bold(y)_i$ and $bold(y)_(i+1)$
 $
-dot(bold(y))_(i+1) = (diff bold(y)_(i+1))/(diff bold(y)_i) dot(bold(y))_i.
+dot(bold(y))_(i+1) = (partial bold(y)_(i+1))/(partial bold(y)_i) dot(bold(y))_i.
 $
-- _Remark_: In an automatic differentiation engine, the Jacobian matrix $(diff bold(y)_(i+1))/(diff bold(y)_i)$ is almost never computed explicitly in memory as it can be costly. Instead, the forward mode automatic differentiation can be implemented by overloading the function $f_i$ as
-$ f_i^("forward"): (bold(y)_i, dot(bold(y))_i) arrow.bar (bold(y)_(i+1), (diff bold(y)_(i+1))/(diff bold(y)_i) dot(bold(y))_i), $
+- _Remark_: In an automatic differentiation engine, the Jacobian matrix $(partial bold(y)_(i+1))/(partial bold(y)_i)$ is almost never computed explicitly in memory as it can be costly. Instead, the forward mode automatic differentiation can be implemented by overloading the function $f_i$ as
+$
+f_i^("forward"): (bold(y)_i, dot(bold(y))_i) arrow.bar (bold(y)_(i+1), (partial bold(y)_(i+1))/(partial bold(y)_i) dot(bold(y))_i)
+$
 
 == Example
 In Julia, the package `ForwardDiff.jl`@Revels2016 provides a function `gradient` to compute the gradient of a simple function $f(theta, r) = r cos theta sin theta$.
@@ -302,7 +299,7 @@ In many algorithms, we are only interested in Hessian vector product:
 - stochastic reconfiguration @Sorella1998 (or the Dirac-Frenkel variational principle @Raab2000)
 - Newton's method
 $
-  (diff^2 f)/(diff x^2)v = (diff ((diff f)/(diff x)v))/(diff x)
+  (partial^2 f)/(partial x^2)v = (partial ((partial f)/(partial x)v))/(partial x)
 $ <eq:hvp>
 - Obtaining the full Hessian matrix: $O(n)$ overhead ($n$ is the number of parameters).
 - Hessian vector product: $O(1)$ overhead.
@@ -328,9 +325,9 @@ $ <eq:hvp>
 
   content((rel: (-0.5, 0.2), to: "l1.mid"), s[$x$])
   content((rel: (0, 0.2), to: "l2.mid"), s[$f(x)$])
-  content((rel: (0.2, 0.2), to: "l3.mid"), s[$(diff f)/(diff x)$])
+  content((rel: (0.2, 0.2), to: "l3.mid"), s[$(partial f)/(partial x)$])
   content((rel: (0.2, -0.1), to: "l4.mid"), s[$v$])
-  content((rel: (0.3, 0.0), to: "l5.end"), s[$(diff f)/(diff x)v$])
+  content((rel: (0.3, 0.0), to: "l5.end"), s[$(partial f)/(partial x)v$])
 })) <fig:jacobian-vector>
 
 
@@ -390,7 +387,7 @@ In this example, the input is a complex number $z$, and the output is a real num
   rect((10, 1), (14, -3), stroke: (dash: "dashed"), name: "ad-engines")
   content((12, 0), box(stroke: black, inset: 10pt, radius: 4pt, s[`Mooncake.jl`]), name: "Mooncake")
   content((12, -1.5), box(stroke: black, inset: 10pt, radius: 4pt, s[`Zygote.jl`]), name: "Zygote")
-  content((12, -2.5), s[`...`], name: "...")
+  content((12, -2.5), s[`...`])
   content((12, -3.3), s[AD Engines])
   line("core", "ad-engines", mark: (end: "straight"))
 }))
@@ -615,33 +612,33 @@ $ eta(tau, delta) = ((tau + delta)!)/(tau!delta!). $
 ==
 #algorithm({
   import algorithmic: *
-  Function("Treeverse", args: ([$S$], [$overline(s_phi.alt)$], [$delta$], [$tau$], [$beta$], [$sigma$], [$phi.alt$]), {
-    If(cond: [$sigma > beta$], {
+  Function("Treeverse", ([$S$], [$overline(s_phi.alt)$], [$delta$], [$tau$], [$beta$], [$sigma$], [$phi.alt$]), {
+    If($sigma > beta$, {
       Assign([$delta$], [$delta - 1$])
-      Assign([$s$], [$S[beta] quad$ #Ic([Load initial state $s_beta$])])
-      For(cond: [$j = beta, beta+1, dots, sigma-1$], {
-        Assign([$s_(j+1)$], [$f_j(s_j) quad$ #Ic([Compute $s_sigma$])])
+      Assign([$s$], [$S[beta] quad$ #CommentInline([Load initial state $s_beta$])])
+      For($j = beta, beta+1, dots, sigma-1$, {
+        Assign([$s_(j+1)$], [$f_j(s_j) quad$ #CommentInline([Compute $s_sigma$])])
       })
       Assign([$S[sigma]$], [$s_sigma$])
     })
-    Cmt[Recursively call Treeverse with optimal split point $kappa$ (binomial distribution)]
-    While(cond: [$tau > 0$ and $kappa = "mid"(delta, tau, sigma, phi.alt) < phi.alt$], {
+    Comment[Recursively call Treeverse with optimal split point $kappa$ (binomial distribution)]
+    While($tau > 0 "and" kappa = "mid"(delta, tau, sigma, phi.alt) < phi.alt$, {
       Assign([$overline(s_kappa)$], [treeverse($S$, $overline(s_phi.alt)$, $delta$, $tau$, $sigma$, $kappa$, $phi.alt$)])
       Assign([$tau$], [$tau - 1$])
       Assign([$phi.alt$], [$kappa$])
     })
-    Assign([$overline(s_sigma)$], [$overline(f_sigma)(overline(s_(sigma+1)), s_sigma) quad$ #Ic([Use existing $s_sigma$ and $overline(s_phi.alt)$ to return gradient])])
+    Assign([$overline(s_sigma)$], [$overline(f_sigma)(overline(s_(sigma+1)), s_sigma) quad$ #CommentInline([Use existing $s_sigma$ and $overline(s_phi.alt)$ to return gradient])])
     
-    If(cond: [$sigma > beta$], {
-      State[remove($S[sigma]$)  $quad$ #Ic([Remove $s_sigma$ from cached state set])]
+    If($sigma > beta$, {
+      Line([remove($S[sigma]$)  $quad$ #CommentInline([Remove $s_sigma$ from cached state set])])
     })
     Return[$overline(s_sigma)$]
   })
 
-  Function("mid", args: ([$delta$], [$tau$], [$sigma$], [$phi.alt$]), {
-    Cmt[Select the binomial distribution split point]
+  Function("mid", ([$delta$], [$tau$], [$sigma$], [$phi.alt$]), {
+    Comment[Select the binomial distribution split point]
     Assign([$kappa$], [$ceil((delta sigma + tau phi.alt)/(tau+delta))$])
-    If(cond: [$kappa >= phi.alt$ and $delta > 0$], {
+    If($kappa >= phi.alt "and" delta > 0$, {
       Assign([$kappa$], [max($sigma+1$, $phi.alt-1$)])
     })
     Return[$kappa$]
@@ -692,11 +689,11 @@ where $sigma$, $rho$, and $beta$ are three control parameters.
 
 ==
 
-#figure(image("images/lorenz.gif"))
+#figure(image("images/lorenz.gif", alt: "Lorenz"))
 
 ==
 
-#figure(image("images/lorenz.png", width: 500pt))
+#figure(image("images/lorenz.png", width: 500pt, alt: "Lorenz"))
 
 - left: the gradient
 - right: the chaotic and non-chaotic Lorenz curve
@@ -713,9 +710,6 @@ $ make example-ADSeismic
   - Modify the number of checkpoints to see the effect. What is the minimum number of checkpoints?
   - Switch the AD engine to ForwardDiff.jl and compare the performance.
 
-==
-#bibliography("refs.bib")
-= Appendix
 == Differentiation of the Wave Propagation Equation
 Consider the propagation of the wave function $u(x_1, x_2, t)$ in a non-uniform two-dimensional medium governed by the following equation
 $ 
@@ -774,7 +768,7 @@ $ tr[A(C compose B)] = sum A^T compose C compose B = tr((C compose A^T)^T B) = t
 
 $ (C compose A)^T = C^T compose A^T $ <eq:transpose_compose>
 
-Let $cal(L)$ be a real function of a complex variable $x$, $ (diff cal(L))/(diff x^*) = ((diff cal(L))/(diff x))^* $ <eq:diff_complex>
+Let $cal(L)$ be a real function of a complex variable $x$, $ (partial cal(L))/(partial x^*) = ((partial cal(L))/(partial x))^* $ <eq:diff_complex>
 
 
 
@@ -810,12 +804,14 @@ $
 Considering a user-defined mapping $bold(F): RR^d times RR^n -> RR^d$ that encapsulates the optimality criteria of a given problem, an optimal solution, represented as $x(theta)$, is expected to satisfy the root condition of $bold(F)$ as follows:
 $ bold(F)(x^*(theta), theta) = 0 $ <eq-Ffunction>
 
-The function $x^*(theta): RR^n -> RR^d$ is implicitly defined. According to the implicit function theorem@Blondel2022, given a point $(x_0, theta_0)$ that satisfies $F(x_0, theta_0) = 0$ with a continuously differentiable function $bold(F)$, if the Jacobian $diff bold(F)/diff x$ evaluated at $(x_0, theta_0)$ forms a square invertible matrix, then there exists a function $x(dot)$ defined in a neighborhood of $theta_0$ such that $x^*(theta_0) = x_0$. Moreover, for all $theta$ in this neighborhood, it holds that $bold(F)(x^*(theta), theta) = 0$ and $(diff x^*)/(diff theta)$ exists. By applying the chain rule, the Jacobian $(diff x^*)/(diff theta)$ satisfies
+The function $x^*(theta): RR^n -> RR^d$ is implicitly defined. According to the implicit function theorem@Blondel2022, given a point $(x_0, theta_0)$ that satisfies $F(x_0, theta_0) = 0$ with a continuously differentiable function $bold(F)$, if the Jacobian $partial bold(F)/partial x$ evaluated at $(x_0, theta_0)$ forms a square invertible matrix, then there exists a function $x(dot)$ defined in a neighborhood of $theta_0$ such that $x^*(theta_0) = x_0$. Moreover, for all $theta$ in this neighborhood, it holds that $bold(F)(x^*(theta), theta) = 0$ and $(partial x^*)/(partial theta)$ exists. By applying the chain rule, the Jacobian $(partial x^*)/(partial theta)$ satisfies
 
-$ (diff bold(F)(x^*, theta))/(diff x^*) (diff x^*)/(diff theta) + (diff bold(F)(x^*, theta))/(diff theta) = 0 $
+$ (partial bold(F)(x^*, theta))/(partial x^*) (partial x^*)/(partial theta) + (partial bold(F)(x^*, theta))/(partial theta) = 0 $
 
-Computing $diff x^* / diff theta$ entails solving the system of linear equations expressed as
+Computing $partial x^* / partial theta$ entails solving the system of linear equations expressed as
 
-$ underbrace((diff bold(F)(x^*, theta))/(diff x^*), "V" in RR^(d times d)) underbrace((diff x^*)/(diff theta), "J" in RR^(d times n)) = -underbrace((diff bold(F)(x^*, theta))/(diff theta), "P" in RR^(d times n)) $ <eq-implicit-linear-equation>
+$ underbrace((partial bold(F)(x^*, theta))/(partial x^*), "V" in RR^(d times d)) underbrace((partial x^*)/(partial theta), "J" in RR^(d times n)) = -underbrace((partial bold(F)(x^*, theta))/(partial theta), "P" in RR^(d times n)) $ <eq-implicit-linear-equation>
 
 Therefore, the desired Jacobian is given by $J = V^(-1)P$. In many practical situations, explicitly constructing the Jacobian matrix is unnecessary. Instead, it suffices to perform left-multiplication or right-multiplication by $V$ and $P$. These operations are known as the vector-Jacobian product (VJP) and the Jacobian-vector product (JVP), respectively. They are valuable for determining $x(theta)$ using reverse-mode and forward-mode automatic differentiation (AD), respectively.
+
+#bibliography("refs.bib")

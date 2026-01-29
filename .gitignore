@@ -1,6 +1,7 @@
-dist
+dist/
 Manifest.toml
 .DS_Store
 *.swp
 .vscode/
 *.pdf
+book/chap3-optimization/codes/*.png

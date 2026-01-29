@@ -1,4 +1,4 @@
-#import "@preview/shiroa:0.1.2": *
+#import "@local/shiroa:0.3.0": *
 
 #show: book
 
@@ -15,7 +15,7 @@
     #chapter("chap1-julia/julia-setup.typ")[Setup Julia]
     #chapter("chap1-julia/julia-basic.typ")[Julia Basic]
     #chapter("chap1-julia/julia-release.typ")[My First Package]
-    #chapter("chap1-julia/gpu.typ")[Arrays and GPU Programming]
+    #chapter("chap1-julia/gpu.typ")[GPU Programming]
     = Matrices and tensors
     #chapter("chap2-linalg/linalg.typ")[Matrix Computation]
     #chapter("chap2-linalg/linalg-advanced.typ")[Matrix Computation (Advanced Topics)]
@@ -24,6 +24,7 @@
     = Optimization
     #chapter("chap3-optimization/simulated-annealing.typ")[Simulated annealing]
     #chapter("chap3-optimization/linear_integer.typ")[Mathematical Optimization]
+    #chapter("chap3-optimization/gradient-optimization.typ")[Gradient-based optimization]
     #chapter("chap3-optimization/ad.typ")[Automatic differentiation]
     = Simulation
     #chapter("chap4-simulation/MCMC.typ")[Monte Carlo methods]

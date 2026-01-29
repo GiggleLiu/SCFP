@@ -1,27 +1,44 @@
 // This is important for shiroa to produce a responsive layout
 // and multiple targets.
-#import "@preview/shiroa:0.1.2": get-page-width, target, is-web-target, is-pdf-target, plain-text, templates
+#import "@local/shiroa:0.2.3": (
+  get-page-width, is-html-target, is-pdf-target, is-web-target, plain-text, shiroa-sys-target, templates,
+)
 #import templates: *
+
+/// The site theme to use. If we renders to static HTML, it is suggested to use `starlight`.
+/// otherwise, since `starlight` with dynamic SVG HTML is not supported, `mdbook` is used.
+/// The `is-html-target(exclude-wrapper: true)` is currently a bit internal so you shouldn't use it other place.
+#let web-theme = if is-html-target(exclude-wrapper: true) { "starlight" } else { "mdbook" }
+#let is-starlight-theme = web-theme == "starlight"
 
 // Metadata
 #let page-width = get-page-width()
+#let is-html-target = is-html-target()
 #let is-pdf-target = is-pdf-target()
 #let is-web-target = is-web-target()
+#let sys-is-html-target = ("target" in dictionary(std))
 
 // Theme (Colors)
+#let themes = theme-box-styles-from(toml("theme-style.toml"), read: it => read(it))
 #let (
-  style: theme-style,
-  is-dark: is-dark-theme,
-  is-light: is-light-theme,
-  main-color: main-color,
-  dash-color: dash-color,
-  code-extra-colors: code-extra-colors,
-) = book-theme-from(toml("theme-style.toml"), xml: it => xml(it))
+  default-theme: (
+    style: theme-style,
+    is-dark: is-dark-theme,
+    is-light: is-light-theme,
+    main-color: main-color,
+    dash-color: dash-color,
+    code-extra-colors: code-extra-colors,
+  ),
+) = themes;
+#let (
+  default-theme: default-theme,
+) = themes;
+#let theme-box = theme-box.with(themes: themes)
 
 // Fonts
 #let main-font = (
-  "Charter",
-  "Source Han Serif SC",
+  "DejaVu Serif",
+  "WenQuanYi Zen Hei",
   // "Source Han Serif TC",
   // shiroa's embedded font
   "Libertinus Serif",
@@ -39,17 +56,25 @@
   10.5pt
 }
 #let heading-sizes = if is-web-target {
-  (31.5pt, 27.5pt, 19.5pt, 17.5pt, main-size)
+  (2, 1.5, 1.17, 1, 0.83).map(it => it * main-size)
 } else {
   (26pt, 22pt, 14pt, 12pt, main-size)
 }
 #let list-indent = 0.5em
 
+// Put your custom CSS here.
+#let extra-css = ```css
+.site-title {
+  font-size: 1.2rem;
+  font-weight: 600;
+  font-style: italic;
+}
+```
+
 /// The project function defines how your document looks.
 /// It takes your content and some metadata and formats it.
 /// Go ahead and customize it to your liking!
-#let project(title: "Typst Book", authors: (), kind: "page", body) = {
-
+#let project(title: "Typst Book", description: none, authors: (), kind: "page", plain-body) = {
   // set basic document metadata
   set document(
     author: authors,
@@ -59,8 +84,9 @@
   // set web/pdf page properties
   set page(
     numbering: none,
+    number-align: center,
     width: page-width,
-  )
+  ) if not (sys-is-html-target or is-html-target)
 
   // remove margins for web target
   set page(
@@ -76,7 +102,20 @@
       rest: 0pt,
     ),
     height: auto,
-  ) if is-web-target
+  ) if is-web-target and not is-html-target
+
+  let common = (
+    web-theme: web-theme,
+  )
+
+  show: template-rules.with(
+    book-meta: include "../book.typ",
+    title: title,
+    description: description,
+    plain-body: plain-body,
+    extra-assets: (extra-css,),
+    ..common,
+  )
 
   // Set main text
   set text(
@@ -85,19 +124,6 @@
     fill: main-color,
     lang: "en",
   )
-
-  // Set main spacing
-  set enum(
-    indent: list-indent * 0.618,
-    body-indent: list-indent,
-  )
-  set list(
-    indent: list-indent * 0.618,
-    body-indent: list-indent,
-  )
-  set par(leading: 0.7em)
-  set block(spacing: 0.7em * 1.5)
-
   // Set text, spacing for headings
   // Render a dash to hint headings instead of bolding it as well if it's for web.
   // show heading: set text(weight: "regular") if is-web-target
@@ -109,7 +135,6 @@
       // }
       it
     }
-
     block(
       spacing: 0.7em * 1.5 * 1.2,
       below: 0.7em * 1.2,
@@ -117,58 +142,23 @@
     )
   }
 
-  // link setting
-  show link: set text(fill: dash-color)
-
+  // markup setting
+  show: markup-rules.with(
+    ..common,
+    themes: themes,
+    heading-sizes: heading-sizes,
+    list-indent: list-indent,
+    main-size: main-size,
+  )
   // math setting
-  show math.equation: set text(weight: 400)
-
+  show: equation-rules.with(..common, theme-box: theme-box)
   // code block setting
-  show raw: it => {
-    set text(font: code-font)
-    if "block" in it.fields() and it.block {
-      block(
-        width: 100%,
-        inset: (x: 4pt, y: 5pt),
-        radius: 4pt,
-        fill: code-extra-colors.bg,
-        [
-          #set text(fill: code-extra-colors.fg) if code-extra-colors.fg != none
-          #set par(justify: false)
-          // #place(right, text(luma(110), it.lang))
-          #it
-        ],
-      )
-    } else {
-      it
-    }
-  }
-
-  show raw.where(lang: "output"): it => {
-    set text(font: code-font)
-    if "block" in it.fields() and it.block {
-      block(
-        width: 100%,
-        inset: (x: 4pt, y: 5pt),
-        radius: 4pt,
-        fill: code-extra-colors.bg.lighten(50%),
-        [
-          #set text(fill: code-extra-colors.fg) if code-extra-colors.fg != none
-          #set par(justify: false)
-          // #place(right, text(luma(110), it.lang))
-          #it
-        ],
-      )
-    } else {
-      it
-    }
-  }
-
+  show: code-block-rules.with(..common, themes: themes, code-font: code-font)
 
   // Main body.
   set par(justify: true)
 
-  body
+  plain-body
 }
 
 #let part-style = heading
