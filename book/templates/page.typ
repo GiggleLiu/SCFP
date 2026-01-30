@@ -1,6 +1,6 @@
 // This is important for shiroa to produce a responsive layout
 // and multiple targets.
-#import "@preview/shiroa:0.3.1": (
+#import "@preview/shiroa:0.2.0": (
   get-page-width, is-html-target, is-pdf-target, is-web-target, plain-text, shiroa-sys-target, templates,
 )
 #import templates: *
@@ -74,7 +74,7 @@
 /// The project function defines how your document looks.
 /// It takes your content and some metadata and formats it.
 /// Go ahead and customize it to your liking!
-#let project(title: "Typst Book", description: auto, authors: (), kind: "page", plain-body) = {
+#let project(title: "Typst Book", description: none, authors: (), kind: "page", plain-body) = {
   // set basic document metadata
   set document(
     author: authors,
