@@ -32,7 +32,7 @@ jobs:
           mkdir -p assets/fonts/
           curl -L https://github.com/Myriad-Dreamin/shiroa/releases/download/v0.1.2/font-assets.tar.gz | tar -xvz -C assets/fonts
       - name: Install Rust
-        uses: dtolnay/rust-action@stable
+        uses: dtolnay/rust-toolchain@stable
       - name: Build & install shiroa from main
         run: |
           cargo install --git https://github.com/Myriad-Dreamin/shiroa --locked shiroa
