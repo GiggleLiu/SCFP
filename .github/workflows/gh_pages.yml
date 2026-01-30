@@ -45,7 +45,7 @@ jobs:
       - name: Build Book
         timeout-minutes: 15
         run: |
-          shiroa build --font-path ./assets/typst-fonts/ --font-path ./assets/fonts/ --path-to-root / -w . book
+          shiroa build --mode dyn-paged --font-path ./assets/typst-fonts/ --font-path ./assets/fonts/ --path-to-root / -w . book
       - name: Setup Pages
         uses: actions/configure-pages@v5
       - name: Upload artifact
