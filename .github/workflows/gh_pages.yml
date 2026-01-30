@@ -31,20 +31,9 @@ jobs:
         run: |
           mkdir -p assets/fonts/
           curl -L https://github.com/Myriad-Dreamin/shiroa/releases/download/v0.1.2/font-assets.tar.gz | tar -xvz -C assets/fonts
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
-      - name: Cache cargo
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-          key: ${{ runner.os }}-cargo-shiroa-${{ hashFiles('.github/workflows/gh_pages.yml') }}
-      - name: Build & install shiroa from main
+      - name: Download & install shiroa v0.3.1-rc4
         run: |
-          cargo install --git https://github.com/Myriad-Dreamin/shiroa --locked shiroa
+          curl --proto '=https' --tlsv1.2 -LsSf https://github.com/Myriad-Dreamin/shiroa/releases/download/v0.3.1-rc4/shiroa-installer.sh | sh
       - name: Build Book
         timeout-minutes: 15
         run: |
