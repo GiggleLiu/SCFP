@@ -74,7 +74,7 @@
 /// The project function defines how your document looks.
 /// It takes your content and some metadata and formats it.
 /// Go ahead and customize it to your liking!
-#let project(title: "Typst Book", description: none, authors: (), kind: "page", plain-body) = {
+#let project(title: "Typst Book", description: auto, authors: (), kind: "page", plain-body) = {
   // set basic document metadata
   set document(
     author: authors,
