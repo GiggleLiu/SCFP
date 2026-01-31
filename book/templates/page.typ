@@ -69,6 +69,9 @@
   font-weight: 600;
   font-style: italic;
 }
+.shiroa-heading-hash {
+  display: none;
+}
 ```
 
 /// The project function defines how your document looks.
