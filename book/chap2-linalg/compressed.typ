@@ -1,5 +1,5 @@
-//#import "../book.typ": book-page, cross-link, heading-reference
-//#show: book-page.with(title: "Compressed Sensing")
+#import "../book.typ": book-page, cross-link, heading-reference
+#show: book-page.with(title: "Compressed Sensing")
 #import "@preview/cetz:0.4.1"
 
 #align(center, [= Compressed Sensing and Restricted Boltzmann Machines\

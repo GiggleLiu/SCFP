@@ -2,12 +2,12 @@
 #import "@preview/ctheorems:1.1.3": *
 #import "@preview/algorithmic:1.0.3"
 #import algorithmic: algorithm
-//#import "../book.typ": book-page
+#import "../book.typ": book-page
 #import "images/treeverse.typ": visualize-treeverse
 
 #set math.equation(numbering: "(1)")
 
-//#show: book-page.with(title: "Automatic differentiation")
+#show: book-page.with(title: "Automatic differentiation")
 #show: thmrules
 
 #import "@preview/ouset:0.2.0": ouset

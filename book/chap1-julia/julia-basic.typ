@@ -1,5 +1,5 @@
-//#import "../book.typ": book-page, cross-link
-//#show: book-page.with(title: "Julia Basic")
+#import "../book.typ": book-page, cross-link
+#show: book-page.with(title: "Julia Basic")
 #import "@preview/cetz:0.4.1": *
 #import "@preview/algorithmic:1.0.3"
 #import algorithmic: algorithm
