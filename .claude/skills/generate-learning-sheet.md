@@ -20,32 +20,20 @@ Generate a comprehensive learning sheet for the specified chapter from Scientifi
    - Any specific exercises or topics to emphasize?
    - Target audience level (beginner/intermediate/advanced)?
 
-## Chapter Structure Reference
+## Course Structure Reference
 
-The SCFP book has these chapters organized by topic:
+Refer to `syllabus/syllabus.typ` for the complete course structure, which includes:
+- 13-week course arrangement with 4 modules
+- Learning objectives for each week
+- Chapter mappings and prerequisites
+- Assessment structure
 
-### Julia Programming
-- `terminal.typ` - Terminal Environment
-- `git.typ` - Version Control
-- `julia-setup.typ` - Setup Julia
-- `julia-basic.typ` - Julia Basic
-- `julia-release.typ` - My First Package
-- `gpu.typ` - GPU Programming
-
-### Matrices and Tensors
-- `linalg.typ` - Matrix Computation
-- `linalg-advanced.typ` - Matrix Computation (Advanced)
-- `sparse.typ` - Sparse Matrices and Graphs
-- `tensor-network.typ` - Tensor Networks
-
-### Optimization
-- `simulated-annealing.typ` - Simulated Annealing
-- `linear_integer.typ` - Mathematical Optimization
-- `gradient-optimization.typ` - Gradient-based Optimization
-- `ad.typ` - Automatic Differentiation
-
-### Simulation
-- `MCMC.typ` - Monte Carlo Methods
+The syllabus organizes chapters into:
+- **Module 1 (Weeks 1-3):** Programming Foundations
+- **Module 2 (Weeks 4-6):** Numerical Linear Algebra
+- **Module 3 (Weeks 7-9):** Optimization
+- **Module 4 (Weeks 10-12):** Advanced Topics
+- **Week 13:** Capstone Projects
 
 ## Workflow
 
@@ -68,17 +56,22 @@ Prompt: |
   **Task**: Generate a learning sheet for chapter: {chapter_name}
 
   **Inputs to read first**:
-  1. Source chapter: Find and read the .typ file for {chapter_name} in book/chap*/
-  2. `book/book.typ` - Understand the chapter's place in the curriculum
-  3. Related chapters - Read prerequisite chapters if needed
-  4. `learning-sheets/` - Check existing learning sheets for style reference
+  1. `syllabus/syllabus.typ` - Find the week containing {chapter_name}, extract learning objectives
+  2. Source chapter: Find and read the .typ file for {chapter_name} in book/chap*/
+  3. `book/book.typ` - Understand the chapter's place in the curriculum
+  4. Related chapters - Read prerequisite chapters as specified in syllabus
+  5. `learning-sheets/` - Check existing learning sheets for style reference
+
+  **IMPORTANT**: Use the learning objectives from the syllabus as the basis for the learning sheet.
+  The syllabus contains detailed weekly objectives that should be reflected in the output.
 
   **Learning Sheet Structure**:
   The output file should contain these sections:
 
-  ### 1. Learning Objectives (5-8 bullet points)
-  - Clear, measurable objectives using action verbs (understand, implement, apply, analyze)
-  - Tied to specific skills or concepts from the chapter
+  ### 1. Learning Objectives
+  - Copy the learning objectives from `syllabus/syllabus.typ` for the relevant week
+  - These are already well-defined with action verbs (understand, implement, apply, analyze)
+  - Add any additional objectives specific to this learning sheet if needed
 
   ### 2. Prerequisites
   - List required knowledge from previous chapters
@@ -139,10 +132,16 @@ Prompt: |
 
   **Inputs**:
   1. `learning-sheets/{chapter_name}-learning-sheet.typ` - The file to review
-  2. Source chapter in `book/chap*/` - Verify content accuracy
-  3. Other learning sheets - Compare quality and style
+  2. `syllabus/syllabus.typ` - Verify learning objectives match the syllabus
+  3. Source chapter in `book/chap*/` - Verify content accuracy
+  4. Other learning sheets - Compare quality and style
 
   **Review Checklist**:
+
+  ### Syllabus Alignment
+  - [ ] Learning objectives match those in syllabus/syllabus.typ
+  - [ ] Prerequisites are correctly identified per syllabus
+  - [ ] Content scope matches syllabus week description
 
   ### Content Accuracy
   - [ ] All concepts match the source chapter
