@@ -69,9 +69,6 @@
   font-weight: 600;
   font-style: italic;
 }
-.shiroa-heading-hash {
-  display: none;
-}
 ```
 
 /// The project function defines how your document looks.
@@ -127,23 +124,6 @@
     fill: main-color,
     lang: "en",
   )
-  // Set text, spacing for headings
-  // Render a dash to hint headings instead of bolding it as well if it's for web.
-  // show heading: set text(weight: "regular") if is-web-target
-  show heading: it => {
-    let it = {
-      set text(size: heading-sizes.at(it.level))
-      // if is-web-target {
-      //   heading-hash(it, hash-color: dash-color)
-      // }
-      it
-    }
-    block(
-      spacing: 0.7em * 1.5 * 1.2,
-      below: 0.7em * 1.2,
-      it,
-    )
-  }
 
   // markup setting
   show: markup-rules.with(
@@ -157,6 +137,16 @@
   show: equation-rules.with(..common, theme-box: theme-box)
   // code block setting
   show: code-block-rules.with(..common, themes: themes, code-font: code-font)
+
+  // Override heading to remove hash symbol (must be after markup-rules)
+  show heading: it => {
+    set text(size: heading-sizes.at(it.level), weight: "regular")
+    block(
+      spacing: 0.7em * 1.5 * 1.2,
+      below: 0.7em * 1.2,
+      it,
+    )
+  }
 
   // Main body.
   set par(justify: true)
