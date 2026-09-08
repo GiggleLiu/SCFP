@@ -42,7 +42,7 @@ for i in 1:n   # first loop
   end
 end
 ```
-On any machine, whenever we double the size of the matrix, the number of operations will be $2^3 = 8$ times. So the big $O$ notation is a property of the algorithm, not the machine. To more accurately describe the performance of an algorithm, we can use the *flop* (floating-point operation) count. For example, the flop count of matrix multiplication is $2 n^3$, as we have $n^2$ multiplications and $n^2$ additions. The flop count considers the basic operations, including addition, subtraction, multiplication, and division.
+On any machine, whenever we double the size of the matrix, the number of operations will be $2^3 = 8$ times. So the big $O$ notation is a property of the algorithm, not the machine. To more accurately describe the performance of an algorithm, we can use the *flop* (floating-point operation) count. For example, the flop count of matrix multiplication is approximately $2 n^3$, as we have $n^3$ multiplications and approximately $n^3$ additions. The flop count considers the basic operations, including addition, subtraction, multiplication, and division.
 
 == Linear Systems and LU Decomposition
 Let $A in RR^(n times n)$ be an invertible square matrix and $b in RR^n$ be a vector. Solving a linear equation means finding a vector $x in RR^n$ such that
